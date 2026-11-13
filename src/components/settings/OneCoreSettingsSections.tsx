@@ -8,6 +8,7 @@ import {
   Container,
   Copy,
   Download,
+  ExternalLink,
   Laptop,
   Loader2,
   MessageCircle,
@@ -26,6 +27,7 @@ import type {
   AgentSkill,
   ExecutionEnvKind,
   GatewayPlatform,
+  FreeProviderKind,
   SettingsSectionId,
 } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -34,6 +36,41 @@ import { getUiTokens } from '../../utils/uiStyle';
 interface Props {
   section: SettingsSectionId;
 }
+
+const PROVIDER_LINKS: Partial<Record<FreeProviderKind, { label: string; url: string }>> = {
+  'deepseek-api': {
+    label: 'Войти и получить API-ключ',
+    url: 'https://platform.deepseek.com/api_keys',
+  },
+  'qwen-api': {
+    label: 'Войти и получить API-ключ',
+    url: 'https://bailian.console.aliyun.com/?tab=model#/api-key',
+  },
+  'openai-api': {
+    label: 'Войти и получить API-ключ',
+    url: 'https://platform.openai.com/api-keys',
+  },
+  'openrouter-free': {
+    label: 'Войти и получить API-ключ',
+    url: 'https://openrouter.ai/keys',
+  },
+  'groq-free': {
+    label: 'Войти и получить API-ключ',
+    url: 'https://console.groq.com/keys',
+  },
+  'llama-cpp': {
+    label: 'Открыть страницу проекта',
+    url: 'https://github.com/ggml-org/llama.cpp/releases',
+  },
+  ollama: {
+    label: 'Открыть сайт Ollama',
+    url: 'https://ollama.com/download',
+  },
+  lmstudio: {
+    label: 'Открыть сайт LM Studio',
+    url: 'https://lmstudio.ai/',
+  },
+};
 
 export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
   const {
@@ -147,6 +184,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {freeProviders.map((prov) => {
               const isActive = prov.id === activeProviderId;
+              const providerLink = PROVIDER_LINKS[prov.kind];
               return (
                 <div
                   key={prov.id}
@@ -185,6 +223,22 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                   <p className="text-[11.5px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
                     {prov.description}
                   </p>
+
+                  {providerLink ? (
+                    <a
+                      href={providerLink.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      {providerLink.label}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : prov.kind === 'custom' ? (
+                    <p className="text-[11px] text-zinc-500">
+                      Для собственного сервера страница ключей зависит от его поставщика.
+                    </p>
+                  ) : null}
 
                   <div className="space-y-2">
                     <div>
