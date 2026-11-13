@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Bell,
+  Bot,
   CheckCheck,
   Download,
   Monitor,
@@ -11,6 +12,7 @@ import {
   Power,
   Sun,
 } from 'lucide-react';
+import { ModelMascot } from '../agent/ModelMascot';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import { cn } from '../../utils/cn';
@@ -18,6 +20,7 @@ import { getUiTokens } from '../../utils/uiStyle';
 
 export const TopHeader: React.FC = () => {
   const {
+    activeTab,
     setActiveTab,
     openSettingsSection,
     theme,
@@ -29,6 +32,16 @@ export const TopHeader: React.FC = () => {
     toggleServerPower,
     localModels,
     activeModelId,
+    roles,
+    activeRoleId,
+    setActiveRole,
+    agentActivity,
+    tokensPerSec,
+    chatVisibility,
+    freeProviders,
+    activeProviderId,
+    setActiveProvider,
+    updateFreeProvider,
     inferenceSettings,
     notifications,
     markAllNotificationsRead,
@@ -40,6 +53,9 @@ export const TopHeader: React.FC = () => {
   const { isInstallable, isInstalled, install } = usePWAInstall();
   const trayRef = useRef<HTMLDivElement>(null);
   const activeModel = localModels.find((m) => m.id === activeModelId);
+  const activeRole = roles.find((role) => role.id === activeRoleId) ?? roles[0];
+  const providers = [...freeProviders].sort((a, b) => a.name.localeCompare(b.name));
+  const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId) ?? freeProviders[0];
   const unreadCount = notifications.filter((n) => !n.read).length;
   const activeDownloads = localModels.filter((m) => m.status === 'downloading');
 
@@ -54,7 +70,7 @@ export const TopHeader: React.FC = () => {
   }, [trayOpen, setTrayOpen]);
 
   return (
-    <header className={cn('h-14 shrink-0 border-b px-5 flex items-center justify-between gap-8 relative z-30', tokens.headerBg)}>
+    <header className={cn('h-14 shrink-0 border-b px-2 md:px-5 flex items-center justify-between gap-2 md:gap-4 xl:gap-8 relative z-30', tokens.headerBg)}>
       <button
         type="button"
         onClick={() => setActiveTab('workstation')}
@@ -62,8 +78,101 @@ export const TopHeader: React.FC = () => {
         className="inline-flex items-center gap-2 font-display text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
         <img src="/onecore-ai-logo.png" alt="" className="h-8 w-8 rounded-lg object-cover" />
-        <span>ONE CORE AI</span>
+        <span className="hidden md:inline">ONE CORE AI</span>
       </button>
+
+      {activeTab === 'workstation' && chatVisibility.showToolbar && (
+        <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto py-1">
+          {chatVisibility.showMascot && activeRole && (
+            <>
+            <div className="hidden md:block w-40 shrink-0">
+              <ModelMascot
+                compact
+                status={serverStatus}
+                activity={agentActivity}
+                persona={activeRole.persona}
+                roleName={activeRole.name}
+                modelName={activeModel?.name || activeProvider?.selectedModel || ''}
+                tokensPerSec={tokensPerSec}
+                onClick={() => openSettingsSection('roles-pipeline')}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => openSettingsSection('roles-pipeline')}
+              aria-label={`Аватар агента, роль ${activeRole.name}`}
+              title={`ONE CORE AI · ${activeRole.name}`}
+              className="md:hidden w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200"
+            >
+              <Bot className="w-5 h-5" />
+            </button>
+            </>
+          )}
+
+          {activeProvider && (
+            <>
+              <select
+                aria-label="Провайдер модели"
+                title="Выбрать провайдера"
+                value={activeProviderId}
+                onChange={(event) => setActiveProvider(event.target.value)}
+                className="h-8 max-w-36 shrink-0 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] text-zinc-700 dark:text-zinc-200 rounded-md"
+              >
+                {providers.map((provider) => (
+                  <option key={provider.id} value={provider.id}>
+                    {provider.isLocal ? 'Локально' : 'Облако'} · {provider.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Модель провайдера"
+                title={activeProvider.selectedModel}
+                value={activeProvider.selectedModel}
+                onChange={(event) =>
+                  updateFreeProvider(activeProvider.id, { selectedModel: event.target.value })
+                }
+                className="h-8 max-w-40 shrink-0 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-mono text-zinc-700 dark:text-zinc-200 rounded-md"
+              >
+                {Array.from(new Set([activeProvider.selectedModel, ...activeProvider.availableModels])).map((model) => (
+                  <option key={model} value={model}>{model}</option>
+                ))}
+              </select>
+              {activeProvider.requiresKey && !activeProvider.apiKey.trim() && (
+                <button
+                  type="button"
+                  onClick={() => openSettingsSection('providers')}
+                  title="У облачного API-провайдера нужен ключ"
+                  className="h-8 px-2 shrink-0 border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300 rounded-md"
+                >
+                  Нужен ключ
+                </button>
+              )}
+            </>
+          )}
+
+          {chatVisibility.showRoleSwitcher && (
+            <div className="flex items-center gap-1 overflow-x-auto min-w-0">
+              {roles.map((role) => (
+                <button
+                  key={role.id}
+                  type="button"
+                  onClick={() => setActiveRole(role.id)}
+                  aria-pressed={role.id === activeRoleId}
+                  title={role.name}
+                  className={cn(
+                    'h-7 px-2 shrink-0 border text-[10px] font-medium rounded-md transition-colors',
+                    role.id === activeRoleId
+                      ? 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                      : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
+                  )}
+                >
+                  {role.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Install, Theme, Windows Tray & Primary Action */}
       <div className="flex items-center gap-2 shrink-0">

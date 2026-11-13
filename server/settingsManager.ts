@@ -99,6 +99,9 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
     typeof settings.appSettings.cloudFallbackKey !== 'string' ||
     !settings.githubAccess ||
     typeof settings.githubAccess.tokenInput !== 'string' ||
+    !Number.isInteger(settings.appNavigationWidth) ||
+    settings.appNavigationWidth < 220 ||
+    settings.appNavigationWidth > 380 ||
     !Array.isArray(settings.freeProviders) ||
     !Array.isArray(settings.gateways) ||
     settings.freeProviders.some(

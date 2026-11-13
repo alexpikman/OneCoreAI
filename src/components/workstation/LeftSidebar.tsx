@@ -3,34 +3,45 @@ import {
   Activity,
   BookOpen,
   Brain,
+  Container,
   ChevronDown,
   ChevronRight,
   Cpu,
-  FileCode,
   FilePlus2,
-  Folder,
   FolderCog,
+  FolderOpen,
   GitBranch,
   History,
+  Laptop,
+  ListTodo,
   MessageSquarePlus,
   Plus,
   RotateCcw,
   Search,
+  Server,
   Sparkles,
 } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { AgentMemoryKey, ProjectRecord } from '../../types/onecore';
+import type { AgentMemoryKey, ExecutionEnvKind, ProjectRecord } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
+import { ProjectFilesModal } from './ProjectFilesModal';
 import { ProjectModal } from './ProjectModal';
 
 type SidebarSectionTab = 'workspace' | 'learning';
+
+const ENV_META: { id: ExecutionEnvKind; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'local', label: 'Локально', icon: Laptop },
+  { id: 'ssh', label: 'SSH', icon: Server },
+  { id: 'docker', label: 'Docker', icon: Container },
+];
 
 export const LeftSidebar: React.FC = () => {
   const {
     projects,
     activeProjectId,
     projectLogs,
+    projectWorkspace,
     selectProject,
     createOrWriteProjectFile,
     runProjectGitAction,
@@ -48,6 +59,8 @@ export const LeftSidebar: React.FC = () => {
     setActiveTab,
     openSettingsSection,
     serverStatus,
+    executionEnv,
+    setActiveExecutionEnv,
     chatVisibility,
     uiStyle,
     skills,
@@ -67,10 +80,10 @@ export const LeftSidebar: React.FC = () => {
   const [newFileOpen, setNewFileOpen] = useState(false);
   const [newFilePath, setNewFilePath] = useState('');
   const [newFileContent, setNewFileContent] = useState('');
+  const [filesModalOpen, setFilesModalOpen] = useState(false);
   const [treeActionFeedback, setTreeActionFeedback] = useState<string | null>(null);
   const [logsExpanded, setLogsExpanded] = useState(false);
-
-  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({ '.': true });
+  const [tasksExpanded, setTasksExpanded] = useState(true);
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
 
@@ -83,7 +96,6 @@ export const LeftSidebar: React.FC = () => {
     return () => window.removeEventListener('onecore:open-project-modal', handler);
   }, []);
 
-  const folders = Array.from(new Set(files.map((f) => f.folder || '.')));
   const activeMemDoc = memoryDocs.find((m) => m.key === activeMemKey) ?? memoryDocs[0];
   const enabledSkillsCount = skills.filter((s) => s.enabled).length;
 
@@ -96,10 +108,6 @@ export const LeftSidebar: React.FC = () => {
         sess.messages.some((m) => m.content.toLowerCase().includes(q)),
     );
   }, [sessions, sessionQuery]);
-
-  const toggleFolder = (folder: string) => {
-    setOpenFolders((prev) => ({ ...prev, [folder]: !(prev[folder] ?? true) }));
-  };
 
   const handleCreateFile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +141,7 @@ export const LeftSidebar: React.FC = () => {
   };
 
   return (
-    <aside className={cn('w-full lg:w-[276px] xl:w-[296px] shrink-0 border-b lg:border-b-0 lg:border-r flex flex-col overflow-hidden', tokens.sidebarBg)}>
+    <div className={cn('flex-1 min-h-0 flex flex-col overflow-hidden', tokens.sidebarBg)}>
       {/* Segmented switcher: Workspace vs OneCore Skills & Memory */}
       {chatVisibility.showSkillsMemoryTab && (
         <div className="px-3 pt-2.5 pb-2 border-b border-zinc-200 dark:border-zinc-800/90">
@@ -274,8 +282,7 @@ export const LeftSidebar: React.FC = () => {
       ) : (
         <>
           {/* Section 1: Real Project Selector & File Tree */}
-          {chatVisibility.showProjectTree && (
-            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2">
+          <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
               <div className="flex items-center justify-between gap-1.5">
                 <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                   Проект
@@ -351,37 +358,73 @@ export const LeftSidebar: React.FC = () => {
 
               {activeProject && (
                 <>
-                  <div className="flex items-center justify-between gap-1 pt-0.5">
-                    <span className="font-mono text-[10.5px] text-zinc-500 tabular-nums">
-                      {files.length} файлов
-                    </span>
-                    <div className="flex items-center gap-1">
+                  {chatVisibility.showExecutionEnvBar && (
+                    <div className="grid grid-cols-3 gap-1 pt-1" aria-label="Среда выполнения">
+                      {ENV_META.map((env) => {
+                        const Icon = env.icon;
+                        const active = executionEnv.activeEnv === env.id;
+                        return (
+                          <button
+                            key={env.id}
+                            type="button"
+                            onClick={() => setActiveExecutionEnv(env.id)}
+                            title={env.label}
+                            aria-pressed={active}
+                            className={cn(
+                              'min-w-0 h-7 px-1 inline-flex items-center justify-center gap-1 border text-[10px] font-medium transition-colors',
+                              tokens.inputRadius,
+                              active
+                                ? tokens.activeHighlight
+                                : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
+                            )}
+                          >
+                            <Icon className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{env.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="space-y-1 pt-1">
+                    {chatVisibility.showProjectTree && (
+                      <button
+                        type="button"
+                        onClick={() => setFilesModalOpen(true)}
+                        className="w-full min-w-0 h-7 px-2 rounded border border-zinc-200 dark:border-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 hover:border-blue-500 inline-flex items-center gap-1.5"
+                      >
+                        <FolderOpen className="w-3 h-3 shrink-0" />
+                        <span className="truncate">Файлы проекта</span>
+                        <span className="ml-auto font-mono tabular-nums text-zinc-400">{files.length}</span>
+                      </button>
+                    )}
+                    <div className="flex items-center justify-end gap-1">
                       <button
                         type="button"
                         onClick={() => setNewFileOpen((v) => !v)}
                         title="Создать новый файл в папке проекта"
-                        className="px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 hover:border-blue-500 inline-flex items-center gap-1"
+                        aria-label="Создать новый файл"
+                        className="w-7 h-7 shrink-0 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-blue-500 inline-flex items-center justify-center"
                       >
-                        <FilePlus2 className="w-3 h-3" />
-                        <span>Файл</span>
+                        <FilePlus2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={handleQuickGitStatus}
                         title="Выполнить git status"
-                        className="px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 hover:border-blue-500 inline-flex items-center gap-1"
+                        aria-label="Проверить статус Git"
+                        className="w-7 h-7 shrink-0 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-blue-500 inline-flex items-center justify-center"
                       >
-                        <GitBranch className="w-3 h-3" />
-                        <span>Git</span>
+                        <GitBranch className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={handleQuickUndo}
                         title="Откатить последнее изменение (/undo)"
-                        className="px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-[10.5px] text-zinc-600 dark:text-zinc-300 hover:border-amber-500 inline-flex items-center gap-1"
+                        aria-label="Откатить последнее изменение"
+                        className="w-7 h-7 shrink-0 rounded border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:border-amber-500 inline-flex items-center justify-center"
                       >
-                        <RotateCcw className="w-3 h-3" />
-                        <span>Откат</span>
+                        <RotateCcw className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -427,66 +470,40 @@ export const LeftSidebar: React.FC = () => {
                     </div>
                   )}
 
-                  <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                    {files.length === 0 ? (
-                      <div className="text-[11px] text-zinc-500 py-2">
-                        Папка проекта пуста. Создайте файл или поставьте задачу в чате.
-                      </div>
-                    ) : (
-                      folders.map((folder) => {
-                        const isOpen = openFolders[folder] ?? true;
-                        const folderFiles = files.filter((f) => (f.folder || '.') === folder);
-
-                        return (
-                          <div key={folder}>
-                            <button
-                              type="button"
-                              onClick={() => toggleFolder(folder)}
-                              className="w-full flex items-center gap-1.5 px-1.5 py-1 rounded text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/60 transition-colors text-left"
-                            >
-                              {isOpen ? (
-                                <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                              ) : (
-                                <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                              )}
-                              <Folder className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
-                              <span className="font-mono text-[11.5px] truncate">{folder}</span>
-                            </button>
-
-                            {isOpen && (
-                              <div className="ml-4 mt-0.5 space-y-0.5">
-                                {folderFiles.map((file) => {
-                                  const active = selectedFilePath === file.path;
-                                  const modified = file.content !== file.originalContent;
-                                  return (
-                                    <button
-                                      key={file.path}
-                                      type="button"
-                                      onClick={() => selectFile(file.path, true)}
-                                      className={cn(
-                                        'w-full flex items-center justify-between gap-2 px-2 py-1 rounded text-xs transition-colors text-left',
-                                        active
-                                          ? 'bg-blue-600/10 text-blue-700 dark:text-blue-300 font-medium'
-                                          : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50',
-                                      )}
-                                    >
-                                      <span className="flex items-center gap-1.5 min-w-0">
-                                        <FileCode className="w-3.5 h-3.5 shrink-0 opacity-70" />
-                                        <span className="font-mono text-[11.5px] truncate">{file.name}</span>
-                                      </span>
-                                      <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400 shrink-0">
-                                        {modified ? 'M' : file.inContext ? 'CTX' : ''}
-                                      </span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                  {projectWorkspace.tasks.length > 0 && (
+                    <div className="pt-1 border-t border-zinc-200/70 dark:border-zinc-800/80">
+                      <button
+                        type="button"
+                        onClick={() => setTasksExpanded((expanded) => !expanded)}
+                        aria-expanded={tasksExpanded}
+                        className="w-full flex items-center justify-between gap-2 text-[11px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          <ListTodo className="w-3.5 h-3.5" />
+                          <span>Задачи</span>
+                          <span className="font-mono">({projectWorkspace.tasks.length})</span>
+                        </span>
+                        {tasksExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      </button>
+                      {tasksExpanded && (
+                        <div className="mt-1.5 space-y-1 max-h-28 overflow-y-auto">
+                          {projectWorkspace.tasks.map((task) => (
+                            <div key={task.id} className="flex items-start gap-1.5 text-[10.5px] text-zinc-600 dark:text-zinc-400">
+                              <span className={cn(
+                                'mt-1 w-1.5 h-1.5 rounded-full shrink-0',
+                                task.status === 'done'
+                                  ? 'bg-emerald-500'
+                                  : task.status === 'in-progress'
+                                    ? 'bg-blue-500'
+                                    : 'bg-zinc-400',
+                              )} />
+                              <span className="min-w-0 flex-1 break-words">{task.title}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Collapsible Action Log */}
                   <div className="pt-1 border-t border-zinc-200/70 dark:border-zinc-800/80">
@@ -520,7 +537,6 @@ export const LeftSidebar: React.FC = () => {
                 </>
               )}
             </div>
-          )}
 
           {/* Section 2: Local GGUF Models */}
           {chatVisibility.showLocalModels && (
@@ -688,6 +704,13 @@ export const LeftSidebar: React.FC = () => {
         editingProject={editingProject}
         onClose={() => setModalOpen(false)}
       />
-    </aside>
+      <ProjectFilesModal
+        open={filesModalOpen}
+        files={files}
+        selectedFilePath={selectedFilePath}
+        onClose={() => setFilesModalOpen(false)}
+        onSelectFile={(filePath) => void selectFile(filePath, true)}
+      />
+    </div>
   );
 };

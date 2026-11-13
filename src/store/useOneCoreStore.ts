@@ -118,6 +118,7 @@ interface OneCoreStore {
   theme: 'dark' | 'light';
   uiStyle: UiStylePreset;
   settingsSection: SettingsSectionId;
+  appNavigationWidth: number;
   chatVisibility: ChatVisibilitySettings;
   trayOpen: boolean;
 
@@ -223,6 +224,7 @@ interface OneCoreStore {
   setActiveTab: (tab: AppTab) => void;
   openSettingsSection: (section: SettingsSectionId) => void;
   setSettingsSection: (section: SettingsSectionId) => void;
+  setAppNavigationWidth: (width: number) => void;
   saveSettings: () => Promise<{ ok: boolean; error?: string }>;
   refreshSettings: () => Promise<void>;
   setUiStyle: (style: UiStylePreset) => void;
@@ -388,6 +390,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   theme: 'dark',
   uiStyle: 'cline-vscode',
   settingsSection: 'ui-chat',
+  appNavigationWidth: 260,
   chatVisibility: FULL_CHAT_VISIBILITY,
   trayOpen: false,
 
@@ -970,6 +973,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   openSettingsSection: (section) => set({ activeTab: 'settings', settingsSection: section }),
   setSettingsSection: (section) => set({ settingsSection: section }),
+  setAppNavigationWidth: (width) =>
+    set({ appNavigationWidth: Math.max(220, Math.min(380, Math.round(width))) }),
   refreshSettings: async () => {
     try {
       const res = await fetch('/api/settings');
@@ -990,6 +995,10 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         theme: saved.theme,
         uiStyle: saved.uiStyle,
         settingsSection: saved.settingsSection,
+        appNavigationWidth:
+          typeof saved.appNavigationWidth === 'number' && Number.isFinite(saved.appNavigationWidth)
+            ? Math.max(220, Math.min(380, Math.round(saved.appNavigationWidth)))
+            : 260,
         chatVisibility: saved.chatVisibility,
         inferenceSettings: { ...state.inferenceSettings, ...saved.inferenceSettings },
         appSettings: saved.appSettings,
@@ -1029,6 +1038,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       theme: state.theme,
       uiStyle: state.uiStyle,
       settingsSection: state.settingsSection,
+      appNavigationWidth: state.appNavigationWidth,
       chatVisibility: state.chatVisibility,
       inferenceSettings: {
         gpuBackend: state.inferenceSettings.gpuBackend,

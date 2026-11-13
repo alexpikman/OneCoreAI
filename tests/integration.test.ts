@@ -91,6 +91,7 @@ test('settings can be saved and loaded from the local settings store', async () 
   const providerKey = 'provider-secret-for-settings-test';
   const gatewayToken = 'gateway-secret-for-settings-test';
   const settings = {
+    appNavigationWidth: 260,
     appSettings: { cloudFallbackKey: '' },
     githubAccess: { tokenInput: '' },
     freeProviders: [{ id: 'settings-test-provider', apiKey: providerKey }],
