@@ -542,7 +542,7 @@ export const LeftSidebar: React.FC = () => {
 
               {localModels.length === 0 ? (
                 <div className="text-[11px] text-zinc-500 py-1.5">
-                  Модели не загружены. Скачайте GGUF или импортируйте файл во вкладке «Модели GGUF».
+                  Модели не загружены. Скачайте GGUF или импортируйте файл во вкладке «Модели».
                 </div>
               ) : (
                 <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
@@ -665,8 +665,6 @@ export const LeftSidebar: React.FC = () => {
                         {sess.title}
                       </div>
                       <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
-                        <span>{sess.mode === 'plan' ? 'Plan' : 'Act'}</span>
-                        <span>·</span>
                         <span>{sess.updatedAt}</span>
                         <span>·</span>
                         <span className="tabular-nums">{sess.messages.length} сообщ.</span>

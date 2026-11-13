@@ -3,7 +3,11 @@ import { invoke } from '@tauri-apps/api/core';
 let backendUrl: Promise<string> | undefined;
 
 function isTauriRuntime(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) return false;
+  return (
+    window.location.protocol === 'tauri:' ||
+    window.location.hostname === 'tauri.localhost'
+  );
 }
 
 export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {

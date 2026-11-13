@@ -39,6 +39,10 @@ export function getProjectsManifestPath(): string {
   return path.join(ensureOneCoreDirs().home, 'projects.json');
 }
 
+export function getSettingsManifestPath(): string {
+  return path.join(ensureOneCoreDirs().home, 'settings.json');
+}
+
 export function getVaultPath(): string {
   return path.join(ensureOneCoreDirs().home, 'vault.enc.json');
 }

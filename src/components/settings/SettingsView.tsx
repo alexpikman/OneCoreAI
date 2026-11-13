@@ -11,14 +11,17 @@ import {
   KeyRound,
   Keyboard,
   LayoutGrid,
+  Loader2,
   MessageCircle,
   Palette,
   RefreshCw,
   RotateCcw,
+  Save,
   Server,
   Shield,
   Sliders,
   Sparkles,
+  UserCheck,
 } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type {
@@ -32,6 +35,7 @@ import { UI_STYLE_META, getUiTokens } from '../../utils/uiStyle';
 import { APP_VERSION } from '../../utils/appUpdates';
 import { OneCoreSettingsSections } from './OneCoreSettingsSections';
 import { SshGithubView } from './SshGithubView';
+import { RolesAndPipelineView } from '../roles/RolesAndPipelineView';
 
 interface VisibilityToggleGroup {
   title: string;
@@ -53,7 +57,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
     title: 'Правая панель инспектора',
     items: [
       { key: 'showRightInspector', label: 'Показывать правый инспектор целиком', hint: 'Расширяет область чтения кода и диффов' },
-      { key: 'showMascot', label: 'Анимированный SVG-персонаж', hint: 'Реагирует на генерацию и активную роль' },
+      { key: 'showMascot', label: 'Аватар агента в панели чата', hint: 'Реагирует на генерацию и активную роль' },
       { key: 'showTelemetry', label: 'Статус llama-server.exe и VRAM/RAM', hint: 'Кнопка Стоп/Запуск и индикаторы памяти' },
       { key: 'showFreeProviderCard', label: 'Селектор бесплатного провайдера ИИ', hint: 'Быстрое переключение llama.cpp / OpenRouter :free / Ollama' },
       { key: 'showInferenceControls', label: 'Параметры генерации (Temp, n_ctx, GPU)', hint: 'Быстрая настройка слоёв и контекста' },
@@ -64,10 +68,10 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   {
     title: 'Области потока чата (Cline-стиль)',
     items: [
-      { key: 'showToolbar', label: 'Верхняя панель инструментов (Plan / Act / Код)', hint: 'Переключение режима и выпадающий список Checkpoints' },
-      { key: 'showExecutionEnvBar', label: 'Переключатель среды (Локально / SSH / Docker)', hint: 'Выбор бэкенда выполнения команд в тулбаре' },
+      { key: 'showToolbar', label: 'Верхняя панель инструментов', hint: 'Переключение чата и просмотра кода, модель и инструменты' },
+      { key: 'showExecutionEnvBar', label: 'Переключатель среды (Локально / SSH / Docker)', hint: 'Выбор среды выполнения рядом с окном ввода' },
       { key: 'showTaskBanner', label: 'Панель задачи Cline (токены, прогресс, модель)', hint: 'Компактная строка состояния текущей задачи' },
-      { key: 'showMessageHeaders', label: 'Заголовки сообщений (модель, роль, режим)', hint: 'Автор, активная роль и бейдж Plan/Act' },
+      { key: 'showMessageHeaders', label: 'Заголовки сообщений (модель и роль)', hint: 'Автор, модель и активная роль' },
       { key: 'showTimestamps', label: 'Временные метки сообщений', hint: 'Время отправки HH:MM:SS' },
       { key: 'showReadFilesChips', label: 'Блоки прочитанных файлов (read_file)', hint: 'Список файлов, проанализированных агентом' },
       { key: 'showDiffBlocks', label: 'Встроенные Git-диффы (replace_in_file)', hint: 'Интерактивное принятие и откат изменений' },
@@ -85,16 +89,22 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   },
 ];
 
-const SETTINGS_TABS: { id: SettingsSectionId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'ui-chat', label: 'Интерфейс и области чата', icon: LayoutGrid },
-  { id: 'providers', label: 'Провайдеры ИИ', icon: Sparkles },
-  { id: 'skills-memory', label: 'Навыки, память и субагенты', icon: Brain },
-  { id: 'execution-env', label: 'Среды: Local / SSH / Docker', icon: Server },
-  { id: 'gateway', label: 'Шлюз мессенджеров', icon: MessageCircle },
-  { id: 'engine-paths', label: 'Движок, пути и профили', icon: Sliders },
-  { id: 'ssh-github', label: 'Доступ SSH и GitHub', icon: KeyRound },
-  { id: 'github-download', label: 'Скачивание с GitHub', icon: Download },
-  { id: 'updates', label: 'Обновления приложения', icon: RefreshCw },
+const SETTINGS_TABS: {
+  id: SettingsSectionId;
+  label: string;
+  group: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'providers', label: 'Провайдеры и API-модели', group: 'Настройка моделей', icon: Sparkles },
+  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'Настройка моделей', icon: Cpu },
+  { id: 'ui-chat', label: 'Интерфейс и области чата', group: 'Все настройки', icon: LayoutGrid },
+  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'Все настройки', icon: UserCheck },
+  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'Все настройки', icon: Brain },
+  { id: 'execution-env', label: 'Среды: Local / SSH / Docker', group: 'Все настройки', icon: Server },
+  { id: 'gateway', label: 'Шлюз мессенджеров', group: 'Все настройки', icon: MessageCircle },
+  { id: 'ssh-github', label: 'Доступ SSH и GitHub', group: 'Все настройки', icon: KeyRound },
+  { id: 'github-download', label: 'Скачивание с GitHub', group: 'Все настройки', icon: Download },
+  { id: 'updates', label: 'Обновления приложения', group: 'Все настройки', icon: RefreshCw },
 ];
 
 export const SettingsView: React.FC = () => {
@@ -117,6 +127,10 @@ export const SettingsView: React.FC = () => {
     updateCheckError,
     checkForUpdates,
     setActiveTab,
+    saveSettings,
+    settingsSaveStatus,
+    settingsSavedAt,
+    settingsError,
   } = useOneCoreStore();
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -154,22 +168,31 @@ export const SettingsView: React.FC = () => {
           {SETTINGS_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = settingsSection === tab.id;
+            const groupStart =
+              SETTINGS_TABS.findIndex((entry) => entry.id === tab.id) === 0 ||
+              SETTINGS_TABS[SETTINGS_TABS.findIndex((entry) => entry.id === tab.id) - 1]?.group !== tab.group;
             return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSettingsSection(tab.id)}
-                className={cn(
-                  'px-3 py-2.5 text-left text-xs font-medium flex items-center gap-2.5 border transition-colors whitespace-nowrap shrink-0',
-                  tokens.cardRadius,
-                  active
-                    ? tokens.activeHighlight
-                    : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200',
+              <React.Fragment key={tab.id}>
+                {groupStart && (
+                  <div className="hidden lg:block pt-2 first:pt-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                    {tab.group}
+                  </div>
                 )}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{tab.label}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSection(tab.id)}
+                  className={cn(
+                    'px-3 py-2.5 text-left text-xs font-medium flex items-center gap-2.5 border transition-colors whitespace-nowrap shrink-0',
+                    tokens.cardRadius,
+                    active
+                      ? tokens.activeHighlight
+                      : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200',
+                  )}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{tab.label}</span>
+                </button>
+              </React.Fragment>
             );
           })}
         </nav>
@@ -196,6 +219,31 @@ export const SettingsView: React.FC = () => {
 
       {/* Right Settings Content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="sticky top-0 z-10 px-6 py-2 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/95 dark:bg-[#09090B]/95 backdrop-blur flex items-center justify-between gap-3">
+          <div className="min-w-0 text-[11px] text-zinc-500">
+            {settingsError ? (
+              <span className="text-rose-500 truncate">{settingsError}</span>
+            ) : settingsSaveStatus === 'saved' && settingsSavedAt ? (
+              <span>Последнее сохранение: {new Date(settingsSavedAt).toLocaleString()}</span>
+            ) : (
+              <span>Сохраните изменения, чтобы они сохранились после перезапуска.</span>
+            )}
+          </div>
+          <button
+            type="button"
+            disabled={settingsSaveStatus === 'saving'}
+            onClick={() => void saveSettings()}
+            className={cn('h-8 px-3 inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50 shrink-0', tokens.inputRadius, tokens.accentButton)}
+          >
+            {settingsSaveStatus === 'saving' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            {settingsSaveStatus === 'saving' ? 'Сохранение…' : 'Сохранить настройки'}
+          </button>
+        </div>
+        {settingsSection === 'roles-pipeline' && <RolesAndPipelineView />}
         {settingsSection === 'ui-chat' && (
           <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
             {/* Section 1: 3 Interface Styles */}
@@ -575,7 +623,7 @@ export const SettingsView: React.FC = () => {
                     disabled={appSettings.cloudFallbackProvider === 'none'}
                     value={appSettings.cloudFallbackKey}
                     onChange={(e) => updateAppSettings({ cloudFallbackKey: e.target.value })}
-                    placeholder="Хранится в Windows Credential Manager..."
+                    placeholder="Сохраняется в локальном зашифрованном хранилище..."
                     className={cn('sm:col-span-2 h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 disabled:opacity-45', tokens.inputRadius)}
                   />
                 </div>
@@ -590,7 +638,6 @@ export const SettingsView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   {[
                     { key: 'Ctrl + Enter', desc: 'Отправить промпт агенту' },
-                    { key: 'Ctrl + Shift + M', desc: 'Переключить Plan / Act' },
                     { key: 'Ctrl + K', desc: 'Открыть поиск моделей GGUF' },
                     { key: 'Ctrl + Alt + Z', desc: 'Откат к последнему Checkpoint' },
                   ].map((hk) => (

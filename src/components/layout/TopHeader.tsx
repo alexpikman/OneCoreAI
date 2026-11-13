@@ -1,17 +1,31 @@
 import React, { useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Bell, CheckCheck, Download, Monitor, MonitorDown, Moon, Pause, Power, Settings, Sun } from 'lucide-react';
+import {
+  Bell,
+  CheckCheck,
+  Cpu,
+  Download,
+  FolderKanban,
+  House,
+  Monitor,
+  MonitorDown,
+  Moon,
+  Pause,
+  Power,
+  Settings,
+  Sun,
+} from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { AppTab } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
 
-const NAV_ITEMS: { id: AppTab; label: string }[] = [
-  { id: 'workstation', label: 'Рабочая станция' },
-  { id: 'models', label: 'Модели GGUF' },
-  { id: 'roles', label: 'Роли и пайплайн' },
-  { id: 'settings', label: 'Настройки' },
+const NAV_ITEMS: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: 'workstation', label: 'Рабочий стол', icon: House },
+  { id: 'models', label: 'Модели', icon: Cpu },
+  { id: 'projects', label: 'Проекты', icon: FolderKanban },
+  { id: 'settings', label: 'Настройки', icon: Settings },
 ];
 
 export const TopHeader: React.FC = () => {
@@ -67,6 +81,7 @@ export const TopHeader: React.FC = () => {
       {/* Zone 2: Clean single-line navigation links */}
       <nav aria-label="Основные разделы" className="flex items-center gap-6 overflow-x-auto">
         {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
             <button
@@ -74,12 +89,13 @@ export const TopHeader: React.FC = () => {
               type="button"
               onClick={() => setActiveTab(item.id)}
               className={cn(
-                'relative py-4 text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:text-blue-500',
+                'relative py-4 text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:text-blue-500 inline-flex items-center gap-1.5',
                 isActive
                   ? 'text-zinc-950 dark:text-zinc-50'
                   : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
               )}
             >
+              <Icon className="w-4 h-4" aria-hidden="true" />
               {item.label}
               {isActive && (
                 <motion.span
@@ -257,20 +273,6 @@ export const TopHeader: React.FC = () => {
           </AnimatePresence>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('settings')}
-          className={cn(
-            'h-9 px-3.5 inline-flex items-center gap-2 text-xs font-medium transition-colors whitespace-nowrap shrink-0',
-            tokens.inputRadius,
-            activeTab === 'settings'
-              ? tokens.accentButton
-              : 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-200',
-          )}
-        >
-          <Settings className="w-3.5 h-3.5" />
-          <span>Настройки</span>
-        </button>
       </div>
     </header>
   );

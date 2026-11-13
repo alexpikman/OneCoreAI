@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { TopHeader } from './components/layout/TopHeader';
 import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
-import { RolesAndPipelineView } from './components/roles/RolesAndPipelineView';
+import { ProjectsView } from './components/projects/ProjectsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { WorkstationView } from './components/workstation/WorkstationView';
 import { useOneCoreStore } from './store/useOneCoreStore';
@@ -13,8 +13,6 @@ export default function App() {
   const {
     activeTab,
     setActiveTab,
-    agentMode,
-    setAgentMode,
     checkpoints,
     rollbackToCheckpoint,
     theme,
@@ -47,9 +45,6 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setActiveTab('models');
-      } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
-        e.preventDefault();
-        setAgentMode(agentMode === 'plan' ? 'act' : 'plan');
       } else if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'z') {
         if (checkpoints.length > 0) {
           e.preventDefault();
@@ -59,7 +54,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [agentMode, checkpoints, rollbackToCheckpoint, setActiveTab, setAgentMode]);
+  }, [checkpoints, rollbackToCheckpoint, setActiveTab]);
 
   return (
     <div
@@ -70,7 +65,7 @@ export default function App() {
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
         {activeTab === 'workstation' && <WorkstationView />}
         {activeTab === 'models' && <ModelHubView />}
-        {activeTab === 'roles' && <RolesAndPipelineView />}
+        {activeTab === 'projects' && <ProjectsView />}
         {activeTab === 'settings' && <SettingsView />}
       </main>
       <OfflineIndicator />

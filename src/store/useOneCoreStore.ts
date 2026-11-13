@@ -7,7 +7,7 @@ import {
 } from '../data/rolesAndRules';
 import { INITIAL_SESSIONS } from '../data/workspaceSeed';
 import { apiFetch as fetch } from '../utils/apiFetch';
-import { routeAgentPrompt } from '../utils/agentRouter';
+import { inferAgentMode, routeAgentPrompt } from '../utils/agentRouter';
 import {
   INITIAL_GITHUB_SETTINGS,
   INITIAL_SSH_HOSTS,
@@ -53,7 +53,11 @@ import type {
   ProjectActionLogEntry,
   ProjectFile,
   ProjectFolderSource,
+  ProjectPlan,
   ProjectRecord,
+  ProjectTask,
+  ProjectWorkspaceData,
+  PersistedAppSettings,
   ServerStatus,
   SettingsSectionId,
   SshAlgorithm,
@@ -125,7 +129,13 @@ interface OneCoreStore {
   activeProjectId: string;
   pendingProjectPrompt: { prompt: string; sessionId: string; mode: AgentMode } | null;
   projectLogs: ProjectActionLogEntry[];
+  projectWorkspace: ProjectWorkspaceData;
+  projectsWorkspaceLoading: boolean;
+  projectWorkspaceError: string | null;
   projectsLoading: boolean;
+  settingsSavedAt: string | null;
+  settingsSaveStatus: 'idle' | 'saving' | 'saved' | 'error';
+  settingsError: string | null;
 
   sessions: ChatSession[];
   activeSessionId: string;
@@ -186,6 +196,14 @@ interface OneCoreStore {
   refreshProjects: () => Promise<void>;
   refreshProjectFiles: (projectId?: string) => Promise<void>;
   refreshProjectLogs: (projectId?: string) => Promise<void>;
+  refreshProjectWorkspace: (projectId?: string) => Promise<void>;
+  saveProjectTask: (
+    payload: Pick<ProjectTask, 'title' | 'description' | 'status'> & { id?: string },
+  ) => Promise<{ ok: boolean; error?: string }>;
+  deleteProjectTask: (taskId: string) => Promise<{ ok: boolean; error?: string }>;
+  saveProjectPlan: (
+    plan: Pick<ProjectPlan, 'content' | 'progress'> | null,
+  ) => Promise<{ ok: boolean; error?: string }>;
 
   saveProject: (payload: SaveProjectPayload) => Promise<{ ok: boolean; project?: ProjectRecord; error?: string }>;
   selectProject: (projectId: string) => Promise<void>;
@@ -205,6 +223,8 @@ interface OneCoreStore {
   setActiveTab: (tab: AppTab) => void;
   openSettingsSection: (section: SettingsSectionId) => void;
   setSettingsSection: (section: SettingsSectionId) => void;
+  saveSettings: () => Promise<{ ok: boolean; error?: string }>;
+  refreshSettings: () => Promise<void>;
   setUiStyle: (style: UiStylePreset) => void;
   updateChatVisibility: (patch: Partial<ChatVisibilitySettings>) => void;
   applyChatLayoutPreset: (preset: 'full' | 'cline-focus' | 'minimal') => void;
@@ -379,7 +399,13 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   activeProjectId: '',
   pendingProjectPrompt: null,
   projectLogs: [],
+  projectWorkspace: { tasks: [], plan: null },
+  projectsWorkspaceLoading: false,
+  projectWorkspaceError: null,
   projectsLoading: false,
+  settingsSavedAt: null,
+  settingsSaveStatus: 'idle',
+  settingsError: null,
 
   sessions: INITIAL_SESSIONS,
   activeSessionId: INITIAL_SESSIONS[0].id,
@@ -461,6 +487,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       get().refreshLocalModels(),
       get().refreshProjects(),
     ]);
+    await get().refreshSettings();
   },
 
   refreshHardwareProfile: async (targetDir) => {
@@ -576,9 +603,15 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         await Promise.all([
           get().refreshProjectFiles(activeProjectId),
           get().refreshProjectLogs(activeProjectId),
+          get().refreshProjectWorkspace(activeProjectId),
         ]);
       } else {
-        set({ files: [], selectedFilePath: '', projectLogs: [] });
+        set({
+          files: [],
+          selectedFilePath: '',
+          projectLogs: [],
+          projectWorkspace: { tasks: [], plan: null },
+        });
       }
     } catch {
       set({ projectsLoading: false });
@@ -655,6 +688,106 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
   },
 
+  refreshProjectWorkspace: async (projectId) => {
+    const id = projectId || get().activeProjectId;
+    if (!id) {
+      set({ projectWorkspace: { tasks: [], plan: null }, projectsWorkspaceLoading: false });
+      return;
+    }
+    set({ projectsWorkspaceLoading: true, projectWorkspaceError: null });
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}/workspace`);
+      const data = (await res.json()) as { ok?: boolean; workspace?: ProjectWorkspaceData; error?: string };
+      if (!res.ok || !data.ok || !data.workspace) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      if (id === get().activeProjectId) {
+        set({
+          projectWorkspace: data.workspace,
+          projectsWorkspaceLoading: false,
+          projectWorkspaceError: null,
+        });
+      }
+    } catch (err) {
+      if (id === get().activeProjectId) {
+        set({
+          projectsWorkspaceLoading: false,
+          projectWorkspaceError:
+            err instanceof Error ? err.message : 'Не удалось загрузить данные проекта',
+        });
+      }
+    }
+  },
+
+  saveProjectTask: async (payload) => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return { ok: false, error: 'Сначала выберите проект' };
+    try {
+      const url = payload.id
+        ? `/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(payload.id)}`
+        : `/api/projects/${encodeURIComponent(projectId)}/tasks`;
+      const res = await fetch(url, {
+        method: payload.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; workspace?: ProjectWorkspaceData };
+      if (!res.ok || !data.ok || !data.workspace) {
+        return { ok: false, error: data.error || `HTTP ${res.status}` };
+      }
+      if (get().activeProjectId === projectId) set({ projectWorkspace: data.workspace });
+      await get().refreshProjectLogs(projectId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Ошибка сохранения задачи' };
+    }
+  },
+
+  deleteProjectTask: async (taskId) => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return { ok: false, error: 'Сначала выберите проект' };
+    try {
+      const res = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(taskId)}`,
+        { method: 'DELETE' },
+      );
+      const data = (await res.json()) as { ok?: boolean; error?: string; workspace?: ProjectWorkspaceData };
+      if (!res.ok || !data.ok || !data.workspace) {
+        return { ok: false, error: data.error || `HTTP ${res.status}` };
+      }
+      if (get().activeProjectId === projectId) set({ projectWorkspace: data.workspace });
+      await get().refreshProjectLogs(projectId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Ошибка удаления задачи' };
+    }
+  },
+
+  saveProjectPlan: async (plan) => {
+    const projectId = get().activeProjectId;
+    if (!projectId) return { ok: false, error: 'Сначала выберите проект' };
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/plan`, {
+        method: plan ? 'PUT' : 'DELETE',
+        ...(plan
+          ? {
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(plan),
+            }
+          : {}),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string; workspace?: ProjectWorkspaceData };
+      if (!res.ok || !data.ok || !data.workspace) {
+        return { ok: false, error: data.error || `HTTP ${res.status}` };
+      }
+      if (get().activeProjectId === projectId) set({ projectWorkspace: data.workspace });
+      await get().refreshProjectLogs(projectId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Ошибка сохранения плана' };
+    }
+  },
+
   saveProject: async (payload) => {
     const url = payload.id ? `/api/projects/${encodeURIComponent(payload.id)}` : '/api/projects';
     const method = payload.id ? 'PUT' : 'POST';
@@ -702,7 +835,11 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         activeProjectId: projectId,
         executionEnv: proj ? { ...s.executionEnv, localWorkdir: proj.folderPath } : s.executionEnv,
       }));
-      await Promise.all([get().refreshProjectFiles(projectId), get().refreshProjectLogs(projectId)]);
+      await Promise.all([
+        get().refreshProjectFiles(projectId),
+        get().refreshProjectLogs(projectId),
+        get().refreshProjectWorkspace(projectId),
+      ]);
       void get().resumePendingProjectPrompt();
     } catch {
       // ignore
@@ -833,6 +970,117 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   openSettingsSection: (section) => set({ activeTab: 'settings', settingsSection: section }),
   setSettingsSection: (section) => set({ settingsSection: section }),
+  refreshSettings: async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = (await res.json()) as {
+        ok?: boolean;
+        savedAt?: string;
+        settings?: PersistedAppSettings;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      if (!data.settings) {
+        set({ settingsError: null, settingsSaveStatus: 'idle' });
+        return;
+      }
+
+      const saved = data.settings;
+      set((state) => ({
+        theme: saved.theme,
+        uiStyle: saved.uiStyle,
+        settingsSection: saved.settingsSection,
+        chatVisibility: saved.chatVisibility,
+        inferenceSettings: { ...state.inferenceSettings, ...saved.inferenceSettings },
+        appSettings: saved.appSettings,
+        roles: saved.roles,
+        activeRoleId: saved.activeRoleId,
+        permissions: saved.permissions,
+        directives: saved.directives,
+        pipelineStages: saved.pipelineStages,
+        pipelineProjectName: saved.pipelineProjectName,
+        pipelineStack: saved.pipelineStack,
+        sshKeys: saved.sshKeys,
+        activeSshKeyId: saved.activeSshKeyId,
+        sshHosts: saved.sshHosts,
+        sshSettings: saved.sshSettings,
+        githubAccess: saved.githubAccess,
+        freeProviders: saved.freeProviders,
+        activeProviderId: saved.activeProviderId,
+        skills: saved.skills,
+        memoryDocs: saved.memoryDocs,
+        subagentConfig: saved.subagentConfig,
+        executionEnv: saved.executionEnv,
+        gateways: saved.gateways,
+        settingsSavedAt: data.savedAt ?? null,
+        settingsError: null,
+        settingsSaveStatus: 'saved',
+      }));
+    } catch (err) {
+      set({
+        settingsError: err instanceof Error ? err.message : 'Не удалось загрузить настройки',
+        settingsSaveStatus: 'error',
+      });
+    }
+  },
+  saveSettings: async () => {
+    const state = get();
+    const settings: PersistedAppSettings = {
+      theme: state.theme,
+      uiStyle: state.uiStyle,
+      settingsSection: state.settingsSection,
+      chatVisibility: state.chatVisibility,
+      inferenceSettings: {
+        gpuBackend: state.inferenceSettings.gpuBackend,
+        temperature: state.inferenceSettings.temperature,
+        contextSize: state.inferenceSettings.contextSize,
+        gpuLayers: state.inferenceSettings.gpuLayers,
+        maxVramGb: state.inferenceSettings.maxVramGb,
+        maxRamGb: state.inferenceSettings.maxRamGb,
+      },
+      appSettings: state.appSettings,
+      roles: state.roles,
+      activeRoleId: state.activeRoleId,
+      permissions: state.permissions,
+      directives: state.directives,
+      pipelineStages: state.pipelineStages,
+      pipelineProjectName: state.pipelineProjectName,
+      pipelineStack: state.pipelineStack,
+      sshKeys: state.sshKeys,
+      activeSshKeyId: state.activeSshKeyId,
+      sshHosts: state.sshHosts,
+      sshSettings: state.sshSettings,
+      githubAccess: state.githubAccess,
+      freeProviders: state.freeProviders,
+      activeProviderId: state.activeProviderId,
+      skills: state.skills,
+      memoryDocs: state.memoryDocs,
+      subagentConfig: state.subagentConfig,
+      executionEnv: state.executionEnv,
+      gateways: state.gateways,
+    };
+
+    set({ settingsSaveStatus: 'saving', settingsError: null });
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings }),
+      });
+      const data = (await res.json()) as { ok?: boolean; savedAt?: string; error?: string };
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      set({
+        settingsSaveStatus: 'saved',
+        settingsSavedAt: data.savedAt ?? new Date().toISOString(),
+        settingsError: null,
+      });
+      return { ok: true };
+    } catch (err) {
+      const error = err instanceof Error ? err.message : 'Не удалось сохранить настройки';
+      set({ settingsSaveStatus: 'error', settingsError: error });
+      return { ok: false, error };
+    }
+  },
   setUiStyle: (uiStyle) => set({ uiStyle }),
 
   updateChatVisibility: (patch) =>
@@ -1117,7 +1365,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
     const state = get();
     const sessionId = options?.sessionId ?? state.activeSessionId;
-    const mode = options?.mode ?? state.agentMode;
+    const mode = options?.mode ?? inferAgentMode(trimmed, state.agentMode);
     const route = routeAgentPrompt(trimmed);
     const commandPrompt =
       route.kind === 'browser' && !trimmed.startsWith('/')
