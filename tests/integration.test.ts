@@ -13,7 +13,8 @@ process.env.ONECORE_HOME = tempOneCoreHome;
 import { createApiApp } from '../server/app';
 import { recommendModelForHardware, type HardwareProfile } from '../server/hardware';
 import { getOneCoreHome } from '../server/paths';
-import { routeAgentPrompt } from '../src/utils/agentRouter';
+import { recordProjectMemory } from '../server/projectAgent';
+import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
 
 let apiServer: http.Server;
 let apiBaseUrl = '';
@@ -80,6 +81,36 @@ test('agent router distinguishes chat from browser, project, and terminal work',
     browserAction: 'read',
     query: 'https://example.com',
   });
+  assert.equal(inferAgentMode('Прочитай файл src/server.ts'), 'plan');
+  assert.equal(inferAgentMode('Исправь баг в файле src/server.ts'), 'act');
+  assert.equal(inferAgentMode('Проанализируй и исправь баг', 'plan'), 'act');
+  assert.equal(inferAgentMode('Покажи команду для запуска', 'act'), 'plan');
+});
+
+test('settings can be saved and loaded from the local settings store', async () => {
+  const providerKey = 'provider-secret-for-settings-test';
+  const gatewayToken = 'gateway-secret-for-settings-test';
+  const settings = {
+    appSettings: { cloudFallbackKey: '' },
+    githubAccess: { tokenInput: '' },
+    freeProviders: [{ id: 'settings-test-provider', apiKey: providerKey }],
+    gateways: [{ id: 'settings-test-gateway', botToken: gatewayToken }],
+  };
+  const saved = await jsonReq<{ ok: boolean; savedAt: string }>('/api/settings', {
+    method: 'PUT',
+    body: JSON.stringify({ settings }),
+  });
+  assert.equal(saved.status, 200);
+  assert.equal(saved.data.ok, true);
+  assert.ok(saved.data.savedAt);
+
+  const loaded = await jsonReq<{ ok: boolean; savedAt: string; settings: typeof settings }>('/api/settings');
+  assert.equal(loaded.status, 200);
+  assert.deepEqual(loaded.data.settings, settings);
+  assert.equal(loaded.data.savedAt, saved.data.savedAt);
+  const persistedFile = fs.readFileSync(path.join(tempOneCoreHome, 'settings.json'), 'utf-8');
+  assert.equal(persistedFile.includes(providerKey), false);
+  assert.equal(persistedFile.includes(gatewayToken), false);
 });
 
 test('OpenAI-compatible cloud chat forwards conversation history and auth to the provider', async () => {
@@ -438,6 +469,64 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(createProj.data.ok, true);
     const projectId = createProj.data.project.id;
 
+    const emptyWorkspace = await jsonReq<{
+      ok: boolean;
+      workspace: { tasks: unknown[]; plan: unknown };
+    }>(`/api/projects/${encodeURIComponent(projectId)}/workspace`);
+    assert.deepEqual(emptyWorkspace.data.workspace, { tasks: [], plan: null });
+
+    const createdTask = await jsonReq<{
+      ok: boolean;
+      task: { id: string; title: string; status: string };
+    }>(`/api/projects/${encodeURIComponent(projectId)}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: 'Review project scope',
+        description: 'List the initial milestones.',
+        status: 'todo',
+      }),
+    });
+    assert.equal(createdTask.status, 201);
+    assert.equal(createdTask.data.task.title, 'Review project scope');
+
+    const updatedTask = await jsonReq<{ ok: boolean; task: { status: string } }>(
+      `/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(createdTask.data.task.id)}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: 'Review project scope',
+          description: 'Milestones reviewed.',
+          status: 'done',
+        }),
+      },
+    );
+    assert.equal(updatedTask.data.task.status, 'done');
+
+    const plan = await jsonReq<{ ok: boolean; workspace: { plan: { content: string; progress: number } } }>(
+      `/api/projects/${encodeURIComponent(projectId)}/plan`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ content: '1. Define scope\n2. Deliver MVP', progress: 35 }),
+      },
+    );
+    assert.equal(plan.status, 200);
+    assert.equal(plan.data.workspace.plan.progress, 35);
+
+    const deletePlan = await jsonReq<{ ok: boolean; workspace: { plan: unknown } }>(
+      `/api/projects/${encodeURIComponent(projectId)}/plan`,
+      { method: 'DELETE' },
+    );
+    assert.equal(deletePlan.data.workspace.plan, null);
+
+    const deleteTask = await jsonReq<{ ok: boolean; workspace: { tasks: unknown[] } }>(
+      `/api/projects/${encodeURIComponent(projectId)}/tasks/${encodeURIComponent(createdTask.data.task.id)}`,
+      { method: 'DELETE' },
+    );
+    assert.deepEqual(deleteTask.data.workspace.tasks, []);
+    for (let i = 0; i < 201; i += 1) {
+      recordProjectMemory(projectId, `Recorded project action ${i}`);
+    }
+
     // Write hello.py via API
     const writeRes = await jsonReq<{ ok: boolean }>(
       `/api/projects/${encodeURIComponent(projectId)}/file`,
@@ -516,11 +605,13 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     // Verify action log contains write & command entries
     const logsRes = await jsonReq<{
       ok: boolean;
-      logs: Array<{ kind: string; filePath?: string; command?: string }>;
+      logs: Array<{ kind: string; summary: string; filePath?: string; command?: string }>;
     }>(`/api/projects/${encodeURIComponent(projectId)}/logs`);
     assert.equal(logsRes.status, 200);
     assert.ok(logsRes.data.logs.some((l) => l.kind === 'file_write' && l.filePath === 'hello.py'));
     assert.ok(logsRes.data.logs.some((l) => l.kind === 'command'));
+    assert.ok(logsRes.data.logs.some((l) => l.kind === 'task' && l.summary.includes('Review project scope')));
+    assert.ok(logsRes.data.logs.length > 200, 'Project memory must retain the full action history');
 
     // Undo file creation via /api/projects/:id/undo -> hello.py must be removed from disk
     const undoRes = await jsonReq<{ ok: boolean; message: string }>(

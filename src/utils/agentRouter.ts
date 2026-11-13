@@ -6,6 +6,27 @@ export interface AgentRoute {
   browserAction?: 'search' | 'read';
 }
 
+export function inferAgentMode(prompt: string, fallback: 'plan' | 'act' = 'act'): 'plan' | 'act' {
+  const text = prompt.trim();
+  if (
+    /^(?:\/run(?:\s|$)|\/undo(?:\s|$)|\/git\s+(?:commit|fetch|push|init)(?=$|[\s,]))/i.test(text) ||
+    /(?:^|[\s,])(?:исправь|почини|создай|добавь|реализуй|измени|обнови|удали|запусти|выполни|напиши|сохрани|сделай|рефакторируй|перепиши|fix|create|add|implement|edit|modify|update|delete|run|execute|write|save|refactor|rewrite)(?=$|[\s,])/i.test(
+      text,
+    )
+  ) {
+    return 'act';
+  }
+  if (
+    /^(?:\/search(?:\s|$)|\/git(?:\s|$)|(?:пожалуйста\s+)?(?:объясни|расскажи|покажи|прочитай|открой|найди|проанализируй|проверь|сравни|перечисли|объяснить|рассказать|посмотреть|прочитать|explain|describe|show|read|open|find|analyze|review|inspect|compare|list|what|why|how)(?=$|[\s,]))/i.test(
+      text,
+    ) ||
+    /\?$/.test(text)
+  ) {
+    return 'plan';
+  }
+  return fallback;
+}
+
 const WEB_ACTION =
   /(?:^|[\s,])(?:найди|поищи|посмотри|проверь|узнай|прочитай|открой|search|look up|browse|open|read)(?=$|[\s,])/i;
 const WEB_CONTEXT =

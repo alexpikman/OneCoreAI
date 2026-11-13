@@ -74,13 +74,13 @@ export const ModelMascot: React.FC<ModelMascotProps> = ({
       onClick={onClick}
       className={cn(
         'group text-left rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141418] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors w-full',
-        compact ? 'p-2.5 flex items-center gap-3' : 'p-3.5 flex items-center gap-3.5',
+        compact ? 'p-1.5 flex items-center gap-2' : 'p-3.5 flex items-center gap-3.5',
       )}
     >
       <div className="relative shrink-0">
         <motion.svg
-          width={compact ? 48 : 60}
-          height={compact ? 48 : 60}
+          width={compact ? 36 : 60}
+          height={compact ? 36 : 60}
           viewBox="0 0 80 80"
           fill="none"
           aria-label={`Персонаж модели в роли ${roleName}`}

@@ -20,6 +20,7 @@ import {
   listProjectFiles,
   readProjectActionLog,
   readProjectFile,
+  recordProjectMemory,
   runProjectGit,
   searchProjectCode,
   undoLastProjectAction,
@@ -28,10 +29,15 @@ import {
 import {
   createOrUpdateProject,
   deleteProjectRecord,
+  deleteProjectTask,
+  getProjectWorkspaceData,
   listProjects,
+  saveProjectPlan,
+  saveProjectTask,
   setActiveProjectId,
   verifySshConnectionAndPath,
 } from './projectsManager';
+import { readAppSettings, saveAppSettings } from './settingsManager';
 
 interface HFModelRaw {
   id: string;
@@ -127,6 +133,29 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, service: 'onecore-ai-backend', timestamp: Date.now() });
+  });
+
+  app.get('/api/settings', async (_req, res) => {
+    try {
+      res.json({ ok: true, ...(await readAppSettings()) });
+    } catch (err) {
+      res.status(500).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Ошибка чтения настроек',
+      });
+    }
+  });
+
+  app.put('/api/settings', async (req, res) => {
+    try {
+      const saved = await saveAppSettings(req.body?.settings);
+      res.json({ ok: true, ...saved });
+    } catch (err) {
+      res.status(400).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Ошибка сохранения настроек',
+      });
+    }
   });
 
   // =========================================================================
@@ -466,6 +495,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.post('/api/projects', async (req, res) => {
     try {
       const project = await createOrUpdateProject(req.body ?? {});
+      recordProjectMemory(project.id, 'Проект создан');
       res.status(201).json({ ok: true, project });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка сохранения проекта' });
@@ -475,6 +505,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.put('/api/projects/:id', async (req, res) => {
     try {
       const project = await createOrUpdateProject({ ...(req.body ?? {}), id: req.params.id });
+      recordProjectMemory(project.id, 'Настройки проекта обновлены');
       res.json({ ok: true, project });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка обновления проекта' });
@@ -493,6 +524,68 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.delete('/api/projects/:id', async (req, res) => {
     const result = await deleteProjectRecord(req.params.id);
     res.json({ ok: result.deleted, ...result });
+  });
+
+  app.get('/api/projects/:id/workspace', (req, res) => {
+    try {
+      res.json({ ok: true, workspace: getProjectWorkspaceData(req.params.id) });
+    } catch (err) {
+      res.status(404).json({ ok: false, error: err instanceof Error ? err.message : 'Проект не найден' });
+    }
+  });
+
+  app.post('/api/projects/:id/tasks', (req, res) => {
+    try {
+      const task = saveProjectTask(req.params.id, req.body ?? {});
+      recordProjectMemory(req.params.id, `Добавлена задача: ${task.title}`);
+      res.status(201).json({ ok: true, task, workspace: getProjectWorkspaceData(req.params.id) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка сохранения задачи' });
+    }
+  });
+
+  app.put('/api/projects/:id/tasks/:taskId', (req, res) => {
+    try {
+      const task = saveProjectTask(req.params.id, { ...(req.body ?? {}), id: req.params.taskId });
+      recordProjectMemory(req.params.id, `Изменена задача: ${task.title}`);
+      res.json({ ok: true, task, workspace: getProjectWorkspaceData(req.params.id) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка обновления задачи' });
+    }
+  });
+
+  app.delete('/api/projects/:id/tasks/:taskId', (req, res) => {
+    try {
+      const currentTask = getProjectWorkspaceData(req.params.id).tasks.find(
+        (task) => task.id === req.params.taskId,
+      );
+      if (!currentTask) throw new Error('Задача проекта не найдена');
+      const workspace = deleteProjectTask(req.params.id, req.params.taskId);
+      recordProjectMemory(req.params.id, `Удалена задача: ${currentTask.title}`);
+      res.json({ ok: true, workspace });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка удаления задачи' });
+    }
+  });
+
+  app.put('/api/projects/:id/plan', (req, res) => {
+    try {
+      const workspace = saveProjectPlan(req.params.id, req.body ?? {});
+      recordProjectMemory(req.params.id, `План проекта обновлен (${workspace.plan?.progress ?? 0}% выполнено)`);
+      res.json({ ok: true, workspace });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка сохранения плана' });
+    }
+  });
+
+  app.delete('/api/projects/:id/plan', (req, res) => {
+    try {
+      const workspace = saveProjectPlan(req.params.id, null);
+      recordProjectMemory(req.params.id, 'План проекта удален');
+      res.json({ ok: true, workspace });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка удаления плана' });
+    }
   });
 
   app.get('/api/projects/:id/files', (req, res) => {

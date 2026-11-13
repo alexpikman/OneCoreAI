@@ -325,8 +325,12 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ open, editingProject
   const handleDelete = async () => {
     if (!editingProject) return;
     setSaving(true);
-    await deleteProject(editingProject.id);
+    const result = await deleteProject(editingProject.id);
     setSaving(false);
+    if (!result.ok) {
+      setErrorMsg('Не удалось удалить проект. Проверьте соединение и повторите попытку.');
+      return;
+    }
     onClose();
   };
 

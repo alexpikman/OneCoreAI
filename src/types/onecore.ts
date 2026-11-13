@@ -1,8 +1,9 @@
-export type AppTab = 'workstation' | 'models' | 'roles' | 'settings';
+export type AppTab = 'workstation' | 'models' | 'projects' | 'settings';
 export type UiStylePreset = 'cline-vscode' | 'mica-windows' | 'cyber-terminal';
 export type SettingsSectionId =
   | 'ui-chat'
   | 'providers'
+  | 'roles-pipeline'
   | 'skills-memory'
   | 'execution-env'
   | 'gateway'
@@ -126,6 +127,28 @@ export interface ProjectActionLogEntry {
   stdout?: string;
   stderr?: string;
   undone?: boolean;
+}
+
+export type ProjectTaskStatus = 'todo' | 'in-progress' | 'done';
+
+export interface ProjectTask {
+  id: string;
+  title: string;
+  description: string;
+  status: ProjectTaskStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectPlan {
+  content: string;
+  progress: number;
+  updatedAt: string;
+}
+
+export interface ProjectWorkspaceData {
+  tasks: ProjectTask[];
+  plan: ProjectPlan | null;
 }
 
 export interface FsDirectoryEntry {
@@ -520,6 +543,37 @@ export interface AppSettings {
   includeTreeByDefault: boolean;
   cloudFallbackProvider: 'none' | 'openai' | 'anthropic' | 'gemini';
   cloudFallbackKey: string;
+}
+
+export interface PersistedAppSettings {
+  theme: 'dark' | 'light';
+  uiStyle: UiStylePreset;
+  settingsSection: SettingsSectionId;
+  chatVisibility: ChatVisibilitySettings;
+  inferenceSettings: Pick<
+    InferenceSettings,
+    'gpuBackend' | 'temperature' | 'contextSize' | 'gpuLayers' | 'maxVramGb' | 'maxRamGb'
+  >;
+  appSettings: AppSettings;
+  roles: ModelRole[];
+  activeRoleId: string;
+  permissions: PermissionRule[];
+  directives: ModelDirective[];
+  pipelineStages: PipelineStage[];
+  pipelineProjectName: string;
+  pipelineStack: string;
+  sshKeys: SshKeyProfile[];
+  activeSshKeyId: string;
+  sshHosts: SshHostEntry[];
+  sshSettings: SshGlobalSettings;
+  githubAccess: GitHubAccessSettings;
+  freeProviders: FreeProviderProfile[];
+  activeProviderId: string;
+  skills: AgentSkill[];
+  memoryDocs: AgentMemoryDoc[];
+  subagentConfig: SubagentConfig;
+  executionEnv: ExecutionEnvConfig;
+  gateways: GatewayChannelConfig[];
 }
 
 export interface TrayNotification {

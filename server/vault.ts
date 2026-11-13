@@ -123,6 +123,11 @@ export async function setSecret(account: string, plaintext: string): Promise<{ b
     return { backend: 'os-keychain' };
   }
 
+  setEncryptedVaultSecret(account, plaintext);
+  return { backend: 'aes-256-gcm-vault' };
+}
+
+export function setEncryptedVaultSecret(account: string, plaintext: string): void {
   const key = deriveVaultKey();
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
@@ -136,7 +141,6 @@ export async function setSecret(account: string, plaintext: string): Promise<{ b
     data: encrypted.toString('hex'),
   };
   writeEncryptedVault(store);
-  return { backend: 'aes-256-gcm-vault' };
 }
 
 export async function getSecret(account: string): Promise<string | null> {

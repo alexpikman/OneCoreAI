@@ -30,6 +30,7 @@ import { getUiTokens } from '../../utils/uiStyle';
 import { GitDiffViewer } from '../agent/GitDiffViewer';
 import { MarkdownLite } from '../agent/MarkdownLite';
 import { TerminalBlock } from '../agent/TerminalBlock';
+import { ModelMascot } from '../agent/ModelMascot';
 
 const QUICK_PROMPTS = [
   '/search function',
@@ -54,8 +55,6 @@ export const CenterAgentPane: React.FC = () => {
     createOrWriteProjectFile,
     sessions,
     activeSessionId,
-    agentMode,
-    setAgentMode,
     centerPaneMode,
     setCenterPaneMode,
     files,
@@ -73,9 +72,10 @@ export const CenterAgentPane: React.FC = () => {
     roles,
     activeRoleId,
     setActiveRole,
-    setActiveTab,
     openSettingsSection,
     serverStatus,
+    agentActivity,
+    tokensPerSec,
     inferenceSettings,
     includeProjectTree,
     includeTerminalOutput,
@@ -172,34 +172,20 @@ export const CenterAgentPane: React.FC = () => {
       {chatVisibility.showToolbar && (
         <div className={cn('min-h-12 shrink-0 px-4 py-1.5 border-b flex flex-wrap items-center justify-between gap-2.5', tokens.headerBg)}>
           <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-            <div className={cn('inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
-              <button
-                type="button"
-                onClick={() => setAgentMode('plan')}
-                className={cn(
-                  'px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0',
-                  tokens.inputRadius,
-                  agentMode === 'plan'
-                    ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                )}
-              >
-                Plan (Чтение)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAgentMode('act')}
-                className={cn(
-                  'px-3 py-1 text-xs font-medium transition-colors whitespace-nowrap shrink-0',
-                  tokens.inputRadius,
-                  agentMode === 'act'
-                    ? tokens.accentButton
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                )}
-              >
-                Act (Диффы)
-              </button>
-            </div>
+            {chatVisibility.showMascot && (
+              <div className="w-52 shrink-0">
+                <ModelMascot
+                  compact
+                  status={serverStatus}
+                  activity={agentActivity}
+                  persona={activeRole.persona}
+                  roleName={activeRole.name}
+                  modelName={activeModel?.name || activeProvider.selectedModel}
+                  tokensPerSec={tokensPerSec}
+                  onClick={() => openSettingsSection('roles-pipeline')}
+                />
+              </div>
+            )}
 
             <div className={cn('inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
               <button
@@ -231,12 +217,9 @@ export const CenterAgentPane: React.FC = () => {
                 <span className="truncate max-w-[140px]">{selectedFile?.name ?? 'Код'}</span>
               </button>
             </div>
-
             {chatVisibility.showExecutionEnvBar && (
-              <div
-                className={cn('hidden xl:inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}
-                title="Среда выполнения команд OneCore"
-              >
+              <div className="mt-2 flex flex-wrap items-center gap-1.5" title="Среда выполнения команд OneCore">
+                <span className="mr-1 text-[10px] text-zinc-500">Среда выполнения:</span>
                 {ENV_META.map((env) => {
                   const Icon = env.icon;
                   const active = executionEnv.activeEnv === env.id;
@@ -246,20 +229,21 @@ export const CenterAgentPane: React.FC = () => {
                       type="button"
                       onClick={() => setActiveExecutionEnv(env.id)}
                       className={cn(
-                        'px-2 py-1 text-[11px] font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap',
+                        'px-2.5 py-1.5 text-[11px] font-medium inline-flex items-center gap-1.5 border transition-colors whitespace-nowrap',
                         tokens.inputRadius,
                         active
-                          ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
+                          ? tokens.activeHighlight
+                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
                       )}
                     >
-                      <Icon className="w-3 h-3" />
+                      <Icon className="w-3.5 h-3.5" />
                       <span>{env.label}</span>
                     </button>
                   );
                 })}
               </div>
             )}
+
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -586,7 +570,7 @@ export const CenterAgentPane: React.FC = () => {
               </div>
               <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                 {activeProject
-                  ? `Проект «${activeProject.name}» (${agentMode === 'plan' ? 'Plan' : 'Act'})`
+                  ? `Проект «${activeProject.name}»`
                   : 'Общий чат — проект не обязателен'}
               </h2>
               <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1.5 leading-relaxed">
@@ -669,8 +653,6 @@ export const CenterAgentPane: React.FC = () => {
                           </span>
                         </>
                       )}
-                      <span>·</span>
-                      <span className="font-mono">{msg.mode === 'plan' ? 'Plan' : 'Act'}</span>
                       {chatVisibility.showCheckpointBadges && msg.checkpointId && (
                         <>
                           <span>·</span>
@@ -876,7 +858,7 @@ export const CenterAgentPane: React.FC = () => {
                   ))}
                   <button
                     type="button"
-                    onClick={() => setActiveTab('roles')}
+                    onClick={() => openSettingsSection('roles-pipeline')}
                     className="px-2 py-1 text-[11px] text-zinc-500 hover:text-blue-500 whitespace-nowrap"
                   >
                     + Правила
@@ -921,11 +903,9 @@ export const CenterAgentPane: React.FC = () => {
                 }
               }}
               placeholder={
-                agentMode === 'plan'
-                  ? 'Спросите что угодно; для работы с проектом агент сам попросит выбрать папку...'
-                  : activeProject
-                    ? 'Спросите что угодно или поручите задачу проекту...'
-                    : 'Напишите сообщение или задачу — проект нужен только для работы с файлами...'
+                activeProject
+                  ? 'Спросите что угодно или поручите задачу проекту...'
+                  : 'Напишите сообщение или задачу — проект нужен только для работы с файлами...'
               }
               className="flex-1 resize-none bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none px-1.5 py-1"
             />

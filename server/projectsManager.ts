@@ -5,6 +5,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { ensureOneCoreDirs, getProjectsManifestPath } from './paths';
 import { deleteSecret, getSecret, setSecret } from './vault';
+import type { ProjectPlan, ProjectTask, ProjectTaskStatus, ProjectWorkspaceData } from '../src/types/onecore';
 
 const execFileAsync = promisify(execFile);
 
@@ -71,6 +72,7 @@ export interface CreateOrUpdateProjectInput {
 interface ProjectsManifest {
   activeProjectId: string;
   projects: ProjectRecord[];
+  workspaceData: Record<string, ProjectWorkspaceData>;
 }
 
 const DEFAULT_TOOLS = ['read_file', 'write_file', 'run_command', 'git', 'search_code'];
@@ -78,17 +80,21 @@ const DEFAULT_TOOLS = ['read_file', 'write_file', 'run_command', 'git', 'search_
 function readProjectsManifest(): ProjectsManifest {
   const manifestPath = getProjectsManifestPath();
   if (!fs.existsSync(manifestPath)) {
-    return { activeProjectId: '', projects: [] };
+    return { activeProjectId: '', projects: [], workspaceData: {} };
   }
   try {
     const raw = fs.readFileSync(manifestPath, 'utf-8');
-    const parsed = JSON.parse(raw) as ProjectsManifest;
+    const parsed = JSON.parse(raw) as Partial<ProjectsManifest>;
     return {
       activeProjectId: typeof parsed.activeProjectId === 'string' ? parsed.activeProjectId : '',
       projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+      workspaceData:
+        parsed.workspaceData && typeof parsed.workspaceData === 'object'
+          ? parsed.workspaceData
+          : {},
     };
   } catch {
-    return { activeProjectId: '', projects: [] };
+    return { activeProjectId: '', projects: [], workspaceData: {} };
   }
 }
 
@@ -106,6 +112,99 @@ export function listProjects(): { activeProjectId: string; projects: ProjectReco
 
 export function getProjectById(id: string): ProjectRecord | null {
   return readProjectsManifest().projects.find((p) => p.id === id) ?? null;
+}
+
+function requireProject(manifest: ProjectsManifest, projectId: string): void {
+  if (!manifest.projects.some((project) => project.id === projectId)) {
+    throw new Error(`Проект с ID ${projectId} не найден`);
+  }
+}
+
+function getWorkspaceData(manifest: ProjectsManifest, projectId: string): ProjectWorkspaceData {
+  const workspace = manifest.workspaceData[projectId];
+  return {
+    tasks: Array.isArray(workspace?.tasks) ? workspace.tasks : [],
+    plan: workspace?.plan ?? null,
+  };
+}
+
+export function getProjectWorkspaceData(projectId: string): ProjectWorkspaceData {
+  const manifest = readProjectsManifest();
+  requireProject(manifest, projectId);
+  return getWorkspaceData(manifest, projectId);
+}
+
+export function saveProjectTask(
+  projectId: string,
+  input: Pick<ProjectTask, 'title' | 'description' | 'status'> & { id?: string },
+): ProjectTask {
+  const manifest = readProjectsManifest();
+  requireProject(manifest, projectId);
+  const title = input.title?.trim();
+  if (!title) throw new Error('Укажите название задачи');
+  const statuses: ProjectTaskStatus[] = ['todo', 'in-progress', 'done'];
+  if (!statuses.includes(input.status)) throw new Error('Некорректный статус задачи');
+
+  const workspace = getWorkspaceData(manifest, projectId);
+  const existing = input.id ? workspace.tasks.find((task) => task.id === input.id) : undefined;
+  if (input.id && !existing) throw new Error('Задача проекта не найдена');
+  const description = typeof input.description === 'string' ? input.description.trim() : '';
+  if (title.length > 160) throw new Error('Название задачи должно быть не длиннее 160 символов');
+  if (description.length > 10000) throw new Error('Описание задачи должно быть не длиннее 10000 символов');
+  const now = new Date().toISOString();
+  const task: ProjectTask = {
+    id: existing?.id ?? `task-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`,
+    title,
+    description,
+    status: input.status,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  workspace.tasks = existing
+    ? workspace.tasks.map((item) => (item.id === task.id ? task : item))
+    : [task, ...workspace.tasks];
+  manifest.workspaceData[projectId] = workspace;
+  writeProjectsManifest(manifest);
+  return task;
+}
+
+export function deleteProjectTask(projectId: string, taskId: string): ProjectWorkspaceData {
+  const manifest = readProjectsManifest();
+  requireProject(manifest, projectId);
+  const workspace = getWorkspaceData(manifest, projectId);
+  const tasks = workspace.tasks.filter((task) => task.id !== taskId);
+  if (tasks.length === workspace.tasks.length) throw new Error('Задача проекта не найдена');
+  workspace.tasks = tasks;
+  manifest.workspaceData[projectId] = workspace;
+  writeProjectsManifest(manifest);
+  return workspace;
+}
+
+export function saveProjectPlan(
+  projectId: string,
+  input: Pick<ProjectPlan, 'content' | 'progress'> | null,
+): ProjectWorkspaceData {
+  const manifest = readProjectsManifest();
+  requireProject(manifest, projectId);
+  const workspace = getWorkspaceData(manifest, projectId);
+  if (input === null) {
+    workspace.plan = null;
+  } else {
+    const content = input.content?.trim();
+    if (!content) throw new Error('Добавьте описание плана проекта');
+    if (content.length > 30000) throw new Error('План должен быть не длиннее 30000 символов');
+    if (!Number.isInteger(input.progress) || input.progress < 0 || input.progress > 100) {
+      throw new Error('Прогресс должен быть целым числом от 0 до 100');
+    }
+    workspace.plan = {
+      content,
+      progress: input.progress,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+  manifest.workspaceData[projectId] = workspace;
+  writeProjectsManifest(manifest);
+  return workspace;
 }
 
 export function setActiveProjectId(id: string): { activeProjectId: string } {
@@ -422,6 +521,7 @@ export async function deleteProjectRecord(id: string): Promise<{ deleted: boolea
   }
 
   manifest.projects = manifest.projects.filter((p) => p.id !== id);
+  delete manifest.workspaceData[id];
   if (manifest.activeProjectId === id) {
     manifest.activeProjectId = manifest.projects[0]?.id ?? '';
   }

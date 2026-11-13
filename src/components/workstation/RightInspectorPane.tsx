@@ -4,7 +4,6 @@ import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
-import { ModelMascot } from '../agent/ModelMascot';
 
 const BACKEND_OPTIONS: { value: GpuBackend; label: string }[] = [
   { value: 'auto', label: 'Авто (CUDA / Vulkan → CPU)' },
@@ -25,12 +24,8 @@ export const RightInspectorPane: React.FC = () => {
     updateInferenceSettings,
     localModels,
     activeModelId,
-    roles,
-    activeRoleId,
-    setActiveTab,
     openSettingsSection,
     serverStatus,
-    agentActivity,
     toggleServerPower,
     tokensPerSec,
     vramUsedGb,
@@ -50,7 +45,6 @@ export const RightInspectorPane: React.FC = () => {
   const [quickSubagentPrompt, setQuickSubagentPrompt] = useState('');
   const tokens = getUiTokens(uiStyle);
   const activeModel = localModels.find((m) => m.id === activeModelId);
-  const activeRole = roles.find((r) => r.id === activeRoleId) ?? roles[0];
   const activeProvider =
     freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
 
@@ -88,24 +82,10 @@ export const RightInspectorPane: React.FC = () => {
 
   return (
     <aside className={cn('w-full lg:w-[288px] xl:w-[312px] shrink-0 border-t lg:border-t-0 lg:border-l flex flex-col overflow-y-auto', tokens.sidebarBg)}>
-      {/* Section 1: Animated Model Character & Runtime Telemetry */}
-      {(chatVisibility.showMascot || chatVisibility.showTelemetry) && (
+      {/* Local runtime telemetry */}
+      {chatVisibility.showTelemetry && (
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
-          {chatVisibility.showMascot && (
-            <ModelMascot
-              status={serverStatus}
-              activity={agentActivity}
-              persona={activeRole.persona}
-              roleName={activeRole.name}
-              modelName={activeModel?.name || activeProvider.selectedModel}
-              tokensPerSec={tokensPerSec}
-              onClick={() => setActiveTab('roles')}
-            />
-          )}
-
-          {chatVisibility.showTelemetry && (
-            <>
-              <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
                   <Activity className="w-3.5 h-3.5 text-zinc-500" />
                   Локальный рантайм
@@ -123,9 +103,9 @@ export const RightInspectorPane: React.FC = () => {
                   <Power className="w-3 h-3" />
                   <span>{serverStatus === 'stopped' ? 'Запуск' : 'Стоп'}</span>
                 </button>
-              </div>
+          </div>
 
-              <div className={cn('p-3 border space-y-2.5', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+          <div className={cn('p-3 border space-y-2.5', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
                     {activeModel?.name ?? 'Модель не выбрана'}
@@ -187,9 +167,7 @@ export const RightInspectorPane: React.FC = () => {
                     />
                   </div>
                 </div>
-              </div>
-            </>
-          )}
+          </div>
         </div>
       )}
 

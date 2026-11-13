@@ -77,7 +77,7 @@ export function readProjectActionLog(projectId: string): ProjectActionLogEntry[]
 function writeProjectActionLog(projectId: string, entries: ProjectActionLogEntry[]): void {
   const p = getLogFilePath(projectId);
   const tmp = `${p}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(entries.slice(0, 200), null, 2), 'utf-8');
+  fs.writeFileSync(tmp, JSON.stringify(entries, null, 2), 'utf-8');
   fs.renameSync(tmp, p);
 }
 
@@ -91,6 +91,10 @@ function appendActionLog(entry: Omit<ProjectActionLogEntry, 'id' | 'timestamp'>)
   list.unshift(full);
   writeProjectActionLog(entry.projectId, list);
   return full;
+}
+
+export function recordProjectMemory(projectId: string, summary: string): void {
+  appendActionLog({ projectId, kind: 'task', summary });
 }
 
 export function safeResolveInside(projectRoot: string, relPath: string): string {
