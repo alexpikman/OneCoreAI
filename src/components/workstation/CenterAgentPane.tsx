@@ -6,17 +6,14 @@ import {
   Check,
   ChevronDown,
   Code2,
-  Container,
   Eye,
   FileText,
   FolderOpen,
   Globe,
   History,
-  Laptop,
   MessageSquare,
   RotateCcw,
   Save,
-  Server,
   ShieldCheck,
   Terminal,
   SlidersHorizontal,
@@ -24,13 +21,11 @@ import {
 } from 'lucide-react';
 import { ONECORE_SLASH_COMMANDS } from '../../data/oneCoreSeed';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { ExecutionEnvKind } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
 import { GitDiffViewer } from '../agent/GitDiffViewer';
 import { MarkdownLite } from '../agent/MarkdownLite';
 import { TerminalBlock } from '../agent/TerminalBlock';
-import { ModelMascot } from '../agent/ModelMascot';
 
 const QUICK_PROMPTS = [
   '/search function',
@@ -38,12 +33,6 @@ const QUICK_PROMPTS = [
   '/run ls -la',
   '/web документация TypeScript',
   '/undo',
-];
-
-const ENV_META: { id: ExecutionEnvKind; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'local', label: 'Локально', icon: Laptop },
-  { id: 'ssh', label: 'SSH', icon: Server },
-  { id: 'docker', label: 'Docker', icon: Container },
 ];
 
 export const CenterAgentPane: React.FC = () => {
@@ -69,13 +58,8 @@ export const CenterAgentPane: React.FC = () => {
     rollbackToCheckpoint,
     localModels,
     activeModelId,
-    roles,
-    activeRoleId,
-    setActiveRole,
     openSettingsSection,
     serverStatus,
-    agentActivity,
-    tokensPerSec,
     inferenceSettings,
     includeProjectTree,
     includeTerminalOutput,
@@ -83,10 +67,6 @@ export const CenterAgentPane: React.FC = () => {
     uiStyle,
     freeProviders,
     activeProviderId,
-    setActiveProvider,
-    updateFreeProvider,
-    executionEnv,
-    setActiveExecutionEnv,
     learnSkillFromMessage,
     launchSubagent,
   } = useOneCoreStore();
@@ -105,7 +85,6 @@ export const CenterAgentPane: React.FC = () => {
   const activeSession = sessions.find((s) => s.id === activeSessionId);
   const selectedFile = files.find((f) => f.path === selectedFilePath) ?? files[0];
   const activeModel = localModels.find((m) => m.id === activeModelId);
-  const activeRole = roles.find((r) => r.id === activeRoleId) ?? roles[0];
   const activeProvider =
     freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
   const latestCheckpoint = checkpoints[0];
@@ -172,21 +151,6 @@ export const CenterAgentPane: React.FC = () => {
       {chatVisibility.showToolbar && (
         <div className={cn('min-h-12 shrink-0 px-4 py-1.5 border-b flex flex-wrap items-center justify-between gap-2.5', tokens.headerBg)}>
           <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-            {chatVisibility.showMascot && (
-              <div className="w-52 shrink-0">
-                <ModelMascot
-                  compact
-                  status={serverStatus}
-                  activity={agentActivity}
-                  persona={activeRole.persona}
-                  roleName={activeRole.name}
-                  modelName={activeModel?.name || activeProvider.selectedModel}
-                  tokensPerSec={tokensPerSec}
-                  onClick={() => openSettingsSection('roles-pipeline')}
-                />
-              </div>
-            )}
-
             <div className={cn('inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
               <button
                 type="button"
@@ -217,85 +181,9 @@ export const CenterAgentPane: React.FC = () => {
                 <span className="truncate max-w-[140px]">{selectedFile?.name ?? 'Код'}</span>
               </button>
             </div>
-            {chatVisibility.showExecutionEnvBar && (
-              <div className="mt-2 flex flex-wrap items-center gap-1.5" title="Среда выполнения команд OneCore">
-                <span className="mr-1 text-[10px] text-zinc-500">Среда выполнения:</span>
-                {ENV_META.map((env) => {
-                  const Icon = env.icon;
-                  const active = executionEnv.activeEnv === env.id;
-                  return (
-                    <button
-                      key={env.id}
-                      type="button"
-                      onClick={() => setActiveExecutionEnv(env.id)}
-                      className={cn(
-                        'px-2.5 py-1.5 text-[11px] font-medium inline-flex items-center gap-1.5 border transition-colors whitespace-nowrap',
-                        tokens.inputRadius,
-                        active
-                          ? tokens.activeHighlight
-                          : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                      )}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{env.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1.5">
-              <select
-                aria-label="Провайдер модели"
-                title="Переключить между локальной и облачной моделью без скачивания"
-                value={activeProviderId}
-                onChange={(e) => setActiveProvider(e.target.value)}
-                className={cn(
-                  'h-8 max-w-36 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] text-zinc-700 dark:text-zinc-200',
-                  tokens.inputRadius,
-                )}
-              >
-                {freeProviders.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.isLocal ? 'Локально' : 'Облако'} · {provider.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Модель провайдера"
-                title={activeProvider.selectedModel}
-                value={activeProvider.selectedModel}
-                onChange={(e) =>
-                  updateFreeProvider(activeProvider.id, { selectedModel: e.target.value })
-                }
-                className={cn(
-                  'h-8 max-w-40 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-mono text-zinc-700 dark:text-zinc-200',
-                  tokens.inputRadius,
-                )}
-              >
-                {Array.from(
-                  new Set([activeProvider.selectedModel, ...activeProvider.availableModels]),
-                ).map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
-                ))}
-              </select>
-              {activeProvider.requiresKey && !activeProvider.apiKey.trim() && (
-                <button
-                  type="button"
-                  onClick={() => openSettingsSection('providers')}
-                  className="h-8 px-2 border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300 whitespace-nowrap"
-                  title="У облачного API-провайдера нужен ключ"
-                >
-                  Нужен ключ
-                </button>
-              )}
-            </div>
-
             {hasUndoableAction && (
               <button
                 type="button"
@@ -468,8 +356,6 @@ export const CenterAgentPane: React.FC = () => {
             >
               {activeModel ? activeModel.name : activeProvider.selectedModel}
             </button>
-            <span>·</span>
-            <span>Среда: {executionEnv.activeEnv}</span>
             <span>·</span>
             <span>
               {includedTokens} / {inferenceSettings.contextSize} ({ctxPct}%)
@@ -832,47 +718,11 @@ export const CenterAgentPane: React.FC = () => {
             </div>
           )}
 
-          {(chatVisibility.showRoleSwitcher || chatVisibility.showComposerStatusRow) && (
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              {chatVisibility.showRoleSwitcher ? (
-                <div className="flex items-center gap-1.5 overflow-x-auto">
-                  <span className="text-[11px] text-zinc-500 inline-flex items-center gap-1 shrink-0 mr-1">
-                    <UserCheck className="w-3.5 h-3.5" />
-                    Роль:
-                  </span>
-                  {roles.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setActiveRole(r.id)}
-                      className={cn(
-                        'px-2.5 py-1 text-[11px] font-medium whitespace-nowrap transition-colors border',
-                        tokens.inputRadius,
-                        r.id === activeRole.id
-                          ? tokens.activeHighlight
-                          : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:border-zinc-300 dark:hover:border-zinc-700',
-                      )}
-                    >
-                      {r.name}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => openSettingsSection('roles-pipeline')}
-                    className="px-2 py-1 text-[11px] text-zinc-500 hover:text-blue-500 whitespace-nowrap"
-                  >
-                    + Правила
-                  </button>
-                </div>
-              ) : (
-                <span />
-              )}
-
-              {chatVisibility.showComposerStatusRow && latestCheckpoint && (
-                <span className="text-[11px] text-zinc-500 font-mono whitespace-nowrap tabular-nums">
-                  {includedTokens} tok · {latestCheckpoint.id}
-                </span>
-              )}
+          {chatVisibility.showComposerStatusRow && latestCheckpoint && (
+            <div className="flex justify-end mb-2">
+              <span className="text-[11px] text-zinc-500 font-mono whitespace-nowrap tabular-nums">
+                {includedTokens} tok · {latestCheckpoint.id}
+              </span>
             </div>
           )}
 

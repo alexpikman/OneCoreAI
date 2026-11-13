@@ -26,6 +26,20 @@
   font-variant-numeric: tabular-nums;
 }
 
+.app-navigation {
+  width: 3.5rem;
+}
+
+.app-navigation-expanded {
+  width: var(--app-navigation-width, 260px);
+}
+
+@media (min-width: 1024px) {
+  .app-navigation {
+    width: var(--app-navigation-width, 260px);
+  }
+}
+
 /* Windows 11 Mica / Acrylic subtle surface backdrop */
 .mica-panel {
   backdrop-filter: blur(16px) saturate(135%);

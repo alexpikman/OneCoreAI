@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AppNavigation } from './components/layout/AppNavigation';
 import { TopHeader } from './components/layout/TopHeader';
 import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
@@ -62,12 +63,15 @@ export default function App() {
       className={cn('h-screen w-screen flex flex-col overflow-hidden', tokens.shellBg)}
     >
       <TopHeader />
-      <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        {activeTab === 'workstation' && <WorkstationView />}
-        {activeTab === 'models' && <ModelHubView />}
-        {activeTab === 'projects' && <ProjectsView />}
-        {activeTab === 'settings' && <SettingsView />}
-      </main>
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+        <AppNavigation />
+        <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+          {activeTab === 'workstation' && <WorkstationView />}
+          {activeTab === 'models' && <ModelHubView />}
+          {activeTab === 'projects' && <ProjectsView />}
+          {activeTab === 'settings' && <SettingsView />}
+        </main>
+      </div>
       <OfflineIndicator />
     </div>
   );

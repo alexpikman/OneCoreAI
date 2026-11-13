@@ -46,8 +46,8 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   {
     title: 'Левая боковая панель',
     items: [
-      { key: 'showLeftSidebar', label: 'Показывать левую панель целиком', hint: 'Скрывает весь левый столбец для расширения чата' },
-      { key: 'showProjectTree', label: 'Дерево файлов проекта', hint: 'Навигация по исходникам Rust и TypeScript' },
+      { key: 'showLeftSidebar', label: 'Подменю рабочего стола', hint: 'Скрывает контекстные пункты рабочего стола, сохраняя основное меню разделов' },
+      { key: 'showProjectTree', label: 'Файлы проекта', hint: 'Показывает кнопку файлового проводника в левом меню' },
       { key: 'showLocalModels', label: 'Список локальных моделей GGUF', hint: 'Быстрое переключение активной модели' },
       { key: 'showSessionHistory', label: 'История чат-сессий', hint: 'Сохранённые задачи, поиск и кнопка нового чата' },
       { key: 'showSkillsMemoryTab', label: 'Вкладка «Навыки и память» (OneCore)', hint: 'Переключатель SKILL.md и файлов SOUL/MEMORY/USER' },
@@ -57,7 +57,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
     title: 'Правая панель инспектора',
     items: [
       { key: 'showRightInspector', label: 'Показывать правый инспектор целиком', hint: 'Расширяет область чтения кода и диффов' },
-      { key: 'showMascot', label: 'Аватар агента в панели чата', hint: 'Реагирует на генерацию и активную роль' },
+      { key: 'showMascot', label: 'Аватар агента в верхней шапке', hint: 'Реагирует на генерацию и активную роль' },
       { key: 'showTelemetry', label: 'Статус llama-server.exe и VRAM/RAM', hint: 'Кнопка Стоп/Запуск и индикаторы памяти' },
       { key: 'showFreeProviderCard', label: 'Селектор бесплатного провайдера ИИ', hint: 'Быстрое переключение llama.cpp / OpenRouter :free / Ollama' },
       { key: 'showInferenceControls', label: 'Параметры генерации (Temp, n_ctx, GPU)', hint: 'Быстрая настройка слоёв и контекста' },
@@ -68,8 +68,8 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   {
     title: 'Области потока чата (Cline-стиль)',
     items: [
-      { key: 'showToolbar', label: 'Верхняя панель инструментов', hint: 'Переключение чата и просмотра кода, модель и инструменты' },
-      { key: 'showExecutionEnvBar', label: 'Переключатель среды (Локально / SSH / Docker)', hint: 'Выбор среды выполнения рядом с окном ввода' },
+      { key: 'showToolbar', label: 'Провайдер и модель в верхней шапке', hint: 'Быстрый выбор провайдера и модели для чата' },
+      { key: 'showExecutionEnvBar', label: 'Среда выполнения (Local / SSH / Docker)', hint: 'Кнопки выбора среды в левом меню рабочего стола' },
       { key: 'showTaskBanner', label: 'Панель задачи Cline (токены, прогресс, модель)', hint: 'Компактная строка состояния текущей задачи' },
       { key: 'showMessageHeaders', label: 'Заголовки сообщений (модель и роль)', hint: 'Автор, модель и активная роль' },
       { key: 'showTimestamps', label: 'Временные метки сообщений', hint: 'Время отправки HH:MM:SS' },
@@ -82,7 +82,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   {
     title: 'Область ввода (Composer)',
     items: [
-      { key: 'showRoleSwitcher', label: 'Быстрый переключатель ролей над полем ввода', hint: 'Разработчик, Архитектор, Ревьюер, QA' },
+      { key: 'showRoleSwitcher', label: 'Переключатель ролей в верхней шапке', hint: 'Разработчик, Архитектор, Ревьюер, QA' },
       { key: 'showQuickPrompts', label: 'Кнопки быстрых сценариев', hint: 'Пресеты промптов для мгновенного старта' },
       { key: 'showComposerStatusRow', label: 'Строка статуса токенов и активного снапшота', hint: 'Индикатор контекста и последнего Checkpoint' },
     ],
@@ -111,6 +111,8 @@ export const SettingsView: React.FC = () => {
   const {
     settingsSection,
     setSettingsSection,
+    appNavigationWidth,
+    setAppNavigationWidth,
     uiStyle,
     setUiStyle,
     chatVisibility,
@@ -305,6 +307,34 @@ export const SettingsView: React.FC = () => {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className={cn('p-5 border space-y-3', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Ширина левого меню</h2>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                    Настройте ширину основного меню и его подменю на большом экране.
+                  </p>
+                </div>
+                <span className="font-mono text-sm tabular-nums text-zinc-700 dark:text-zinc-300">
+                  {appNavigationWidth} px
+                </span>
+              </div>
+              <input
+                type="range"
+                min={220}
+                max={380}
+                step={10}
+                value={appNavigationWidth}
+                onChange={(event) => setAppNavigationWidth(Number(event.target.value))}
+                aria-label="Ширина левого меню"
+                className="w-full accent-blue-600"
+              />
+              <div className="flex justify-between text-[10px] text-zinc-500">
+                <span>220 px</span>
+                <span>380 px</span>
               </div>
             </div>
 

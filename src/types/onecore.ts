@@ -549,6 +549,7 @@ export interface PersistedAppSettings {
   theme: 'dark' | 'light';
   uiStyle: UiStylePreset;
   settingsSection: SettingsSectionId;
+  appNavigationWidth: number;
   chatVisibility: ChatVisibilitySettings;
   inferenceSettings: Pick<
     InferenceSettings,
