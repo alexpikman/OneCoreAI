@@ -22,6 +22,7 @@ export const TopHeader: React.FC = () => {
   const {
     activeTab,
     setActiveTab,
+    appNavigationWidth,
     openSettingsSection,
     theme,
     toggleTheme,
@@ -70,12 +71,15 @@ export const TopHeader: React.FC = () => {
   }, [trayOpen, setTrayOpen]);
 
   return (
-    <header className={cn('h-14 shrink-0 border-b px-2 md:px-5 flex items-center justify-between gap-2 md:gap-4 xl:gap-8 relative z-30', tokens.headerBg)}>
+    <header
+      className={cn('h-14 shrink-0 border-b flex items-center justify-between gap-0 relative z-30', tokens.headerBg)}
+      style={{ '--app-navigation-width': `${appNavigationWidth}px` } as React.CSSProperties}
+    >
       <button
         type="button"
         onClick={() => setActiveTab('workstation')}
         aria-label="ONE CORE AI — рабочая станция"
-        className="inline-flex items-center gap-2 font-display text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        className="w-14 lg:w-[var(--app-navigation-width)] h-full shrink-0 pl-2 lg:pl-3 pr-2 inline-flex items-center gap-2 font-display text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
         <img src="/onecore-ai-logo.png" alt="" className="h-8 w-8 rounded-lg object-cover" />
         <span className="hidden md:inline">ONE CORE AI</span>
@@ -175,7 +179,7 @@ export const TopHeader: React.FC = () => {
       )}
 
       {/* Install, Theme, Windows Tray & Primary Action */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 pr-2 md:pr-5">
         {latestUpdate?.isNewer && (
           <button
             type="button"

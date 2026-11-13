@@ -79,10 +79,14 @@ export const CenterAgentPane: React.FC = () => {
   const [fileSaveMsg, setFileSaveMsg] = useState<string | null>(null);
 
   const streamEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  const chatNavigatorRef = useRef<HTMLElement>(null);
   const cpRef = useRef<HTMLDivElement>(null);
+  const [activeChatMessageIndex, setActiveChatMessageIndex] = useState(0);
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
   const activeSession = sessions.find((s) => s.id === activeSessionId);
+  const chatMessages = activeSession?.messages ?? [];
   const selectedFile = files.find((f) => f.path === selectedFilePath) ?? files[0];
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeProvider =
@@ -101,6 +105,32 @@ export const CenterAgentPane: React.FC = () => {
     c.command.startsWith(input.toLowerCase()),
   );
 
+  const updateActiveChatMessage = () => {
+    const scrollElement = chatScrollRef.current;
+    if (!scrollElement) return;
+    const top = scrollElement.getBoundingClientRect().top + 24;
+    const visibleMessage = Array.from(
+      scrollElement.querySelectorAll<HTMLElement>('[data-chat-message-index]'),
+    ).find((element) => element.getBoundingClientRect().bottom > top);
+    if (visibleMessage) {
+      setActiveChatMessageIndex(Number(visibleMessage.dataset.chatMessageIndex));
+    }
+  };
+
+  const navigateToChatMessage = (index: number) => {
+    const scrollElement = chatScrollRef.current;
+    const messageElement = scrollElement?.querySelector<HTMLElement>(
+      `[data-chat-message-index="${index}"]`,
+    );
+    if (!scrollElement || !messageElement) return;
+    const top =
+      messageElement.getBoundingClientRect().top -
+      scrollElement.getBoundingClientRect().top +
+      scrollElement.scrollTop;
+    scrollElement.scrollTo({ top, behavior: 'smooth' });
+    setActiveChatMessageIndex(index);
+  };
+
   useEffect(() => {
     setEditingFile(false);
     setFileSaveMsg(null);
@@ -111,7 +141,17 @@ export const CenterAgentPane: React.FC = () => {
 
   useEffect(() => {
     streamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeSession?.messages.length, activeSession?.messages.at(-1)?.content]);
+  }, [activeSessionId, activeSession?.messages.length, activeSession?.messages.at(-1)?.content]);
+
+  useEffect(() => {
+    setActiveChatMessageIndex(Math.max(0, chatMessages.length - 1));
+  }, [activeSessionId, chatMessages.length]);
+
+  useEffect(() => {
+    chatNavigatorRef.current
+      ?.querySelector('[aria-current="location"]')
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [activeChatMessageIndex]);
 
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -447,7 +487,42 @@ export const CenterAgentPane: React.FC = () => {
           )}
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {chatMessages.length > 0 && (
+            <nav
+              ref={chatNavigatorRef}
+              aria-label="Навигация по сообщениям чата"
+              className="w-7 shrink-0 border-r border-zinc-200/70 dark:border-zinc-800/70 flex flex-col items-center gap-1 overflow-y-auto py-4"
+            >
+              {chatMessages.map((message, index) => (
+                <button
+                  key={message.id}
+                  type="button"
+                  onClick={() => navigateToChatMessage(index)}
+                  aria-label={`Перейти к сообщению ${index + 1}`}
+                  aria-current={activeChatMessageIndex === index ? 'location' : undefined}
+                  title={`Сообщение ${index + 1} · ${message.role === 'user' ? 'Вы' : 'Агент'}`}
+                  className="w-6 h-3 shrink-0 inline-flex items-center justify-center"
+                >
+                  <span
+                    className={cn(
+                      'h-1 rounded-full transition-all',
+                      activeChatMessageIndex === index
+                        ? 'w-5 bg-zinc-900 dark:bg-zinc-100'
+                        : message.role === 'user'
+                          ? 'w-2.5 bg-zinc-400 dark:bg-zinc-600'
+                          : 'w-4 bg-zinc-300 dark:bg-zinc-700',
+                    )}
+                  />
+                </button>
+              ))}
+            </nav>
+          )}
+          <div
+            ref={chatScrollRef}
+            onScroll={updateActiveChatMessage}
+            className="flex-1 min-w-0 overflow-y-auto px-5 py-5 space-y-4"
+          >
           {(!activeSession || activeSession.messages.length === 0) && (
             <div className={cn('max-w-2xl mx-auto my-8 p-6 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
               <div className="flex items-center gap-2 text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-2">
@@ -493,9 +568,10 @@ export const CenterAgentPane: React.FC = () => {
             </div>
           )}
 
-          {activeSession?.messages.map((msg) => (
+          {activeSession?.messages.map((msg, index) => (
             <div
               key={msg.id}
+              data-chat-message-index={index}
               aria-label={msg.role === 'user' ? 'Сообщение пользователя' : 'Ответ агента'}
               className={cn(
                 'max-w-3xl mx-auto border border-l-[3px] p-4 shadow-sm',
@@ -686,6 +762,7 @@ export const CenterAgentPane: React.FC = () => {
             </div>
           ))}
           <div ref={streamEndRef} />
+          </div>
         </div>
       )}
 

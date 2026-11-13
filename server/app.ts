@@ -512,6 +512,16 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
   });
 
+  app.post('/api/projects/activate', (req, res) => {
+    try {
+      const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : '';
+      const result = setActiveProjectId(projectId);
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка выбора проекта' });
+    }
+  });
+
   app.post('/api/projects/:id/activate', (req, res) => {
     try {
       const result = setActiveProjectId(req.params.id);

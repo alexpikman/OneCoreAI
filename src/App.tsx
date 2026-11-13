@@ -33,6 +33,16 @@ export default function App() {
     if (hydrated) void checkForUpdates();
   }, [hydrated, checkForUpdates]);
 
+  // Global listener: open project connect modal from any tab when agent needs a project
+  useEffect(() => {
+    const handler = () => {
+      // Switch to workstation tab so the user sees the project connection UI
+      setActiveTab('workstation');
+    };
+    window.addEventListener('onecore:open-project-modal', handler);
+    return () => window.removeEventListener('onecore:open-project-modal', handler);
+  }, [setActiveTab]);
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);

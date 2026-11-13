@@ -1,12 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Activity,
-  BookOpen,
-  Brain,
   Container,
   ChevronDown,
   ChevronRight,
-  Cpu,
   FilePlus2,
   FolderCog,
   FolderOpen,
@@ -19,16 +16,13 @@ import {
   RotateCcw,
   Search,
   Server,
-  Sparkles,
 } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { AgentMemoryKey, ExecutionEnvKind, ProjectRecord } from '../../types/onecore';
+import type { ExecutionEnvKind, ProjectRecord } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
 import { ProjectFilesModal } from './ProjectFilesModal';
 import { ProjectModal } from './ProjectModal';
-
-type SidebarSectionTab = 'workspace' | 'learning';
 
 const ENV_META: { id: ExecutionEnvKind; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: 'local', label: 'Локально', icon: Laptop },
@@ -49,30 +43,18 @@ export const LeftSidebar: React.FC = () => {
     files,
     selectedFilePath,
     selectFile,
-    localModels,
-    activeModelId,
-    selectLocalModel,
     sessions,
     activeSessionId,
     setActiveSession,
     createNewSession,
-    setActiveTab,
-    openSettingsSection,
-    serverStatus,
     executionEnv,
     setActiveExecutionEnv,
     chatVisibility,
     uiStyle,
-    skills,
-    toggleSkill,
-    memoryDocs,
-    updateMemoryDoc,
   } = useOneCoreStore();
 
   const tokens = getUiTokens(uiStyle);
-  const [sidebarTab, setSidebarTab] = useState<SidebarSectionTab>('workspace');
   const [sessionQuery, setSessionQuery] = useState('');
-  const [activeMemKey, setActiveMemKey] = useState<AgentMemoryKey>('memory');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectRecord | null>(null);
@@ -87,17 +69,7 @@ export const LeftSidebar: React.FC = () => {
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
 
-  useEffect(() => {
-    const handler = () => {
-      setEditingProject(null);
-      setModalOpen(true);
-    };
-    window.addEventListener('onecore:open-project-modal', handler);
-    return () => window.removeEventListener('onecore:open-project-modal', handler);
-  }, []);
 
-  const activeMemDoc = memoryDocs.find((m) => m.key === activeMemKey) ?? memoryDocs[0];
-  const enabledSkillsCount = skills.filter((s) => s.enabled).length;
 
   const filteredSessions = useMemo(() => {
     const q = sessionQuery.trim().toLowerCase();
@@ -142,146 +114,8 @@ export const LeftSidebar: React.FC = () => {
 
   return (
     <div className={cn('flex-1 min-h-0 flex flex-col overflow-hidden', tokens.sidebarBg)}>
-      {/* Segmented switcher: Workspace vs OneCore Skills & Memory */}
-      {chatVisibility.showSkillsMemoryTab && (
-        <div className="px-3 pt-2.5 pb-2 border-b border-zinc-200 dark:border-zinc-800/90">
-          <div className={cn('grid grid-cols-2 p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
-            <button
-              type="button"
-              onClick={() => setSidebarTab('workspace')}
-              className={cn(
-                'py-1.5 px-2 text-[11px] font-medium transition-colors whitespace-nowrap truncate',
-                tokens.inputRadius,
-                sidebarTab === 'workspace'
-                  ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-              )}
-            >
-              Проект и сессии
-            </button>
-            <button
-              type="button"
-              onClick={() => setSidebarTab('learning')}
-              className={cn(
-                'py-1.5 px-2 text-[11px] font-medium transition-colors whitespace-nowrap truncate inline-flex items-center justify-center gap-1',
-                tokens.inputRadius,
-                sidebarTab === 'learning'
-                  ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-              )}
-            >
-              <span>Навыки</span>
-              <span className="font-mono tabular-nums text-[10px] opacity-75">({enabledSkillsCount})</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {sidebarTab === 'learning' && chatVisibility.showSkillsMemoryTab ? (
-        <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
-          {/* OneCore Self-Improving Skills */}
-          <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                <span>Навыки SKILL.md</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => openSettingsSection('skills-memory')}
-                className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap"
-              >
-                <Plus className="w-3 h-3" />
-                <span>Управлять</span>
-              </button>
-            </div>
-
-            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-0.5">
-              {skills.map((skill) => (
-                <label
-                  key={skill.id}
-                  className={cn(
-                    'flex items-start gap-2 p-2 border cursor-pointer transition-colors',
-                    tokens.cardRadius,
-                    skill.enabled
-                      ? 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60'
-                      : 'border-zinc-200/50 dark:border-zinc-800/40 opacity-60',
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    checked={skill.enabled}
-                    onChange={() => toggleSkill(skill.id)}
-                    className="mt-0.5 accent-blue-600 shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[11.5px] font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {skill.title}
-                    </div>
-                    <div className="mt-0.5 text-[10.5px] text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5 font-mono tabular-nums">
-                      <span>{skill.source === 'learned' ? 'Авто-навык' : skill.category}</span>
-                      <span>·</span>
-                      <span>{skill.usageCount}x</span>
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* OneCore Persistent 3-Layer Memory */}
-          <div className="p-3.5 flex-1 flex flex-col min-h-[240px] space-y-2.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
-                <Brain className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Память агента</span>
-              </span>
-              <span className="text-[10.5px] font-mono text-zinc-500">{activeMemDoc?.updatedAt}</span>
-            </div>
-
-            <div className="grid grid-cols-3 gap-1">
-              {memoryDocs.map((doc) => (
-                <button
-                  key={doc.key}
-                  type="button"
-                  onClick={() => setActiveMemKey(doc.key)}
-                  className={cn(
-                    'py-1 px-1.5 border font-mono text-[10.5px] transition-colors truncate',
-                    tokens.inputRadius,
-                    activeMemKey === doc.key
-                      ? tokens.activeHighlight
-                      : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400',
-                  )}
-                >
-                  {doc.filename}
-                </button>
-              ))}
-            </div>
-
-            {activeMemDoc && (
-              <div className="flex-1 flex flex-col gap-1.5 min-h-0">
-                <div className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
-                  {activeMemDoc.description}
-                </div>
-                <textarea
-                  value={activeMemDoc.content}
-                  onChange={(e) => updateMemoryDoc(activeMemDoc.key, e.target.value)}
-                  className={cn(
-                    'flex-1 min-h-[140px] w-full p-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 font-mono text-[11px] leading-relaxed text-zinc-800 dark:text-zinc-200 resize-none focus:outline-none focus:border-blue-500',
-                    tokens.inputRadius,
-                  )}
-                />
-                <div className="text-[10.5px] text-zinc-500 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-blue-500 shrink-0" />
-                  <span>Автоматически подмешивается в каждый промпт</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Section 1: Real Project Selector & File Tree */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+          {/* Project selector and workspace controls */}
           <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
               <div className="flex items-center justify-between gap-1.5">
                 <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
@@ -315,46 +149,22 @@ export const LeftSidebar: React.FC = () => {
                 </div>
               </div>
 
-              {projects.length > 0 ? (
-                <div className="space-y-1">
-                  <select
-                    value={activeProjectId}
-                    onChange={(e) => void selectProject(e.target.value)}
-                    className={cn(
-                      'w-full h-8 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-xs font-medium text-zinc-900 dark:text-zinc-100',
-                      tokens.inputRadius,
-                    )}
-                  >
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.folderSource})
-                      </option>
-                    ))}
-                  </select>
-                  {activeProject && (
-                    <div
-                      className="text-[10.5px] font-mono text-zinc-500 truncate"
-                      title={activeProject.folderPath}
-                    >
-                      {activeProject.folderPath}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingProject(null);
-                    setModalOpen(true);
-                  }}
-                  className={cn(
-                    'w-full p-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 text-xs text-zinc-600 dark:text-zinc-400 hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 text-center transition-colors',
-                    tokens.cardRadius,
-                  )}
-                >
-                  + Подключить папку проекта
-                </button>
-              )}
+              <select
+                value={activeProjectId}
+                onChange={(event) => void selectProject(event.target.value)}
+                aria-label="Выбор проекта"
+                className={cn(
+                  'w-full h-8 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-xs font-medium text-zinc-900 dark:text-zinc-100',
+                  tokens.inputRadius,
+                )}
+              >
+                <option value="">Без проекта</option>
+                {projects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name} ({project.folderSource})
+                  </option>
+                ))}
+              </select>
 
               {activeProject && (
                 <>
@@ -538,97 +348,7 @@ export const LeftSidebar: React.FC = () => {
               )}
             </div>
 
-          {/* Section 2: Local GGUF Models */}
-          {chatVisibility.showLocalModels && (
-            <div className="p-3.5 border-b border-zinc-200 dark:border-zinc-800/90">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
-                  <Cpu className="w-3.5 h-3.5 text-zinc-500" />
-                  Локальные модели
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('models')}
-                  className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-0.5 whitespace-nowrap"
-                >
-                  <Plus className="w-3 h-3" />
-                  Управлять
-                </button>
-              </div>
-
-              {localModels.length === 0 ? (
-                <div className="text-[11px] text-zinc-500 py-1.5">
-                  Модели не загружены. Скачайте GGUF или импортируйте файл во вкладке «Модели».
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                  {localModels.map((model) => {
-                    const isActive = model.id === activeModelId;
-                    const isReady = model.status === 'ready';
-                    return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        disabled={!isReady}
-                        onClick={() => void selectLocalModel(model.id)}
-                        className={cn(
-                          'w-full text-left p-2 border transition-colors',
-                          tokens.cardRadius,
-                          isActive
-                            ? tokens.activeHighlight
-                            : 'border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-700',
-                          !isReady && 'opacity-80 cursor-default',
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                            {model.name}
-                          </span>
-                          <span
-                            className={cn(
-                              'font-mono text-[10px] shrink-0 tabular-nums',
-                              model.status === 'corrupt' || model.status === 'error'
-                                ? 'text-rose-500'
-                                : 'text-zinc-500',
-                            )}
-                          >
-                            {isActive && serverStatus === 'loading'
-                              ? 'Загрузка...'
-                              : isActive
-                                ? 'Активна'
-                                : isReady
-                                  ? 'Готова'
-                                  : model.status === 'corrupt'
-                                    ? 'Битый SHA256'
-                                    : model.status === 'error'
-                                      ? 'Ошибка'
-                                      : model.status === 'verifying'
-                                        ? 'SHA256...'
-                                        : `${model.progressPct}%`}
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
-                          <span>{model.quant}</span>
-                          <span>·</span>
-                          <span>{model.sizeGb} GB</span>
-                        </div>
-                        {model.status === 'downloading' && (
-                          <div className="mt-1.5 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                            <div
-                              className="h-full bg-blue-600 transition-all duration-200"
-                              style={{ width: `${model.progressPct}%` }}
-                            />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section 3: Chat Sessions History */}
+          {/* Session history */}
           {chatVisibility.showSessionHistory && (
             <div className="p-3.5 flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-2">
@@ -696,8 +416,7 @@ export const LeftSidebar: React.FC = () => {
               </div>
             </div>
           )}
-        </>
-      )}
+      </div>
 
       <ProjectModal
         open={modalOpen}

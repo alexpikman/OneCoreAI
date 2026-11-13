@@ -208,6 +208,7 @@ interface OneCoreStore {
 
   saveProject: (payload: SaveProjectPayload) => Promise<{ ok: boolean; project?: ProjectRecord; error?: string }>;
   selectProject: (projectId: string) => Promise<void>;
+  connectProject: (projectId: string) => Promise<void>;
   deleteProject: (projectId: string) => Promise<{ ok: boolean }>;
   createOrWriteProjectFile: (
     filePath: string,
@@ -590,7 +591,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         return;
       }
       const projects = data.projects ?? [];
-      const activeProjectId = data.activeProjectId || projects[0]?.id || '';
+      const activeProjectId =
+        typeof data.activeProjectId === 'string' ? data.activeProjectId : projects[0]?.id ?? '';
       const activeProj = projects.find((p) => p.id === activeProjectId);
 
       set((s) => ({
@@ -829,14 +831,67 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   selectProject: async (projectId) => {
     try {
-      const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/activate`, {
+      const clearingProject = !projectId;
+      const res = await fetch(
+        clearingProject
+          ? '/api/projects/activate'
+          : `/api/projects/${encodeURIComponent(projectId)}/activate`,
+        {
         method: 'POST',
-      });
-      if (!res.ok) return;
+          ...(clearingProject
+            ? {
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: '' }),
+              }
+            : {}),
+        },
+      );
+      const data = (await res.json()) as { ok?: boolean };
+      if (!res.ok || !data.ok) return;
+
+      if (clearingProject) {
+        set({
+          activeProjectId: '',
+          files: [],
+          selectedFilePath: '',
+          projectLogs: [],
+          projectWorkspace: { tasks: [], plan: null },
+          projectWorkspaceError: null,
+        });
+        return;
+      }
+
       const proj = get().projects.find((p) => p.id === projectId);
       set((s) => ({
         activeProjectId: projectId,
         executionEnv: proj ? { ...s.executionEnv, localWorkdir: proj.folderPath } : s.executionEnv,
+      }));
+      await Promise.all([
+        get().refreshProjectFiles(projectId),
+        get().refreshProjectLogs(projectId),
+        get().refreshProjectWorkspace(projectId),
+      ]);
+      void get().resumePendingProjectPrompt();
+    } catch {
+      // ignore
+    }
+  },
+
+  connectProject: async (projectId) => {
+    try {
+      const res = await fetch(
+        `/api/projects/${encodeURIComponent(projectId)}/activate`,
+        { method: 'POST' },
+      );
+      const data = (await res.json()) as { ok?: boolean };
+      if (!res.ok || !data.ok) return;
+
+      const proj = get().projects.find((p) => p.id === projectId);
+      set((s) => ({
+        activeProjectId: projectId,
+        executionEnv: proj
+          ? { ...s.executionEnv, localWorkdir: proj.folderPath }
+          : s.executionEnv,
       }));
       await Promise.all([
         get().refreshProjectFiles(projectId),
