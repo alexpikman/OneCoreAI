@@ -1,0 +1,47 @@
+{
+  "name": "one-core-ai",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "start": "tsx server.ts --production",
+    "build": "vite build && npm run build:backend",
+    "build:backend": "esbuild server.ts --bundle --platform=node --format=cjs --target=node22 --external:vite --outfile=dist/backend.cjs",
+    "preview": "vite preview",
+    "clean": "rm -rf dist server.js",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test tests/integration.test.ts",
+    "tauri:prepare": "node scripts/prepare-tauri.mjs",
+    "tauri:dev": "npx @tauri-apps/cli@2 dev",
+    "tauri:build": "npx @tauri-apps/cli@2 build"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@google/genai": "^2.4.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "lucide-react": "^0.546.0",
+    "motion": "^12.23.24",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "tailwind-merge": "^3.7.0",
+    "vite": "^8.3.0",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.28.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}
