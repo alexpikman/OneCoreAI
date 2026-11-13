@@ -3,34 +3,21 @@ import { AnimatePresence, motion } from 'motion/react';
 import {
   Bell,
   CheckCheck,
-  Cpu,
   Download,
-  FolderKanban,
-  House,
   Monitor,
   MonitorDown,
   Moon,
   Pause,
   Power,
-  Settings,
   Sun,
 } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { AppTab } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
 
-const NAV_ITEMS: { id: AppTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'workstation', label: 'Рабочий стол', icon: House },
-  { id: 'models', label: 'Модели', icon: Cpu },
-  { id: 'projects', label: 'Проекты', icon: FolderKanban },
-  { id: 'settings', label: 'Настройки', icon: Settings },
-];
-
 export const TopHeader: React.FC = () => {
   const {
-    activeTab,
     setActiveTab,
     openSettingsSection,
     theme,
@@ -78,38 +65,7 @@ export const TopHeader: React.FC = () => {
         <span>ONE CORE AI</span>
       </button>
 
-      {/* Zone 2: Clean single-line navigation links */}
-      <nav aria-label="Основные разделы" className="flex items-center gap-6 overflow-x-auto">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setActiveTab(item.id)}
-              className={cn(
-                'relative py-4 text-sm font-medium transition-colors whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:text-blue-500 inline-flex items-center gap-1.5',
-                isActive
-                  ? 'text-zinc-950 dark:text-zinc-50'
-                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-              )}
-            >
-              <Icon className="w-4 h-4" aria-hidden="true" />
-              {item.label}
-              {isActive && (
-                <motion.span
-                  layoutId="header-active-underline"
-                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600 dark:bg-blue-500"
-                />
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Zone 3: Install, Theme, Windows Tray & Primary Action */}
+      {/* Install, Theme, Windows Tray & Primary Action */}
       <div className="flex items-center gap-2 shrink-0">
         {latestUpdate?.isNewer && (
           <button
