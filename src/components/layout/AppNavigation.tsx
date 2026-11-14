@@ -50,6 +50,7 @@ const MODEL_SETTINGS_ITEMS: {
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
   { id: 'providers', label: 'Провайдеры и API-модели', group: 'НАСТРОЙКИ', icon: Sparkles },
+  { id: 'model-manager', label: 'Менеджер моделей', group: 'НАСТРОЙКИ', icon: Cpu },
   { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'НАСТРОЙКИ', icon: Cpu },
   { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'НАСТРОЙКИ', icon: UserCheck },
   { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'НАСТРОЙКИ', icon: Brain },
@@ -91,7 +92,7 @@ export const AppNavigation: React.FC = () => {
               key={item.id}
               type="button"
               onClick={() => {
-                if (item.id === 'settings' && ['providers', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)) {
+                if (item.id === 'settings' && ['providers', 'model-manager', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)) {
                   setSettingsSection('ui-chat');
                 }
                 setActiveTab(item.id);
