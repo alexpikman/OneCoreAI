@@ -1,8 +1,8 @@
 # Development Plan
 
 ## Phase 1 — Stabilization and encoding
-- [x] Restore UTF-8 Russian strings in the six source files affected by the encoding regression.
-- [ ] Add an automated encoding regression check.
+- [x] Restore UTF-8 Russian strings in the affected frontend files.
+- [x] Add an automated encoding regression check.
 - [x] Preserve existing feature changes and user-data compatibility.
 
 ## Phase 2 — Local API security
@@ -18,18 +18,20 @@
 - [ ] Add Windows-specific path edge-case tests and close remaining filesystem race windows.
 
 ## Phase 4 — Permission Manager
-- [x] Require an explicit approval flag for terminal commands and mutating Git operations.
-- [ ] Centralize authorization for terminal execution, file writes, Git, SSH, browser actions, model management, and other side effects.
-- [ ] Separate proposal, user approval, execution, and verification for every side effect.
-- [ ] Record approvals and results in the operation log.
+- [x] Add a central project tool permission manager for file reads/writes, terminal, Git, and code search.
+- [x] Require explicit approval for terminal commands, mutating Git operations, file writes, and undo.
+- [x] Keep agent-generated file diffs and commands pending until user confirmation.
+- [ ] Extend permission checks to model management, SSH, browser/network actions, project deletion, and all remaining side effects.
+- [ ] Record approval identity, scope, and results in the operation log.
 
 ## Phase 5 — Secret storage
-- [ ] Use native OS credential storage where supported.
-- [ ] Keep the encrypted local vault as a documented fallback.
+- [x] Use Windows Credential Manager through the native Windows Credential API.
+- [x] Use macOS Keychain where supported.
+- [ ] Implement Linux Secret Service storage and strengthen the encrypted fallback key derivation.
 - [ ] Define recovery and migration behavior without losing existing credentials.
 
 ## Phase 6 — Quality gates and documentation
-- [x] Add CI for type-check, integration tests, and production build on pushes to main.
+- [x] Add CI for encoding checks, type-check, integration tests, and production build on Linux and Windows.
 - [x] Restrict Windows installer publishing to version tags or manual dispatch.
 - [x] Add working rules, development plan, current state, and continuation prompt.
 - [ ] Confirm the first CI run and fix all failures.
