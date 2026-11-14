@@ -1042,7 +1042,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
     return {
       ok: Boolean(data.ok),
-      message: data.message || 'РћС‚РєР°С‚ РЅРµ РІС‹РїРѕР»РЅРµРЅ',
+      message: data.message || 'Откат не выполнен',
     };
   },
 
@@ -1241,7 +1241,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const id = `session-${Date.now()}`;
     const newSession: ChatSession = {
       id,
-      title: 'РќРѕРІС‹Р№ С‡Р°С‚',
+      title: 'Новый чат',
       updatedAt: 'Сейчас',
       mode: get().agentMode,
       messages: [],
@@ -1532,7 +1532,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             cmd === '/web'
               ? 'Укажите запрос для поиска по публичным веб-страницам: `/web документация React 19`'
               : 'Укажите HTTPS-адрес публичной страницы: `/browse https://example.com`',
-            { roleName: 'Р‘СЂР°СѓР·РµСЂ' },
+            { roleName: 'Браузер' },
           );
           return;
         }
@@ -1564,7 +1564,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                 : [];
           if (sourceBlocks.length === 0) {
             pushReply('По этому запросу не найдено публичных веб-страниц.', {
-              roleName: 'Р‘СЂР°СѓР·РµСЂ',
+              roleName: 'Браузер',
             });
             return;
           }
@@ -1627,7 +1627,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
               ? summary
               : `Браузер получил материалы, но модель не смогла подготовить сводку (${summaryError}).\n\n${sources}`,
             {
-              roleName: 'Р’РµР±-Р±СЂР°СѓР·РµСЂ',
+              roleName: 'Веб-браузер',
               providerLabel: summary
                 ? `${provider.name} В· ${provider.selectedModel}`
                 : 'Только чтение веб-страниц',
@@ -1637,7 +1637,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         } catch (error) {
           pushReply(
             `Ошибка браузера: ${error instanceof Error ? error.message : 'Не удалось прочитать страницу.'}`,
-            { roleName: 'Р‘СЂР°СѓР·РµСЂ' },
+            { roleName: 'Браузер' },
           );
         } finally {
           set((s) => ({
@@ -1663,7 +1663,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           return;
         }
         get().appendMemoryFact(arg);
-        pushReply(`Р¤Р°РєС‚ СЃРѕС…СЂР°РЅС‘РЅ РІ \`MEMORY.md\`:\n\n- ${arg}`, { roleName: 'OneCore Memory' });
+        pushReply(`Факт сохранён в \`MEMORY.md\`:\n\n- ${arg}`, { roleName: 'OneCore Memory' });
         return;
       }
 
@@ -1673,7 +1673,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             ? (arg as ExecutionEnvKind)
             : null;
         if (!nextEnv) {
-          pushReply(`РўРµРєСѓС‰Р°СЏ СЃСЂРµРґР°: \`${state.executionEnv.activeEnv}\`. Р”РѕСЃС‚СѓРїРЅРѕ: \`/env local\`, \`/env ssh\`, \`/env docker\`.`);
+          pushReply(`Текущая среда: \`${state.executionEnv.activeEnv}\`. Доступно: \`/env local\`, \`/env ssh\`, \`/env docker\`.`);
           return;
         }
         get().setActiveExecutionEnv(nextEnv);
@@ -1687,7 +1687,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         );
         if (!arg || !matched) {
           const list = state.freeProviders.map((p) => `- \`${p.kind}\` (${p.name})`).join('\n');
-          pushReply(`Р”РѕСЃС‚СѓРїРЅС‹Рµ РїСЂРѕРІР°Р№РґРµСЂС‹:\n${list}`);
+          pushReply(`Доступные провайдеры:\n${list}`);
           return;
         }
         get().setActiveProvider(matched.id);
@@ -1711,7 +1711,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           contentMarkdown: `---\nname: ${arg.toLowerCase().replace(/[^a-zа-я0-9]+/gi, '-')}\n---\nИнструкция навыка: ${arg}`,
           source: 'custom',
         });
-        pushReply(`РќРѕРІС‹Р№ РЅР°РІС‹Рє **В«${arg}В»** РґРѕР±Р°РІР»РµРЅ РІ \`SKILL.md\`.`);
+        pushReply(`Новый навык **«${arg}»** добавлен в \`SKILL.md\`.`);
         return;
       }
     }
@@ -1838,7 +1838,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             }
           : undefined;
 
-        pushReply(data.replyText || 'Р—Р°РґР°С‡Р° РІС‹РїРѕР»РЅРµРЅР°.', {
+        pushReply(data.replyText || 'Задача выполнена.', {
           roleName: route.kind === 'terminal' ? 'Терминал' : activeRole.name,
           providerLabel: data.usedLiveLlm
             ? `${activeProvider.name} В· ${providerModel}`
@@ -1887,7 +1887,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         } else {
           const keyHint =
             activeProvider.requiresKey && !activeProvider.apiKey.trim()
-              ? ' Р”Р»СЏ РѕР±Р»Р°С‡РЅРѕРіРѕ РїСЂРѕРІР°Р№РґРµСЂР° РґРѕР±Р°РІСЊС‚Рµ API-РєР»СЋС‡ РІ РЅР°СЃС‚СЂРѕР№РєР°С… РїСЂРѕРІР°Р№РґРµСЂРѕРІ.'
+              ? ' Для облачного провайдера добавьте API-ключ в настройках провайдеров.'
               : '';
           pushReply(
             `Не удалось получить ответ от **${activeProvider.name}** (${json.error || `HTTP ${resp.status}`}).${keyHint}`,
@@ -2056,7 +2056,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       notifications: [
         {
           id: `notif-${Date.now()}`,
-          title: res.ok ? 'РћС‚РєР°С‚ /undo РІС‹РїРѕР»РЅРµРЅ' : 'РћС‚РєР°С‚ РЅРµРІРѕР·РјРѕР¶РµРЅ',
+          title: res.ok ? 'Откат /undo выполнен' : 'Откат невозможен',
           detail: res.message,
           timestamp: nowTime(),
           read: false,
@@ -2173,7 +2173,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         if (!res.ok || data.error) {
           return {
             ok: false,
-            error: data.error || `Hugging Face РІРµСЂРЅСѓР» HTTP ${res.status}`,
+            error: data.error || `Hugging Face вернул HTTP ${res.status}`,
           };
         }
         if (Array.isArray(data.files) && data.files.length > 0) {
@@ -2388,7 +2388,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
     set((s) => ({
       sshHosts: s.sshHosts.map((h) =>
-        h.id === hostId ? { ...h, lastChecked: 'Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ СЂРµР°Р»СЊРЅР°СЏ РїСЂРѕРІРµСЂРєР° ssh...' } : h,
+        h.id === hostId ? { ...h, lastChecked: 'Выполняется реальная проверка ssh...' } : h,
       ),
     }));
 
@@ -2412,8 +2412,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                 ...h,
                 status: data.ok ? 'connected' : 'error',
                 lastChecked: data.ok
-                  ? `SSH OK (${data.latencyMs ?? 0} РјСЃ) В· ${nowTime()}`
-                  : data.error || 'SSH-РїСЂРѕРІРµСЂРєР° РѕС‚РєР»РѕРЅРµРЅР°',
+                  ? `SSH OK (${data.latencyMs ?? 0} мс) · ${nowTime()}`
+                  : data.error || 'SSH-проверка отклонена',
               }
             : h,
         ),
@@ -2478,7 +2478,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       }
 
       const parts: string[] = [];
-      if (data.authUser) parts.push(`РђРєРєР°СѓРЅС‚: @${data.authUser}`);
+      if (data.authUser) parts.push(`Аккаунт: @${data.authUser}`);
       if (data.repo) {
         parts.push(
           `Репозиторий: ${data.repo.fullName} (${data.repo.isPrivate ? 'Private' : 'Public'}, ветка ${data.repo.defaultBranch})`,
@@ -2492,7 +2492,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         githubAccess: {
           ...s.githubAccess,
           lastVerifyStatus: 'ok',
-          lastVerifyMessage: parts.join(' В· ') || 'Р”РѕСЃС‚СѓРї Рє GitHub РїРѕРґС‚РІРµСЂР¶РґС‘РЅ',
+          lastVerifyMessage: parts.join(' · ') || 'Доступ к GitHub подтверждён',
         },
       }));
     } catch (err) {
@@ -2593,7 +2593,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                 status: 'connected',
                 availableModels: models,
                 selectedModel: models.includes(p.selectedModel) ? p.selectedModel : models[0],
-                lastCheckMessage: `Р”РѕСЃС‚СѓРїРЅРѕ РјРѕРґРµР»РµР№: ${data.count ?? models.length}`,
+                lastCheckMessage: `Доступно моделей: ${data.count ?? models.length}`,
               }
             : p,
         ),
@@ -2623,12 +2623,12 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       const slug =
         title
           .toLowerCase()
-          .replace(/[^a-zР°-СЏ0-9]+/gi, '-')
+          .replace(/[^a-zа-я0-9]+/gi, '-')
           .replace(/^-+|-+$/g, '') || `skill-${Date.now()}`;
       const created: AgentSkill = {
         id: `skill-${Date.now()}`,
         slug,
-        title: title.trim() || 'РќРѕРІС‹Р№ РЅР°РІС‹Рє',
+        title: title.trim() || 'Новый навык',
         category,
         triggerHint: triggerHint.trim() || 'Применяется по контексту задачи',
         contentMarkdown,
@@ -2663,7 +2663,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       ? `Патч: ${msg.diff.filePath.split('/').pop()}`
       : msg.command
         ? `Команда: ${msg.command.command.slice(0, 32)}`
-        : cleanSnippet.slice(0, 42) || 'РђРІС‚РѕРѕР±СѓС‡РµРЅРЅС‹Р№ РЅР°РІС‹Рє';
+        : cleanSnippet.slice(0, 42) || 'Автообученный навык';
 
     const markdown = `---\nname: learned-${Date.now()}\ndescription: Извлечённый навык из сессии "${session?.title ?? 'ONE CORE AI'}"\n---\n${msg.content.slice(0, 600)}`;
 
@@ -2736,7 +2736,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       modelName: provider.selectedModel,
       status: 'running',
       progressPct: 15,
-      resultSummary: `РћС‚РїСЂР°РІРєР° СЂРµР°Р»СЊРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР° РїСЂРѕРІР°Р№РґРµСЂСѓ ${provider.name}...`,
+      resultSummary: `Отправка реального запроса провайдеру ${provider.name}...`,
       startedAt: nowTime(),
     };
 
@@ -2886,7 +2886,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                 ...g,
                 enabled: true,
                 status: 'connected',
-                statusMessage: `Р‘РѕС‚ РїРѕРґРєР»СЋС‡С‘РЅ: @${data.username ?? data.firstName} (ID ${data.botId})`,
+                statusMessage: `Бот подключён: @${data.username ?? data.firstName} (ID ${data.botId})`,
               }
             : g,
         ),
