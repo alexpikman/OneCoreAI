@@ -612,8 +612,15 @@ export async function executeProjectTask(input: {
   // Handle explicit /git <status|diff|log|fetch>
   if (prompt.startsWith('/git')) {
     const sub = prompt.slice(4).trim().split(/\s+/)[0] || 'status';
-    const valid = ['status', 'diff', 'log', 'fetch', 'push'].includes(sub)
-      ? (sub as 'status' | 'diff' | 'log' | 'fetch' | 'push')
+    if (sub === 'fetch' || sub === 'push') {
+      return {
+        replyText: `Операция \x60git ${sub}\x60 не запускалась автоматически. Используйте действие Git в панели проекта и подтвердите его отдельно.`,
+        readFiles: [],
+        usedLiveLlm: false,
+      };
+    }
+    const valid = ['status', 'diff', 'log'].includes(sub)
+      ? (sub as 'status' | 'diff' | 'log')
       : 'status';
     const gitRes = await runProjectGit(project.id, valid);
     return {
@@ -708,12 +715,6 @@ export async function executeProjectTask(input: {
               if (parsed.writeFile?.path && typeof parsed.writeFile.content === 'string') {
                 const full = safeResolveInside(project.folderPath, parsed.writeFile.path);
                 const oldContent = fs.existsSync(full) ? fs.readFileSync(full, 'utf-8') : '';
-                writeProjectFile(
-                  project.id,
-                  parsed.writeFile.path,
-                  parsed.writeFile.content,
-                  parsed.writeFile.summary || 'Правка от ИИ-агента',
-                );
                 diff = {
                   filePath: parsed.writeFile.path,
                   oldContent,
