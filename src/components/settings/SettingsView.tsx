@@ -426,15 +426,23 @@ export const SettingsView: React.FC<{ modelOnly?: boolean }> = ({ modelOnly = fa
         )}
 
         {modelOnly && settingsSection === 'engine-paths' && (
-          <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
-            <div className={cn('p-6 border space-y-6', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+          <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-zinc-200 dark:border-zinc-800">
               <div>
-                <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   Локальный движок llama.cpp, пути и профиль железа
-                </h2>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                </h1>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-2xl">
                   Настройки хранения GGUF-весов, параметров GPU и горячих клавиш Windows.
                 </p>
+              </div>
+            </div>
+            <div className={cn('p-5 border space-y-6', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+              <div className="flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-blue-500" />
+                <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                  Параметры локального движка
+                </h2>
               </div>
 
               {/* Paths */}
