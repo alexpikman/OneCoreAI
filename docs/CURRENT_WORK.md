@@ -37,13 +37,12 @@
 
 ## Verification status
 - Changes are committed directly to `main`; no feature branch or pull request was created.
-- GitHub Actions run `43573269150` completed successfully on both `ubuntu-latest` and `windows-latest`.
-- Both CI jobs passed encoding checks, TypeScript type-checking, integration tests, and production builds.
+- GitHub Actions run `43575007954` completed successfully on both `ubuntu-latest` and `windows-latest`.
+- Both CI jobs passed encoding checks, TypeScript type-checking, integration tests, and production builds. The added tests cover provider token usage, model capability probing, project-task intent routing, and task-state refresh.
 - The malformed command string in an existing integration test was corrected so the CI type-check could run.
 - Local npm commands were not run in this environment; verification was performed by the Linux and Windows CI runners.
 
 ## Remaining work
-- Confirm the first Linux and Windows CI runs and resolve any failures.
 - Implement a session/token authentication layer for local API requests. Origin validation protects browser boundaries but is not authentication against other local processes.
 - Stop returning secret values in `/api/settings`; route provider requests through server-side secret references instead.
 - Extend centralized permission enforcement to model management, SSH, browser/network actions, project deletion, and all other side-effect endpoints.
