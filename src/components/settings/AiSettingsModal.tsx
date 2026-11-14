@@ -226,7 +226,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
     <AnimatePresence>
       {(embedded || aiSettingsModalOpen) && (
         <motion.div
-          className={embedded ? "w-full" : "fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"}
+          className={embedded ? "flex w-full justify-center" : "fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -237,7 +237,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.99 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className={cn("relative flex w-full flex-col overflow-hidden border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-[#12161d]", embedded ? "min-h-[720px] rounded-2xl shadow-sm" : "h-[610px] max-h-[88vh] max-w-[95vw] rounded-2xl shadow-2xl")}
+            className={cn("relative flex w-full flex-col overflow-hidden border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-[#12161d]", embedded ? "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-sm" : "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-2xl")}
             onClick={(event) => { if (!embedded) event.stopPropagation(); }}
           >
             <header className="shrink-0 border-b border-zinc-200/80 px-5 pt-4 dark:border-zinc-800">
