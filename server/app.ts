@@ -38,7 +38,7 @@ import {
   verifySshConnectionAndPath,
 } from './projectsManager';
 import { readAppSettings, saveAppSettings } from './settingsManager';
-import { assertProjectToolAllowed, hasExplicitApproval } from './permissionManager';
+import { assertProjectToolAllowed, hasExplicitApproval, isProjectToolAllowed } from './permissionManager';
 
 interface HFModelRaw {
   id: string;
@@ -651,6 +651,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       res.status(403).json({ ok: false, error: 'Запись файла требует явного подтверждения пользователя' });
       return;
     }
+    if (!isProjectToolAllowed(req.params.id, 'write_file')) {
+      res.status(403).json({ ok: false, error: 'Запись файлов отключена в разрешениях проекта' });
+      return;
+    }
     try {
       assertProjectToolAllowed(req.params.id, 'write_file');
       const filePath = typeof req.body?.path === 'string' ? req.body.path : '';
@@ -695,6 +699,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const allowedActions = ['status', 'diff', 'log', 'commit', 'fetch', 'push', 'init'];
       if (typeof action !== 'string' || !allowedActions.includes(action)) {
         res.status(400).json({ ok: false, error: 'Неизвестная операция Git' });
+        return;
+      }
+      if (!isProjectToolAllowed(req.params.id, 'git')) {
+        res.status(403).json({ ok: false, error: 'Git отключён в разрешениях проекта' });
         return;
       }
       if (['commit', 'fetch', 'push', 'init'].includes(action) && !hasExplicitApproval(req.body?.approved)) {
