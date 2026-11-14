@@ -160,6 +160,16 @@ export const TopHeader: React.FC = () => {
 
         <button
           type="button"
+          onClick={() => openAiSettingsModal(modelCategory)}
+          title="Глобальные настройки ИИ и инженерные роли"
+          aria-label="Глобальные настройки ИИ"
+          className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors"
+        >
+          <Bot className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
           onClick={toggleTheme}
           title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
           aria-label="Переключить тему"

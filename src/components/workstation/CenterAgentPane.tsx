@@ -515,8 +515,9 @@ export const CenterAgentPane: React.FC = () => {
               )}
 
               {msg.isStreaming && (
-                <div className="mt-2 text-xs font-mono text-blue-600 dark:text-blue-400">
-                  Выполнение запроса...
+                <div className="mt-2 inline-flex items-center gap-2 text-xs font-mono text-blue-600 dark:text-blue-400">
+                  <span className="inline-flex items-center gap-1"><span className="h-1 w-1 rounded-full bg-current animate-bounce" /><span className="h-1 w-1 rounded-full bg-current animate-bounce [animation-delay:120ms]" /><span className="h-1 w-1 rounded-full bg-current animate-bounce [animation-delay:240ms]" /></span>
+                  Печатает ответ…
                 </div>
               )}
 
