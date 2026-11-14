@@ -29,10 +29,11 @@
 - Added a separate LOCAL/CLOUD/RUNTIME provider/model configuration for the subagent subsystem; subagent API keys are stored under separate OS-vault references and blanked in the JSON settings manifest.
 - Removed obsolete mascot/provider-card visibility toggles after consolidating the header and provider controls.
 
-- Added the project-agent contract defining a project as a persistent workspace with source files, plan, task list, permissions, and action history. The primary project agent receives the contract, project metadata, plan, task IDs/statuses, allowed tools, and inspected file snippets.
-- ACT-mode structured responses can create project tasks and update existing task statuses; PLAN mode is explicitly read-only. File edits and shell commands remain pending approval proposals.
-- Added provider token usage fields and a model capability self-assessment endpoint. The right inspector separates model-reported claims from actual OneCoreAI tool availability and project permissions; file deletion, SSH execution, and direct GitHub actions remain unavailable until dedicated tools are implemented.
-- Added right-inspector indicators for project/task state, token usage, estimated file context, configured context window, and local VRAM/RAM. Cloud model memory is correctly marked as not observable.
+- Added the project-agent contract defining a project as a persistent workspace with source files, plan, task list, permissions, and action history. The shared contract and active project metadata are injected into both the global primary agent context and the dedicated project-agent prompt.
+- Requests to list, create, and execute project tasks route to the project agent. ACT-mode structured responses can create tasks and update existing task statuses; PLAN mode is explicitly read-only. Task state refreshes after agent actions. File edits and shell commands remain pending approval proposals.
+- Project context retrieval ranks files against the current request and includes the most relevant files instead of relying only on alphabetical order.
+- Added provider-reported prompt/completion/total token usage, session totals, and a model capability self-assessment endpoint that runs automatically when the selected model or project changes. The right inspector separates model-reported claims from actual OneCoreAI tool availability and project permissions; file deletion, SSH execution, and direct GitHub actions remain unavailable until dedicated tools are implemented.
+- Added right-inspector indicators for project/task state, token usage, estimated file context, model-reported and configured context windows, and local memory telemetry. VRAM is explicitly labelled as a model-profile estimate, system RAM as OS-wide usage, and exact per-process model memory as not yet measured. Cloud model memory is not observable.
 
 ## Verification status
 - Changes are committed directly to `main`; no feature branch or pull request was created.
