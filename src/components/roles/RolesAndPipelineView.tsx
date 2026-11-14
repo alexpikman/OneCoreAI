@@ -555,7 +555,7 @@ export const RolesAndPipelineView: React.FC = () => {
                               )}
                             >
                               {stage.status === 'done'
-                                ? 'Р“РѕС‚РѕРІРѕ'
+                                ? 'Готово'
                                 : stage.status === 'error'
                                   ? 'Ошибка'
                                   : stage.status === 'running'
@@ -597,9 +597,9 @@ export const RolesAndPipelineView: React.FC = () => {
               <div className="lg:col-span-7 space-y-2">
                 <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
                   <span>Этап 0{selectedStage.stepNumber}</span>
-                  <span>В·</span>
+                  <span>·</span>
                   <span>Режим {selectedStage.mode.toUpperCase()}</span>
-                  <span>В·</span>
+                  <span>·</span>
                   <span>Артефакт: {selectedStage.outputArtifact}</span>
                 </div>
                 <h3 className="font-display text-lg font-semibold text-zinc-900 dark:text-zinc-100">
