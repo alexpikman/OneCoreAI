@@ -179,7 +179,7 @@ test('OpenAI-compatible cloud chat forwards conversation history and auth to the
     });
 
     assert.equal(status, 200);
-    assert.deepEqual(data, { ok: true, content: 'cloud reply', model: 'cloud-test-model', totalTokens: 0 });
+    assert.deepEqual(data, { ok: true, content: 'cloud reply', model: 'cloud-test-model', promptTokens: null, completionTokens: null, totalTokens: null });
     assert.equal(authorization, 'Bearer test-provider-key');
     assert.deepEqual(JSON.parse(receivedBody).messages, [
       { role: 'user', content: 'Earlier question' },
