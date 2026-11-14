@@ -1322,8 +1322,18 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     })),
 
   toggleAgentRole: (roleId) => {
+    const current = get();
+    const role = current.roles.find((item) => item.id === roleId);
+    if (!role) return;
     set((state) => ({
       enabledRoleIds: state.enabledRoleIds.includes(roleId) ? [] : [roleId],
+      ...(state.enabledRoleIds.includes(roleId)
+        ? {}
+        : {
+            activeRoleId: roleId,
+            agentMode: role.defaultMode,
+            inferenceSettings: { ...state.inferenceSettings, temperature: role.recommendedTemp },
+          }),
     }));
     void get().saveSettings();
   },
@@ -1336,6 +1346,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     if (!role) return;
     set((state) => ({
       activeRoleId: roleId,
+      enabledRoleIds: [roleId],
       agentMode: role.defaultMode,
       inferenceSettings: syncTemp
         ? { ...state.inferenceSettings, temperature: role.recommendedTemp }
@@ -1835,7 +1846,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             '## Схема поведения общего агента',
             state.generalAgentConfig.behaviorSchema,
           ].join('\n\n'),
-      state.directives.filter((directive) => directive.enabled).map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
+      state.directives.filter((directive) => directive.enabled && directive.id !== 'dir-general-agent').map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
       activeProj
         ? [
             PROJECT_AGENT_INSTRUCTIONS,
