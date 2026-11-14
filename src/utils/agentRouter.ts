@@ -32,9 +32,9 @@ const WEB_ACTION =
 const WEB_CONTEXT =
   /(?:в интернете|по интернету|в сети|онлайн|search (?:the )?web|look up online|browse the web)/i;
 const PROJECT_ACTION =
-  /^(?:пожалуйста\s+)?(?:исправь|почини|создай|добавь|реализуй|измени|сделай|обнови|рефактор(?:ируй|инг)?|напиши|удали|проверь|проанализируй|прочитай|открой|посмотри|найди|объясни|fix|create|add|implement|edit|modify|change|update|refactor|write|review|inspect|read|open|find|explain)(?=$|[\s,])/i;
+  /^(?:пожалуйста\s+)?(?:исправь|почини|создай|добавь|реализуй|измени|сделай|выполни|выполнить|заверши|продолжи|обнови|рефактор(?:ируй|инг)?|напиши|удали|проверь|проанализируй|прочитай|открой|посмотри|найди|покажи|перечисли|какие|какой|что|сколько|статус|объясни|fix|create|add|implement|execute|complete|finish|edit|modify|change|update|refactor|write|review|inspect|read|open|find|list|show|explain)(?=$|[\s,])/i;
 const PROJECT_CONTEXT =
-  /(?:^|[\s,])(?:код|файл(?:ы)?|проект|репозитор(?:ий|ия)|приложение|баг|ошибка в коде|функци(?:ю|я)|модул[ья]|тест(?:ы|а)?|code|file|project|repo|application|bug|feature|module|tests?)(?=$|[\s,.:;!?])|(?:^|\s)src[\\/]/i;
+  /(?:^|[\s,])(?:код|файл(?:ы)?|проект|репозитор(?:ий|ия)|приложение|задач(?:у|а|и|ам|ами)?|план|репорт|баг|ошибка в коде|функци(?:ю|я)|модул[ья]|тест(?:ы|а)?|code|file|project|repo|application|task|tasks|plan|bug|feature|module|tests?)(?=$|[\s,.:;!?])|(?:^|\s)src[\\/]/i;
 const TERMINAL_INTENT =
   /(?:^\/run(?:\s|$)|(?:запусти|выполни|выполнить)\s+(?:команду|тест(?:ы)?|сборку|в\s+терминале)|(?:в терминале).*(?:запусти|выполни)|(?:run|execute)\s+(?:this\s+)?(?:command|tests?)\b|\b(?:npm|pnpm|yarn|bun|cargo|pytest)\s+(?:test|run|build|lint)\b)/i;
 
