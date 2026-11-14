@@ -592,19 +592,10 @@ export async function executeProjectTask(input: {
   // Handle explicit terminal execution prefix: /run <cmd>
   if (prompt.startsWith('/run ')) {
     const cmd = prompt.slice(5).trim();
-    if (input.mode === 'plan') {
-      return {
-        replyText: `Режим **Plan**: команда \`${cmd}\` не запускалась автоматически. Переключите режим на **Act** или подтвердите запуск ниже.`,
-        readFiles: readFilesList,
-        proposedCommand: cmd,
-        usedLiveLlm: false,
-      };
-    }
-    const execRes = await execProjectCommand(project.id, cmd);
     return {
-      replyText: `Команда \`${execRes.command}\` выполнена в \`${execRes.cwd}\` с кодом **${execRes.exitCode}** (${execRes.durationMs} мс).`,
-      readFiles: [],
-      commandResult: execRes,
+      replyText: `Команда ${cmd} подготовлена, но не запускалась. Нажмите «Выполнить» для явного подтверждения.`,
+      readFiles: readFilesList,
+      proposedCommand: cmd,
       usedLiveLlm: false,
     };
   }
