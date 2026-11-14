@@ -87,7 +87,7 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
   ]);
   const providerKeys = new Map(providers.map(({ id, apiKey }) => [id, apiKey]));
   const subagentProviderKeys = new Map(subagentProviders.map(({ id, apiKey }) => [id, apiKey]));
-  const roleSubagentProviderKeys = new Map<string, string>(
+  const roleSubagentProviderKeys = new Map<string, string | null>(
     roleSubagentProviders.map(({ roleId, id, apiKey }) => [`${roleId}:${id}`, apiKey]),
   );
   const gatewayTokens = new Map(gateways.map(({ id, botToken }) => [id, botToken]));
