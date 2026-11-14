@@ -1898,7 +1898,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           command: cmdObj,
           tokenUsage: data.usage
             ? { promptTokens: data.usage.promptTokens ?? null, completionTokens: data.usage.completionTokens ?? null, totalTokens: data.usage.totalTokens ?? null, estimatedPromptTokens: estimatedContextTokens, source: data.usage.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() }
-            : { promptTokens: null, completionTokens: null, totalTokens: null, estimatedPromptTokens: includedTokens, source: 'estimate', recordedAt: new Date().toISOString() },
+            : { promptTokens: null, completionTokens: null, totalTokens: null, estimatedPromptTokens: estimatedContextTokens, source: 'estimate', recordedAt: new Date().toISOString() },
         });
 
         await Promise.all([

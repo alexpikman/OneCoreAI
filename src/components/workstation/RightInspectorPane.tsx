@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Activity, Bot, CheckCircle2, Cpu, Layers, Play, Power, RefreshCw, ShieldCheck, SlidersHorizontal, XCircle } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
@@ -61,6 +61,25 @@ export const RightInspectorPane: React.FC = () => {
     modelCategory === 'runtime' &&
     (runtimeProvider?.kind === 'llama-cpp' || runtimeProvider?.kind === 'custom') &&
     runtimeProvider.status === 'connected';
+
+  useEffect(() => {
+    const currentReportMatches =
+      modelCapabilityReport?.providerId === activeProvider?.id &&
+      modelCapabilityReport?.modelId === (modelSource === 'runtime' ? activeModel?.filename : activeProvider?.selectedModel);
+    if (activeProvider && !currentReportMatches && modelCapabilityStatus !== 'checking') {
+      void checkModelCapabilities();
+    }
+  }, [
+    activeProvider?.id,
+    activeProvider?.selectedModel,
+    activeModel?.filename,
+    modelSource,
+    activeProjectId,
+    modelCapabilityReport?.providerId,
+    modelCapabilityReport?.modelId,
+    modelCapabilityStatus,
+    checkModelCapabilities,
+  ]);
 
   const includedTokens =
     files.filter((f) => f.inContext).reduce((acc, f) => acc + f.tokensEstimate, 0) +
