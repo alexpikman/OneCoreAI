@@ -67,7 +67,12 @@ export const RightInspectorPane: React.FC = () => {
       modelCapabilityReport?.projectId === activeProjectId &&
       modelCapabilityReport?.providerId === activeProvider?.id &&
       modelCapabilityReport?.modelId === (modelSource === 'runtime' ? activeModel?.filename : activeProvider?.selectedModel);
-    if (activeProvider && !currentReportMatches && modelCapabilityStatus !== 'checking') {
+    if (
+      activeProvider &&
+      !currentReportMatches &&
+      modelCapabilityStatus !== 'checking' &&
+      modelCapabilityStatus !== 'error'
+    ) {
       void checkModelCapabilities();
     }
   }, [

@@ -590,12 +590,22 @@ export async function executeProjectTask(input: {
   const workspace = getProjectWorkspaceData(project.id);
   const canReadProjectFiles = isProjectToolAllowed(project.id, 'read_file');
   const projectFiles = canReadProjectFiles ? listProjectFiles(project.id, 60) : [];
-  const readFilesList = projectFiles.slice(0, 5).map((f) => f.path);
+  const promptTerms = prompt.toLowerCase().match(/[a-zа-я0-9_./-]{3,}/gi) ?? [];
+  const projectFilesForContext = [...projectFiles].sort((left, right) => {
+    const score = (file: RealProjectFileInfo) => {
+      const filePath = file.path.toLowerCase();
+      const keywordScore = promptTerms.reduce((total, term) => total + (filePath.includes(term) ? Math.min(term.length, 8) : 0), 0);
+      const entryPointScore = /(^|\/)(readme|package\.json|pyproject\.toml|cargo\.toml|tsconfig\.json)(\.|$)/i.test(file.path) ? 4 : 0;
+      return keywordScore + entryPointScore;
+    };
+    return score(right) - score(left) || left.path.localeCompare(right.path);
+  });
+  const readFilesList = projectFilesForContext.slice(0, 8).map((file) => file.path);
   const snippets: string[] = [];
   for (const rel of readFilesList) {
     try {
       const f = readProjectFile(project.id, rel);
-      snippets.push(`### ${f.path}\n\`\`\`\n${f.content.slice(0, 1200)}\n\`\`\``);
+      snippets.push(`### ${f.path}\n\`\`\`\n${f.content.slice(0, 1600)}\n\`\`\``);
     } catch {
       // ignore
     }
