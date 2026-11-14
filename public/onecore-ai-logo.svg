@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 176" role="img" aria-labelledby="title desc">
+  <title id="title">ONE CORE AI</title>
+  <desc id="desc">Белая буква C в орбитальном кольце с тремя узлами и надписью ONE CORE AI.</desc>
+  <defs>
+    <linearGradient id="orbit" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#20c5f5"><animate attributeName="stop-color" values="#20c5f5;#0879e8;#7b45ff;#20c5f5" dur="18s" repeatCount="indefinite"/></stop>
+      <stop offset="52%" stop-color="#0879e8"><animate attributeName="stop-color" values="#0879e8;#20c5f5;#ed3f9b;#0879e8" dur="18s" repeatCount="indefinite"/></stop>
+      <stop offset="100%" stop-color="#20c5f5"><animate attributeName="stop-color" values="#20c5f5;#27d5b0;#ff9b24;#20c5f5" dur="18s" repeatCount="indefinite"/></stop>
+    </linearGradient>
+    <linearGradient id="word" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0879e8"/>
+      <stop offset="100%" stop-color="#20c5f5"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(12 8)">
+    <path d="M116 17 C68 -2 12 28 7 83 C1 137 48 164 101 145" fill="none" stroke="url(#orbit)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M110 18 C130 38 136 55 131 75 M101 146 C122 139 137 126 144 108" fill="none" stroke="url(#orbit)" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="15" cy="81" r="7.5" fill="#0879e8"/>
+    <circle cx="126" cy="24" r="7.5" fill="#20c5f5"/>
+    <circle cx="132" cy="105" r="7.5" fill="#0879e8"/>
+    <path d="M105 55 A39 39 0 1 0 105 112" fill="none" stroke="#10274b" stroke-width="23" stroke-linecap="butt"/>
+  </g>
+  <g font-family="Manrope, Arial, sans-serif" font-size="43" font-weight="800" letter-spacing="-1.8">
+    <text x="185" y="111" fill="#10274b">ONE</text>
+    <text x="292" y="111" fill="url(#word)">CORE</text>
+    <text x="435" y="111" fill="#10274b">AI</text>
+  </g>
+</svg>
