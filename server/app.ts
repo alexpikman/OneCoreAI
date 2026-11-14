@@ -38,6 +38,7 @@ import {
   verifySshConnectionAndPath,
 } from './projectsManager';
 import { readAppSettings, saveAppSettings } from './settingsManager';
+import { assertProjectToolAllowed, hasExplicitApproval } from './permissionManager';
 
 interface HFModelRaw {
   id: string;
@@ -646,11 +647,12 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.put('/api/projects/:id/file', (req, res) => {
-    if (req.body?.approved !== true) {
+    if (!hasExplicitApproval(req.body?.approved)) {
       res.status(403).json({ ok: false, error: 'Запись файла требует явного подтверждения пользователя' });
       return;
     }
     try {
+      assertProjectToolAllowed(req.params.id, 'write_file');
       const filePath = typeof req.body?.path === 'string' ? req.body.path : '';
       const content = typeof req.body?.content === 'string' ? req.body.content : '';
       const summary = typeof req.body?.summary === 'string' ? req.body.summary : undefined;
@@ -677,6 +679,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       return;
     }
     try {
+      assertProjectToolAllowed(req.params.id, 'run_command');
       const command = typeof req.body?.command === 'string' ? req.body.command : '';
       const timeoutMs = typeof req.body?.timeoutMs === 'number' ? req.body.timeoutMs : 30000;
       const result = await execProjectCommand(req.params.id, command, timeoutMs);
@@ -694,10 +697,11 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         res.status(400).json({ ok: false, error: 'Неизвестная операция Git' });
         return;
       }
-      if (['commit', 'fetch', 'push', 'init'].includes(action) && req.body?.approved !== true) {
+      if (['commit', 'fetch', 'push', 'init'].includes(action) && !hasExplicitApproval(req.body?.approved)) {
         res.status(403).json({ ok: false, error: 'Операция Git требует явного подтверждения пользователя' });
         return;
       }
+      assertProjectToolAllowed(req.params.id, 'git');
       const commitMessage = typeof req.body?.message === 'string' ? req.body.message : undefined;
       const result = await runProjectGit(req.params.id, action as 'status' | 'diff' | 'log' | 'commit' | 'fetch' | 'push' | 'init', commitMessage);
       res.json({ ok: result.exitCode === 0, ...result });
