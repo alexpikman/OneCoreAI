@@ -44,3 +44,10 @@ npm run build
 ## Данные предыдущих версий
 
 Чтобы не терять пользовательские модели, проекты и зашифрованное хранилище, приложение повторно использует данные из `%APPDATA%\com.kovastudio.app` и `~/.kova-studio`, пока в новых каталогах нет собственных данных. Переменная `KOVA_HOME` также остаётся совместимой; для новых установок используйте `ONECORE_HOME`. Файлы SSH-ключей не копируются и не переименовываются.
+
+## Development documentation
+
+- [AI Working Rules](docs/AI_WORKING_RULES.md)
+- [Development Plan](docs/DEVELOPMENT_PLAN.md)
+- [Current Work](docs/CURRENT_WORK.md)
+- [Continue Development](GO/ContinueDevProject.md)
