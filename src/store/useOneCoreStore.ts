@@ -1096,6 +1096,15 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       }
 
       const saved = data.settings;
+      const savedActiveProviderId = saved.activeProviderId ?? 'prov-deepseek-api';
+      const savedActiveProvider = saved.freeProviders.find((provider) => provider.id === savedActiveProviderId);
+      const savedActiveCategory = savedActiveProvider
+        ? getProviderCategory(savedActiveProvider.kind)
+        : saved.modelCategory ?? saved.modelSource ?? 'cloud';
+      const savedEnabledRoleIds = saved.enabledRoleIds ?? [saved.activeRoleId];
+      const normalizedEnabledRoleIds = savedEnabledRoleIds.includes(saved.activeRoleId)
+        ? [saved.activeRoleId]
+        : savedEnabledRoleIds.slice(0, 1);
       set((state) => ({
         theme: saved.theme,
         uiStyle: saved.uiStyle,
@@ -1109,7 +1118,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         appSettings: saved.appSettings,
         roles: saved.roles,
         activeRoleId: saved.activeRoleId,
-        enabledRoleIds: saved.enabledRoleIds ?? [saved.activeRoleId],
+        enabledRoleIds: normalizedEnabledRoleIds,
         permissions: saved.permissions,
         directives: saved.directives?.some((directive) => directive.id === 'dir-general-agent')
           ? saved.directives
@@ -1123,9 +1132,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         sshSettings: saved.sshSettings,
         githubAccess: saved.githubAccess,
         freeProviders: saved.freeProviders,
-        activeProviderId: saved.activeProviderId ?? 'prov-deepseek-api',
-        modelCategory: saved.modelCategory ?? saved.modelSource ?? 'cloud',
-        modelSource: saved.modelSource ?? saved.modelCategory ?? 'cloud',
+        activeProviderId: savedActiveProviderId,
+        modelCategory: savedActiveCategory,
+        modelSource: savedActiveCategory,
         providerSelectionByCategory: saved.providerSelectionByCategory ?? {
           local: 'prov-ollama',
           cloud: saved.activeProviderId || 'prov-deepseek-api',
@@ -2685,8 +2694,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   setAiSettingsCategory: (category) => set({ aiSettingsCategory: category }),
   setModelCategory: (category: 'local' | 'cloud' | 'runtime') =>
     set((state) => {
+      const activeProvider = state.freeProviders.find((provider) => provider.id === state.activeProviderId);
       const providerId =
-        state.providerSelectionByCategory[category] ||
+        (activeProvider && getProviderCategory(activeProvider.kind) === category ? activeProvider.id : '') ||
         state.freeProviders.find((provider) => getProviderCategory(provider.kind) === category)?.id ||
         state.activeProviderId;
       return {
