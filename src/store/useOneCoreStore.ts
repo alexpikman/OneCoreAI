@@ -1360,6 +1360,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     set((state) => ({
       roles: [...state.roles, created],
       activeRoleId: id,
+      enabledRoleIds: [id],
       agentMode: created.defaultMode,
       inferenceSettings: {
         ...state.inferenceSettings,
@@ -1373,7 +1374,11 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       const nextRoles = state.roles.filter((r) => r.id !== roleId || !r.isCustom);
       const nextActive =
         state.activeRoleId === roleId ? nextRoles[0]?.id ?? 'role-developer' : state.activeRoleId;
-      return { roles: nextRoles, activeRoleId: nextActive };
+      return {
+        roles: nextRoles,
+        activeRoleId: nextActive,
+        enabledRoleIds: state.enabledRoleIds.filter((id) => id !== roleId),
+      };
     }),
 
   setPermissionPolicy: (ruleId, policy) =>
