@@ -91,7 +91,9 @@ const serverStatusLabel = (status: string) => {
   }
 };
 
-export const AiSettingsModal: React.FC = () => {
+interface AiSettingsModalProps { embedded?: boolean; }
+
+export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = false }) => {
   const {
     aiSettingsModalOpen,
     aiSettingsCategory,
@@ -117,8 +119,8 @@ export const AiSettingsModal: React.FC = () => {
   const [pendingProviderId, setPendingProviderId] = useState(activeProviderId);
 
   useEffect(() => {
-    if (aiSettingsModalOpen) setPendingProviderId(activeProviderId);
-  }, [aiSettingsModalOpen, activeProviderId]);
+    if (embedded || aiSettingsModalOpen) setPendingProviderId(activeProviderId);
+  }, [embedded, aiSettingsModalOpen, activeProviderId]);
 
   const visibleProviders = useMemo(
     () => categoryProviders(freeProviders, aiSettingsCategory),
@@ -203,7 +205,7 @@ export const AiSettingsModal: React.FC = () => {
         setValidationError(result.error || 'Не удалось сохранить настройки.');
         return;
       }
-      closeAiSettingsModal();
+      if (!embedded) closeAiSettingsModal();
     } finally {
       setSubmitting(false);
     }
@@ -216,21 +218,21 @@ export const AiSettingsModal: React.FC = () => {
 
   return (
     <AnimatePresence>
-      {aiSettingsModalOpen && (
+      {(embedded || aiSettingsModalOpen) && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"
+          className={embedded ? "w-full" : "fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={closeAiSettingsModal}
+          onClick={embedded ? undefined : closeAiSettingsModal}
         >
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.99 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className="relative flex h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#12161d]"
-            onClick={(event) => event.stopPropagation()}
+            className={cn("relative flex w-full flex-col overflow-hidden border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-[#12161d]", embedded ? "min-h-[720px] rounded-2xl shadow-sm" : "h-[610px] max-h-[88vh] max-w-[95vw] rounded-2xl shadow-2xl")}
+            onClick={(event) => { if (!embedded) event.stopPropagation(); }}
           >
             <header className="shrink-0 border-b border-zinc-200/80 px-5 pt-4 dark:border-zinc-800">
               <div className="flex items-center justify-between gap-4">
@@ -249,14 +251,14 @@ export const AiSettingsModal: React.FC = () => {
                 </div>
 
                 <div className="flex min-w-0 items-center justify-end gap-3">
-                  <button
+                  {!embedded && <button
                     type="button"
                     onClick={closeAiSettingsModal}
                     className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                     aria-label="Закрыть"
                   >
                     <X className="h-4 w-4" />
-                  </button>
+                  </button>}
                 </div>
               </div>
 
@@ -311,7 +313,7 @@ export const AiSettingsModal: React.FC = () => {
               </div>
             </header>
 
-            <main className="grid min-h-0 flex-1 grid-cols-12 gap-3 px-4 pb-4 pt-2">
+            <main className={cn("grid min-h-0 flex-1 grid-cols-12 gap-3 px-4 pb-4 pt-2", embedded ? "min-h-[520px]" : "")}>
               <div className="col-span-5 h-full space-y-2 overflow-y-auto pr-1">
                 {visibleProviders.map((provider) => {
                   const isSelected = provider.id === pendingProviderId;
@@ -553,13 +555,13 @@ export const AiSettingsModal: React.FC = () => {
                   {connecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Power className="h-3.5 w-3.5" />}
                   ПОДКЛЮЧИТЬ
                 </button>
-                <button
+                {!embedded && <button
                   type="button"
                   onClick={closeAiSettingsModal}
                   className="rounded-lg border border-zinc-200 px-3 py-2 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
                 >
                   Отмена
-                </button>
+                </button>}
                 <button
                   type="button"
                   onClick={() => void handleSave()}
