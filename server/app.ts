@@ -668,6 +668,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.get('/api/projects/:id/search', (req, res) => {
+    if (!isProjectToolAllowed(req.params.id, 'search_code')) {
+      res.status(403).json({ ok: false, error: 'Поиск по коду отключён в разрешениях проекта' });
+      return;
+    }
     try {
       const q = typeof req.query.q === 'string' ? req.query.q : '';
       const matches = searchProjectCode(req.params.id, q);
@@ -678,8 +682,12 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/projects/:id/exec', async (req, res) => {
-    if (req.body?.approved !== true) {
+    if (!hasExplicitApproval(req.body?.approved)) {
       res.status(403).json({ ok: false, error: 'Выполнение команды требует явного подтверждения пользователя' });
+      return;
+    }
+    if (!isProjectToolAllowed(req.params.id, 'run_command')) {
+      res.status(403).json({ ok: false, error: 'Выполнение команд отключено в разрешениях проекта' });
       return;
     }
     try {
@@ -728,8 +736,12 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/projects/:id/undo', (req, res) => {
-    if (req.body?.approved !== true) {
+    if (!hasExplicitApproval(req.body?.approved)) {
       res.status(403).json({ ok: false, error: 'Откат требует явного подтверждения пользователя' });
+      return;
+    }
+    if (!isProjectToolAllowed(req.params.id, 'write_file')) {
+      res.status(403).json({ ok: false, error: 'Откат файлов отключён в разрешениях проекта' });
       return;
     }
     try {
