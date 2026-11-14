@@ -970,7 +970,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/providers/capabilities', async (req, res) => {
-    const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim().replace(/\\/+$/, '') : '';
+    const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim().replace(/\/+$/, '') : '';
     const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
     const model = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
     const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : '';
@@ -1026,7 +1026,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       }
       const payload = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
       const raw = payload.choices?.[0]?.message?.content ?? '';
-      const candidate = raw.match(/\\{[\\s\\S]*\\}/)?.[0];
+      const candidate = raw.match(/\{[\s\S]*\}/)?.[0];
       let parsed: { contextWindowTokens?: number | null; capabilities?: Record<string, unknown>; notes?: string } = {};
       if (candidate) {
         try { parsed = JSON.parse(candidate) as typeof parsed; } catch { /* unknown self-report */ }

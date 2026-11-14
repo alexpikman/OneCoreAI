@@ -1772,6 +1772,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       state.modelSource === 'runtime' && localModel ? localModel.filename : activeProvider.selectedModel;
     const activeSkills = state.skills.filter((sk) => sk.enabled);
     const activeProj = state.projects.find((p) => p.id === state.activeProjectId);
+    const estimatedContextTokens = state.files.filter((file) => file.inContext).reduce((sum, file) => sum + file.tokensEstimate, 0) + (state.includeProjectTree ? 180 : 0) + (state.includeTerminalOutput ? 120 : 0) + Math.ceil(trimmed.length / 4);
 
     const systemContext = [
       activeRole.systemPrompt,
@@ -1896,7 +1897,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           diff: diffObj,
           command: cmdObj,
           tokenUsage: data.usage
-            ? { promptTokens: data.usage.promptTokens ?? null, completionTokens: data.usage.completionTokens ?? null, totalTokens: data.usage.totalTokens ?? null, estimatedPromptTokens: includedTokens, source: data.usage.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() }
+            ? { promptTokens: data.usage.promptTokens ?? null, completionTokens: data.usage.completionTokens ?? null, totalTokens: data.usage.totalTokens ?? null, estimatedPromptTokens: estimatedContextTokens, source: data.usage.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() }
             : { promptTokens: null, completionTokens: null, totalTokens: null, estimatedPromptTokens: includedTokens, source: 'estimate', recordedAt: new Date().toISOString() },
         });
 
