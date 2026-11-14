@@ -64,6 +64,7 @@ export const RightInspectorPane: React.FC = () => {
 
   useEffect(() => {
     const currentReportMatches =
+      modelCapabilityReport?.projectId === activeProjectId &&
       modelCapabilityReport?.providerId === activeProvider?.id &&
       modelCapabilityReport?.modelId === (modelSource === 'runtime' ? activeModel?.filename : activeProvider?.selectedModel);
     if (activeProvider && !currentReportMatches && modelCapabilityStatus !== 'checking') {
@@ -144,11 +145,11 @@ export const RightInspectorPane: React.FC = () => {
             </div>
             <div className="space-y-1">
               {([
-                ['Чтение файлов', activeProject.allowedTools?.includes('read_file') ?? false],
-                ['Изменение файлов', activeProject.allowedTools?.includes('write_file') ?? false],
+                ['Чтение файлов', modelCapabilityReport?.application.readFiles.available ?? (activeProject.allowedTools?.includes('read_file') ?? true)],
+                ['Изменение файлов', modelCapabilityReport?.application.writeFiles.available ?? (activeProject.allowedTools?.includes('write_file') ?? true)],
                 ['Удаление файлов', false],
-                ['Терминал', activeProject.allowedTools?.includes('run_command') ?? false],
-                ['Git', activeProject.allowedTools?.includes('git') ?? false],
+                ['Терминал', modelCapabilityReport?.application.runCommands.available ?? (activeProject.allowedTools?.includes('run_command') ?? true)],
+                ['Git', modelCapabilityReport?.application.git.available ?? (activeProject.allowedTools?.includes('git') ?? true)],
                 ['SSH', false],
                 ['GitHub API', false],
               ] as Array<[string, boolean]>).map(([label, enabled]) => (

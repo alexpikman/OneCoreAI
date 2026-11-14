@@ -980,8 +980,9 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
 
     const project = projectId ? getProjectById(projectId) : null;
+    const projectWorkspaceReady = Boolean(project?.folderPath && fs.existsSync(project.folderPath));
     const canUse = (tool: 'read_file' | 'write_file' | 'run_command' | 'git') =>
-      Boolean(project && isProjectToolAllowed(project.id, tool));
+      Boolean(projectWorkspaceReady && project && isProjectToolAllowed(project.id, tool));
     const application = {
       readFiles: { available: canUse('read_file'), reason: project ? (canUse('read_file') ? 'Разрешено политикой проекта' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
       writeFiles: { available: canUse('write_file'), reason: project ? (canUse('write_file') ? 'Доступно через diff и подтверждение пользователя' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
@@ -1040,6 +1041,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         ok: true,
         report: {
           providerId: typeof req.body?.providerId === 'string' ? req.body.providerId : '',
+          projectId,
           modelId: model,
           checkedAt: new Date().toISOString(),
           contextWindowTokens: Number.isSafeInteger(parsed.contextWindowTokens) && Number(parsed.contextWindowTokens) > 0 ? Number(parsed.contextWindowTokens) : null,

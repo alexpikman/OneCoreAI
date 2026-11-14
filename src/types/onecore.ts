@@ -20,6 +20,7 @@ export type UpdateCheckStatus = 'idle' | 'checking' | 'current' | 'available' | 
 export type ModelCapabilityKey = 'readFiles' | 'writeFiles' | 'deleteFiles' | 'runCommands' | 'git' | 'ssh' | 'github' | 'web' | 'functionCalling' | 'vision';
 export interface ModelCapabilityReport {
   providerId: string;
+  projectId: string;
   modelId: string;
   checkedAt: string;
   contextWindowTokens: number | null;
