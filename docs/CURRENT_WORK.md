@@ -19,6 +19,7 @@
 - Added CI on Linux and Windows for encoding checks, type-checking, integration tests, and production builds.
 - Restricted Windows installer release workflow to version tags or manual dispatch.
 - Changed the first-run UI default to the light Mica preset and aligned the browser/PWA startup colors; existing saved theme preferences remain intact.
+- Bundled Manrope and DM Mono locally and removed remote Google Fonts requests.
 - Added project governance and continuation documents.
 
 ## Verification status
