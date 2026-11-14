@@ -574,6 +574,7 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
           path: 'hello.py',
           content: 'print("Hello from OneCore")\n',
           summary: 'Create hello.py',
+          approved: true,
         }),
       },
     );
@@ -660,7 +661,7 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     // Undo file creation via /api/projects/:id/undo -> hello.py must be removed from disk
     const undoRes = await jsonReq<{ ok: boolean; message: string }>(
       `/api/projects/${encodeURIComponent(projectId)}/undo`,
-      { method: 'POST' },
+      { method: 'POST', body: JSON.stringify({ approved: true }) },
     );
     assert.equal(undoRes.status, 200);
     assert.equal(undoRes.data.ok, true);
