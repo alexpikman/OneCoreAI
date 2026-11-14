@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Bot, CheckCircle2, Cpu, History, Layers, Play, Power, RefreshCw, RotateCcw, ShieldCheck, SlidersHorizontal, X, XCircle } from 'lucide-react';
+import { Activity, Bot, CheckCircle2, Cpu, FileText, FilePenLine, Trash2, TerminalSquare, GitBranch, Server, Github, History, Layers, Play, Power, RefreshCw, RotateCcw, ShieldCheck, SlidersHorizontal, X, XCircle } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -18,6 +18,7 @@ export const RightInspectorPane: React.FC = () => {
     checkpoints,
     rollbackToCheckpoint,
     sshHosts,
+    sshSettings,
     toggleFileContext,
     includeProjectTree,
     setIncludeProjectTree,
@@ -237,27 +238,25 @@ export const RightInspectorPane: React.FC = () => {
                 <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{projectWorkspace.plan?.progress ?? 0}%</div>
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="grid grid-cols-7 gap-2">
               {([
-                ['Чтение файлов', modelCapabilityReport?.application.readFiles.available ?? (activeProject.allowedTools?.includes('read_file') ?? true)],
-                ['Изменение файлов', modelCapabilityReport?.application.writeFiles.available ?? (activeProject.allowedTools?.includes('write_file') ?? true)],
-                ['Удаление файлов', false],
-                ['Терминал', modelCapabilityReport?.application.runCommands.available ?? (activeProject.allowedTools?.includes('run_command') ?? true)],
-                ['Git', modelCapabilityReport?.application.git.available ?? (activeProject.allowedTools?.includes('git') ?? true)],
-                ['SSH', Boolean(activeProject.sshConfig && sshHosts.some((host) => host.hostName === activeProject.sshConfig?.host && host.status === 'connected'))],
-                ['GitHub API', false],
-              ] as Array<[string, boolean]>).map(([label, enabled]) => (
-                <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
-                  <span className="text-zinc-600 dark:text-zinc-400">{label}</span>
-                  <span className={cn('inline-flex items-center gap-1', enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400')}>
-                    {enabled ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                    {enabled ? 'Разрешено' : 'Недоступно'}
+                { label: 'Чтение файлов', icon: FileText, available: true, connected: activeProject.allowedTools?.includes('read_file') ?? true },
+                { label: 'Изменение файлов', icon: FilePenLine, available: true, connected: activeProject.allowedTools?.includes('write_file') ?? true },
+                { label: 'Удаление файлов', icon: Trash2, available: false, connected: false },
+                { label: 'Терминал', icon: TerminalSquare, available: true, connected: activeProject.allowedTools?.includes('run_command') ?? true },
+                { label: 'Git', icon: GitBranch, available: true, connected: activeProject.allowedTools?.includes('git') ?? true },
+                { label: 'SSH', icon: Server, available: Boolean(sshSettings.windowsOpenSshPath || sshHosts.length), connected: Boolean(activeProject.sshConfig && sshHosts.some((host) => host.hostName === activeProject.sshConfig?.host && host.status === 'connected')) },
+                { label: 'GitHub', icon: Github, available: Boolean(activeProject.githubConfig), connected: false },
+              ] as Array<{ label: string; icon: React.ComponentType<{ className?: string }>; available: boolean; connected: boolean }>).map(({ label, icon: Icon, available, connected }) => (
+                <div key={label} className="flex justify-center">
+                  <span title={`${label}: ${!available ? 'не поддерживается' : connected ? 'подключено и разрешено' : 'поддерживается, но не подключено'}`} aria-label={`${label}: ${!available ? 'не поддерживается' : connected ? 'подключено и разрешено' : 'поддерживается, но не подключено'}`} className={cn('inline-flex h-8 w-8 items-center justify-center rounded-lg border transition-colors', connected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : available ? 'border-zinc-200 bg-zinc-100/70 text-zinc-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-500' : 'border-transparent text-zinc-300 opacity-40 dark:text-zinc-700')}>
+                    <Icon className="h-4 w-4" />
                   </span>
                 </div>
               ))}
             </div>
             <p className="text-[10px] text-zinc-500 leading-relaxed">
-              Запись и команды требуют подтверждения. Серые SVG-индикаторы обозначают настроенные, но не подключённые возможности.
+              Серые SVG — функция поддерживается, но не подключена. Подсвеченные — подключена и разрешена. Удаление файлов пока не реализовано.
             </p>
           </>
         ) : (
