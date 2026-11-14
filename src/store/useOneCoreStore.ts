@@ -948,7 +948,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/file`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: filePath, content, summary }),
+        body: JSON.stringify({ path: filePath, content, summary, approved: true }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
@@ -1034,6 +1034,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
     const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/undo`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ approved: true }),
     });
     const data = (await res.json()) as { ok?: boolean; message?: string; restoredFile?: string };
     await Promise.all([get().refreshProjectFiles(projectId), get().refreshProjectLogs(projectId)]);
@@ -1834,7 +1836,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
               summary: data.diff.summary,
               oldContent: data.diff.oldContent,
               newContent: data.diff.newContent,
-              status: 'applied' as const,
+              status: 'pending' as const,
             }
           : undefined;
 
