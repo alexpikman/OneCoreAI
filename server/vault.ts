@@ -9,6 +9,125 @@ const execFileAsync = promisify(execFile);
 // Keep these identifiers stable so existing encrypted vaults and keychain entries remain usable.
 const SERVICE_NAME = 'kova-studio';
 
+const WINDOWS_CREDENTIAL_BRIDGE = String.raw`
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public static class OneCoreCredentialBridge
+{
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    public struct Credential
+    {
+        public UInt32 Flags;
+        public UInt32 Type;
+        public string TargetName;
+        public string Comment;
+        public System.Runtime.InteropServices.ComTypes.FILETIME LastWritten;
+        public UInt32 CredentialBlobSize;
+        public IntPtr CredentialBlob;
+        public UInt32 Persist;
+        public UInt32 AttributeCount;
+        public IntPtr Attributes;
+        public string TargetAlias;
+        public string UserName;
+    }
+
+    [DllImport("Advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredWrite(ref Credential credential, UInt32 flags);
+
+    [DllImport("Advapi32.dll", EntryPoint = "CredReadW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredRead(string target, UInt32 type, UInt32 flags, out IntPtr credential);
+
+    [DllImport("Advapi32.dll", EntryPoint = "CredFree")]
+    private static extern void CredFree(IntPtr buffer);
+
+    [DllImport("Advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredDelete(string target, UInt32 type, UInt32 flags);
+
+    public static bool Write(string target, string userName, string secret)
+    {
+        byte[] blob = Encoding.UTF8.GetBytes(secret);
+        if (blob.Length > 5120) return false;
+        IntPtr buffer = Marshal.AllocHGlobal(blob.Length);
+        try
+        {
+            Marshal.Copy(blob, 0, buffer, blob.Length);
+            Credential credential = new Credential
+            {
+                Type = 1,
+                TargetName = target,
+                UserName = userName,
+                CredentialBlobSize = (UInt32)blob.Length,
+                CredentialBlob = buffer,
+                Persist = 2
+            };
+            return CredWrite(ref credential, 0);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+        }
+    }
+
+    public static string Read(string target)
+    {
+        IntPtr buffer;
+        if (!CredRead(target, 1, 0, out buffer)) return null;
+        try
+        {
+            Credential credential = Marshal.PtrToStructure<Credential>(buffer);
+            byte[] blob = new byte[credential.CredentialBlobSize];
+            Marshal.Copy(credential.CredentialBlob, blob, 0, blob.Length);
+            return Encoding.UTF8.GetString(blob);
+        }
+        finally
+        {
+            CredFree(buffer);
+        }
+    }
+
+    public static bool Delete(string target)
+    {
+        return CredDelete(target, 1, 0);
+    }
+}
+`;
+
+async function runWindowsCredentialBridge(
+  operation: 'write' | 'read' | 'delete',
+  account: string,
+  secret = '',
+): Promise<string | null> {
+  const target = `${SERVICE_NAME}:${account}`;
+  const command = [
+    "$ErrorActionPreference = 'Stop'",
+    "Add-Type -TypeDefinition @'",
+    WINDOWS_CREDENTIAL_BRIDGE,
+    "'@",
+    operation === 'write'
+      ? "[OneCoreCredentialBridge]::Write($env:ONECORE_CREDENTIAL_TARGET, $env:USERNAME, $env:ONECORE_CREDENTIAL_SECRET) | Out-Null"
+      : operation === 'read'
+        ? "$value = [OneCoreCredentialBridge]::Read($env:ONECORE_CREDENTIAL_TARGET); if ($null -eq $value) { exit 1 }; [Console]::Out.Write($value)"
+        : "[OneCoreCredentialBridge]::Delete($env:ONECORE_CREDENTIAL_TARGET) | Out-Null",
+  ].join("; ");
+
+  const { stdout } = await execFileAsync(
+    'powershell.exe',
+    ['-NoProfile', '-NonInteractive', '-Command', command],
+    {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        ONECORE_CREDENTIAL_TARGET: target,
+        ONECORE_CREDENTIAL_SECRET: secret,
+      },
+      maxBuffer: 1024 * 1024,
+    },
+  );
+  return operation === 'read' ? stdout : null;
+}
+
 interface VaultStore {
   entries: Record<string, { iv: string; tag: string; data: string }>;
 }
@@ -61,11 +180,7 @@ async function tryOsKeychainSet(account: string, secret: string): Promise<boolea
       return true;
     }
     if (platform === 'win32') {
-      await execFileAsync('cmdkey', [
-        `/generic:${SERVICE_NAME}:${account}`,
-        `/user:${account}`,
-        `/pass:${secret}`,
-      ]);
+      await runWindowsCredentialBridge('write', account, secret);
       return true;
     }
     if (platform === 'linux' && process.env.DBUS_SESSION_BUS_ADDRESS) {
@@ -92,6 +207,9 @@ async function tryOsKeychainGet(account: string): Promise<string | null> {
       ]);
       return stdout.trimEnd();
     }
+    if (platform === 'win32') {
+      return await runWindowsCredentialBridge('read', account);
+    }
   } catch {
     return null;
   }
@@ -110,7 +228,7 @@ async function tryOsKeychainDelete(account: string): Promise<void> {
         SERVICE_NAME,
       ]);
     } else if (platform === 'win32') {
-      await execFileAsync('cmdkey', [`/delete:${SERVICE_NAME}:${account}`]);
+      await runWindowsCredentialBridge('delete', account);
     }
   } catch {
     // ignore missing keychain entries
