@@ -78,3 +78,52 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(113, 113, 122, 0.48);
 }
+
+/* ONE CORE AI chat activity: a calm orbital pulse, not a loading spinner. */
+.onecore-thinking {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+.onecore-thinking::before,
+.onecore-thinking::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border: 1.5px solid transparent;
+  border-top-color: #0879e8;
+  border-bottom-color: #20c5f5;
+  border-radius: 50%;
+  animation: onecore-orbit 1.8s cubic-bezier(.55,.1,.35,.9) infinite;
+}
+.onecore-thinking::after {
+  inset: 4px;
+  border-top-color: #20c5f5;
+  border-bottom-color: #0879e8;
+  animation-direction: reverse;
+  animation-duration: 1.25s;
+}
+.onecore-thinking__core {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #20c5f5;
+  box-shadow: 0 0 7px rgb(32 197 245 / 55%);
+  animation: onecore-core-pulse 1.4s ease-in-out infinite;
+}
+@keyframes onecore-orbit {
+  to { transform: rotate(360deg); }
+}
+@keyframes onecore-core-pulse {
+  0%, 100% { transform: scale(.78); opacity: .65; }
+  50% { transform: scale(1.25); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onecore-thinking::before,
+  .onecore-thinking::after,
+  .onecore-thinking__core { animation: none; }
+}
