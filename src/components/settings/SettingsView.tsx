@@ -54,9 +54,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
     title: 'Правая панель инспектора',
     items: [
       { key: 'showRightInspector', label: 'Показывать правый инспектор целиком', hint: 'Расширяет область чтения кода и диффов' },
-      { key: 'showMascot', label: 'Аватар агента в верхней шапке', hint: 'Реагирует на генерацию и активную роль' },
       { key: 'showTelemetry', label: 'Статус llama-server.exe и VRAM/RAM', hint: 'Кнопка Стоп/Запуск и индикаторы памяти' },
-      { key: 'showFreeProviderCard', label: 'Селектор бесплатного провайдера ИИ', hint: 'Быстрое переключение llama.cpp / OpenRouter :free / Ollama' },
       { key: 'showInferenceControls', label: 'Параметры генерации (Temp, n_ctx, GPU)', hint: 'Быстрая настройка слоёв и контекста' },
       { key: 'showSubagentsPanel', label: 'Панель субагентов и делегирования', hint: 'Запуск параллельных воркеров и их карточки в чате' },
       { key: 'showActiveContext', label: 'Активный контекст и чекбоксы файлов', hint: 'Подсчёт токенов по открытым файлам' },
@@ -65,7 +63,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   {
     title: 'Области потока чата (Cline-стиль)',
     items: [
-      { key: 'showToolbar', label: 'Провайдер и модель в верхней шапке', hint: 'Быстрый выбор провайдера и модели для чата' },
+      { key: 'showToolbar', label: 'Панель инструментов чата', hint: 'Переключение ACT/PLAN, путь проекта, браузер, терминал и checkpoints' },
       { key: 'showExecutionEnvBar', label: 'Среда выполнения (Local / SSH / Docker)', hint: 'Кнопки выбора среды в левом меню рабочего стола' },
       { key: 'showTaskBanner', label: 'Панель задачи Cline (токены, прогресс, модель)', hint: 'Компактная строка состояния текущей задачи' },
       { key: 'showMessageHeaders', label: 'Заголовки сообщений (модель и роль)', hint: 'Автор, модель и активная роль' },

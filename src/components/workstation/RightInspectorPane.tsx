@@ -46,7 +46,10 @@ export const RightInspectorPane: React.FC = () => {
   const runtimeProvider = freeProviders.find(
     (provider) => provider.id === providerSelectionByCategory.runtime,
   );
-  const runtimeConnected = modelCategory === 'runtime' && runtimeProvider?.status === 'connected';
+  const runtimeConnected =
+    modelCategory === 'runtime' &&
+    (runtimeProvider?.kind === 'llama-cpp' || runtimeProvider?.kind === 'custom') &&
+    runtimeProvider.status === 'connected';
 
   const includedTokens =
     files.filter((f) => f.inContext).reduce((acc, f) => acc + f.tokensEstimate, 0) +

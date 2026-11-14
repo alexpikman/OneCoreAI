@@ -177,9 +177,7 @@ export interface ChatVisibilitySettings {
   showSessionHistory: boolean;
   showSkillsMemoryTab: boolean;
   showRightInspector: boolean;
-  showMascot: boolean;
   showTelemetry: boolean;
-  showFreeProviderCard: boolean;
   showInferenceControls: boolean;
   showSubagentsPanel: boolean;
   showActiveContext: boolean;
