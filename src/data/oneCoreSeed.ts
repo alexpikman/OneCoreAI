@@ -20,7 +20,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'deepseek-chat',
     availableModels: ['deepseek-chat', 'deepseek-reasoner'],
     description:
-      'РћС„РёС†РёР°Р»СЊРЅС‹Р№ РѕР±Р»Р°С‡РЅС‹Р№ API DeepSeek. РўСЂРµР±СѓРµС‚СЃСЏ РєР»СЋС‡ РїСЂРѕРІР°Р№РґРµСЂР°; РјРѕРґРµР»СЊ СЂР°Р±РѕС‚Р°РµС‚ СѓРґР°Р»С‘РЅРЅРѕ Рё РЅРµ СЃРєР°С‡РёРІР°РµС‚СЃСЏ РЅР° РєРѕРјРїСЊСЋС‚РµСЂ.',
+      'Официальный облачный API DeepSeek. Требуется ключ провайдера; модель работает удалённо и не скачивается на компьютер.',
     status: 'idle',
   },
   {
@@ -35,7 +35,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'qwen-plus',
     availableModels: ['qwen-plus', 'qwen-turbo', 'qwen-max'],
     description:
-      'РћС„РёС†РёР°Р»СЊРЅС‹Р№ OpenAI-compatible API Qwen С‡РµСЂРµР· DashScope. РўСЂРµР±СѓРµС‚СЃСЏ РєР»СЋС‡ РїСЂРѕРІР°Р№РґРµСЂР°; РјРѕРґРµР»Рё РґРѕСЃС‚СѓРїРЅС‹ РІ РѕР±Р»Р°РєРµ Р±РµР· Р»РѕРєР°Р»СЊРЅРѕР№ Р·Р°РіСЂСѓР·РєРё.',
+      'Официальный OpenAI-compatible API Qwen через DashScope. Требуется ключ провайдера; модели доступны в облаке без локальной загрузки.',
     status: 'idle',
   },
   {
@@ -50,14 +50,14 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'gpt-4o-mini',
     availableModels: ['gpt-4o-mini', 'gpt-4o'],
     description:
-      'РћС„РёС†РёР°Р»СЊРЅС‹Р№ РѕР±Р»Р°С‡РЅС‹Р№ API OpenAI. РўСЂРµР±СѓРµС‚СЃСЏ РєР»СЋС‡ РїСЂРѕРІР°Р№РґРµСЂР° Рё РјРѕР¶РµС‚ РІР·РёРјР°С‚СЊСЃСЏ РїР»Р°С‚Р° РїРѕ РµРіРѕ С‚Р°СЂРёС„Р°Рј.',
+      'Официальный облачный API OpenAI. Требуется ключ провайдера и может взиматься плата по его тарифам.',
     status: 'idle',
   },
   {
     id: 'prov-llama-cpp',
     kind: 'llama-cpp',
     name: 'Р›РѕРєР°Р»СЊРЅС‹Р№ llama-server.exe',
-    badgeText: '100% Р»РѕРєР°Р»СЊРЅРѕ В· Р‘РµР· Р»РёРјРёС‚РѕРІ',
+    badgeText: '100% локально · Без лимитов',
     baseUrl: 'http://127.0.0.1:8080/v1',
     apiKey: '',
     requiresKey: false,
@@ -69,15 +69,15 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
       'Phi-4-mini-instruct-Q5_K_M',
     ],
     description:
-      'Р’СЃС‚СЂРѕРµРЅРЅС‹Р№ sidecar llama.cpp РЅР° РІР°С€РµРј РџРљ. РџРѕР»РЅРѕСЃС‚СЊСЋ Р±РµСЃРїР»Р°С‚РЅС‹Р№ РѕС„Р»Р°Р№РЅ-РёРЅС„РµСЂРµРЅСЃ РЅР° CUDA, Vulkan РёР»Рё CPU Р±РµР· РѕС‚РїСЂР°РІРєРё РєРѕРґР°.',
+      'Встроенный sidecar llama.cpp на вашем ПК. Полностью бесплатный офлайн-инференс на CUDA, Vulkan или CPU без отправки кода.',
     status: 'connected',
     lastCheckMessage: 'Sidecar РіРѕС‚РѕРІ Рє Р·Р°РїСѓСЃРєСѓ РЅР° 127.0.0.1:8080',
   },
   {
     id: 'prov-openrouter-free',
     kind: 'openrouter-free',
-    name: 'OpenRouter (С‚РѕР»СЊРєРѕ :free РјРѕРґРµР»Рё)',
-    badgeText: '$0.00 В· Р‘РµР· СЃРїРёСЃР°РЅРёР№',
+    name: 'OpenRouter (только :free модели)',
+    badgeText: '$0.00 · Без списаний',
     baseUrl: 'https://openrouter.ai/api/v1',
     apiKey: '',
     requiresKey: true,
@@ -91,9 +91,9 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
       'mistralai/mistral-small-3.1-24b-instruct:free',
     ],
     description:
-      'РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёР№ С„РёР»СЊС‚СЂ СЃС‚СЂРѕРіРѕ РїРѕ Р±РµСЃРїР»Р°С‚РЅС‹Рј РјРѕРґРµР»СЏРј (:free). РџРѕРґРґРµСЂР¶РёРІР°РµС‚ РєСЂСѓРїРЅС‹Рµ РѕР±Р»Р°С‡РЅС‹Рµ РјРѕРґРµР»Рё 32BвЂ“70B СЃ РЅСѓР»РµРІРѕР№ СЃС‚РѕРёРјРѕСЃС‚СЊСЋ С‚РѕРєРµРЅР°.',
+      'Автоматический фильтр строго по бесплатным моделям (:free). Поддерживает крупные облачные модели 32B–70B с нулевой стоимостью токена.',
     status: 'idle',
-    lastCheckMessage: 'РќР°Р¶РјРёС‚Рµ В«Р—Р°РіСЂСѓР·РёС‚СЊ :free РјРѕРґРµР»РёВ» РґР»СЏ Р¶РёРІРѕРіРѕ СЃРїРёСЃРєР°',
+    lastCheckMessage: 'Нажмите «Загрузить :free модели» для живого списка',
   },
   {
     id: 'prov-ollama',
@@ -107,7 +107,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'qwen2.5-coder:7b',
     availableModels: ['qwen2.5-coder:7b', 'deepseek-r1:8b', 'llama3.2:latest'],
     description:
-      'РџСЂСЏРјРѕРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ Рє Р»РѕРєР°Р»СЊРЅРѕРјСѓ РґРµРјРѕРЅСѓ Ollama Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№ РєРѕРЅС‚РµРєСЃС‚Р° РёР»Рё С‚РѕРєРµРЅРѕРІ.',
+      'Прямое подключение к локальному демону Ollama без ограничений контекста или токенов.',
     status: 'idle',
   },
   {
@@ -137,13 +137,13 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'llama-3.3-70b-versatile',
     availableModels: ['llama-3.3-70b-versatile', 'qwen-qwq-32b', 'gemma2-9b-it'],
     description:
-      'Р’С‹СЃРѕРєРѕСЃРєРѕСЂРѕСЃС‚РЅРѕР№ Р±РµСЃРїР»Р°С‚РЅС‹Р№ С‚Р°СЂРёС„ Groq СЃ Р±РµСЃРїР»Р°С‚РЅС‹Рј API-РєР»СЋС‡РѕРј РёР· console.groq.com.',
+      'Высокоскоростной бесплатный тариф Groq с бесплатным API-ключом из console.groq.com.',
     status: 'idle',
   },
   {
     id: 'prov-custom',
     kind: 'custom',
-    name: 'РЎРІРѕР№ OpenAI-compatible СЃРµСЂРІРµСЂ',
+    name: 'Свой OpenAI-compatible сервер',
     badgeText: 'Р›СЋР±РѕР№ URL / vLLM / LocalAI',
     baseUrl: 'http://127.0.0.1:8000/v1',
     apiKey: '',
@@ -152,7 +152,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'custom-model',
     availableModels: ['custom-model'],
     description:
-      'РџРѕРґРєР»СЋС‡РµРЅРёРµ Рє Р»СЋР±РѕРјСѓ OpenAI-compatible СЃРµСЂРІРµСЂСѓ (vLLM, TabbyAPI, LocalAI, VPS). API-РєР»СЋС‡ РјРѕР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ, РµСЃР»Рё РѕРЅ С‚СЂРµР±СѓРµС‚СЃСЏ.',
+      'Подключение к любому OpenAI-compatible серверу (vLLM, TabbyAPI, LocalAI, VPS). API-ключ можно указать, если он требуется.',
     status: 'idle',
   },
 ];
@@ -162,32 +162,32 @@ export const INITIAL_SKILLS: AgentSkill[] = [
     id: 'skill-http-range-gguf',
     slug: 'gguf-http-range-resume',
     title: 'Р”РѕРєР°С‡РєР° GGUF РїРѕ HTTP 206 + SHA256',
-    category: 'Р Р°Р·СЂР°Р±РѕС‚РєР°',
-    triggerHint: 'РџСЂРё СЂР°Р±РѕС‚Рµ СЃ Р·Р°РіСЂСѓР·РєРѕР№ РІРµСЃРѕРІ, .part С„Р°Р№Р»Р°РјРё РёР»Рё LFS-С…СЌС€Р°РјРё',
+    category: 'Разработка',
+    triggerHint: 'При работе с загрузкой весов, .part файлами или LFS-хэшами',
     contentMarkdown: `---
 name: gguf-http-range-resume
-description: РќР°РґС‘Р¶РЅР°СЏ РґРѕРєР°С‡РєР° Р±РѕР»СЊС€РёС… GGUF-С„Р°Р№Р»РѕРІ С‡РµСЂРµР· reqwest Р±РµР· РїР°РґРµРЅРёСЏ РЅР° СЂР°Р·СЂС‹РІРµ СЃРµС‚Рё
+description: Надёжная докачка больших GGUF-файлов через reqwest без падения на разрыве сети
 ---
-1. РџСЂРѕРІРµСЂСЏС‚СЊ СЂР°Р·РјРµСЂ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРіРѕ \`.part\` С„Р°Р№Р»Р° Рё РѕС‚РїСЂР°РІР»СЏС‚СЊ Р·Р°РіРѕР»РѕРІРѕРє \`Range: bytes=<offset>-\`.
-2. РћР±СЂР°Р±Р°С‚С‹РІР°С‚СЊ HTTP 206 Partial Content Рё HTTP 200 (РµСЃР»Рё СЃРµСЂРІРµСЂ СЃР±СЂРѕСЃРёР» СЃРјРµС‰РµРЅРёРµ вЂ” РїРµСЂРµР·Р°РїРёСЃР°С‚СЊ С„Р°Р№Р» СЃ РЅСѓР»СЏ).
-3. РџРѕСЃР»Рµ Р·Р°РІРµСЂС€РµРЅРёСЏ РїРѕС‚РѕРєР° РІС‹С‡РёСЃР»СЏС‚СЊ SHA256 С‡РµСЂРµР· РїРѕС‚РѕРєРѕРІС‹Р№ С…РµС€РµСЂ РїРµСЂРµРґ РїРµСЂРµРёРјРµРЅРѕРІР°РЅРёРµРј \`.part\` -> \`.gguf\`.`,
+1. Проверять размер существующего \`.part\` файла и отправлять заголовок \`Range: bytes=<offset>-\`.
+2. Обрабатывать HTTP 206 Partial Content и HTTP 200 (если сервер сбросил смещение — перезаписать файл с нуля).
+3. После завершения потока вычислять SHA256 через потоковый хешер перед переименованием \`.part\` -> \`.gguf\`.`,
     enabled: true,
     usageCount: 14,
     source: 'builtin',
-    updatedAt: 'РЎРµРіРѕРґРЅСЏ',
+    updatedAt: 'Сегодня',
   },
   {
     id: 'skill-windows-gpu-probe',
     slug: 'windows-gpu-probe-no-freeze',
-    title: 'РќРµР±Р»РѕРєРёСЂСѓСЋС‰РёР№ Р°РІС‚Рѕ-РґРµС‚РµРєС‚ GPU (CUDA / Vulkan)',
+    title: 'Неблокирующий авто-детект GPU (CUDA / Vulkan)',
     category: 'DevOps',
-    triggerHint: 'РџСЂРё Р·Р°РїСѓСЃРєРµ llama-server.exe РёР»Рё РґРёР°РіРЅРѕСЃС‚РёРєРµ VRAM РЅР° Windows',
+    triggerHint: 'При запуске llama-server.exe или диагностике VRAM на Windows',
     contentMarkdown: `---
 name: windows-gpu-probe-no-freeze
-description: Р‘РµР·РѕРїР°СЃРЅС‹Р№ РІС‹Р±РѕСЂ Р±СЌРєРµРЅРґР° GPU Р±РµР· Р·Р°РІРёСЃР°РЅРёСЏ UI WebView2
+description: Безопасный выбор бэкенда GPU без зависания UI WebView2
 ---
-1. Р—Р°РїСѓСЃРєР°С‚СЊ \`nvidia-smi\` С‚РѕР»СЊРєРѕ РІРЅСѓС‚СЂРё \`tokio::task::spawn_blocking\` СЃ С„Р»Р°РіРѕРј \`CREATE_NO_WINDOW\`.
-2. РџСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё NVIDIA Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРµСЂРµРєР»СЋС‡Р°С‚СЊСЃСЏ РЅР° \`--gpu-layers\` С‡РµСЂРµР· Vulkan 1.3 РёР»Рё CPU AVX2.`,
+1. Запускать \`nvidia-smi\` только внутри \`tokio::task::spawn_blocking\` с флагом \`CREATE_NO_WINDOW\`.
+2. При отсутствии NVIDIA автоматически переключаться на \`--gpu-layers\` через Vulkan 1.3 или CPU AVX2.`,
     enabled: true,
     usageCount: 9,
     source: 'learned',
@@ -198,13 +198,13 @@ description: Р‘РµР·РѕРїР°СЃРЅС‹Р№ РІС‹Р±РѕСЂ �
     slug: 'tauri-windows-cloud-release',
     title: 'РћР±Р»Р°С‡РЅР°СЏ СЃР±РѕСЂРєР° Tauri 2.0 Р±РµР· Р»РѕРєР°Р»СЊРЅРѕРіРѕ MSVC',
     category: 'DevOps',
-    triggerHint: 'РџСЂРё РѕС€РёР±РєРµ MSVC 8012 РёР»Рё РѕР±РЅРѕРІР»РµРЅРёРё GitHub Actions',
+    triggerHint: 'При ошибке MSVC 8012 или обновлении GitHub Actions',
     contentMarkdown: `---
 name: tauri-windows-cloud-release
-description: РЎР±РѕСЂРєР° .exe Рё .msi РІ GitHub Actions Рё СѓСЃС‚Р°РЅРѕРІРєР° РЅР° Windows Р±РµР· Build Tools
+description: Сборка .exe и .msi в GitHub Actions и установка на Windows без Build Tools
 ---
 1. РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ \`npm install --legacy-peer-deps\` РЅР° \`windows-latest\` Р±РµР· РѕР±СЏР·Р°С‚РµР»СЊРЅРѕРіРѕ \`package-lock.json\`.
-2. РЎРєР°С‡РёРІР°С‚СЊ sidecar \`llama-server.exe\` Рё РїСѓР±Р»РёРєРѕРІР°С‚СЊ Р°СЂС‚РµС„Р°РєС‚С‹ С‡РµСЂРµР· \`tauri-apps/tauri-action\`.`,
+2. Скачивать sidecar \`llama-server.exe\` и публиковать артефакты через \`tauri-apps/tauri-action\`.`,
     enabled: true,
     usageCount: 6,
     source: 'learned',
@@ -214,18 +214,18 @@ description: РЎР±РѕСЂРєР° .exe Рё .msi РІ GitHub Actions Рё С
     id: 'skill-sqlite-checkpoint',
     slug: 'atomic-sqlite-checkpoint',
     title: 'РђС‚РѕРјР°СЂРЅС‹Рµ Checkpoints РїРµСЂРµРґ РїСЂР°РІРєРѕР№ С„Р°Р№Р»РѕРІ',
-    category: 'РђРІС‚РѕРјР°С‚РёР·Р°С†РёСЏ',
-    triggerHint: 'РџРµСЂРµРґ Р»СЋР±С‹Рј replace_in_file РёР»Рё Р·Р°РїРёСЃСЊСЋ РІ СЂРµР¶РёРјРµ Act',
+    category: 'Автоматизация',
+    triggerHint: 'Перед любым replace_in_file или записью в режиме Act',
     contentMarkdown: `---
 name: atomic-sqlite-checkpoint
-description: РЎРЅР°РїС€РѕС‚ РёСЃС…РѕРґРЅРёРєРѕРІ РґРѕ РїСЂРёРјРµРЅРµРЅРёСЏ РґРёС„С„Р° СЃ РјРіРЅРѕРІРµРЅРЅС‹Рј РѕС‚РєР°С‚РѕРј
+description: Снапшот исходников до применения диффа с мгновенным откатом
 ---
-1. РЎРЅРёРјР°С‚СЊ РєРѕРїРёСЋ РІСЃРµС… РёР·РјРµРЅСЏРµРјС‹С… С„Р°Р№Р»РѕРІ РІ Р»РѕРєР°Р»СЊРЅС‹Р№ СЃРЅР°РїС€РѕС‚ РїРµСЂРµРґ РїСЂРёРјРµРЅРµРЅРёРµРј РїР°С‚С‡Р°.
-2. РџРѕРјРµС‡Р°С‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ РІ С‡Р°С‚Рµ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂРѕРј Checkpoint РґР»СЏ РѕС‚РєР°С‚Р° РІ 1 РєР»РёРє.`,
+1. Снимать копию всех изменяемых файлов в локальный снапшот перед применением патча.
+2. Помечать сообщение в чате идентификатором Checkpoint для отката в 1 клик.`,
     enabled: true,
     usageCount: 21,
     source: 'builtin',
-    updatedAt: 'РЎРµРіРѕРґРЅСЏ',
+    updatedAt: 'Сегодня',
   },
 ];
 
@@ -233,34 +233,34 @@ export const INITIAL_MEMORY_DOCS: AgentMemoryDoc[] = [
   {
     key: 'soul',
     filename: 'SOUL.md',
-    title: 'РҐР°СЂР°РєС‚РµСЂ Рё СЃС‚РёР»СЊ Р°РіРµРЅС‚Р°',
-    description: 'Р’РґРѕС…РЅРѕРІР»РµРЅРѕ OneCore SOUL.md: РєСЂР°С‚РєРѕСЃС‚СЊ, С‚РѕС‡РЅРѕСЃС‚СЊ Рё С„РѕРєСѓСЃ РЅР° СЂР°Р±РѕС‡РµРј РєРѕРґРµ Р±РµР· РІРѕРґС‹.',
-    content: `РўС‹ вЂ” Р°РІС‚РѕРЅРѕРјРЅС‹Р№ РёРЅР¶РµРЅРµСЂРЅС‹Р№ Р°РіРµРЅС‚ ONE CORE AI (Cline + OneCore).
-РћС‚РІРµС‡Р°Р№ РїСЂСЏРјРѕ, РїРѕ СЃСѓС‰РµСЃС‚РІСѓ, Р±РµР· Р»РёС€РЅРёС… РІРІРѕРґРЅС‹С… С„СЂР°Р·.
-РџРµСЂРµРґ РїСЂР°РІРєРѕР№ РєРѕРґР° РІ СЂРµР¶РёРјРµ Act РІСЃРµРіРґР° СЃРѕС…СЂР°РЅСЏР№ Checkpoint Рё РѕР±СЉСЏСЃРЅСЏР№ РїСЂРѕРІРµСЂСЏРµРјС‹Р№ СЂРµР·СѓР»СЊС‚Р°С‚.
-РџСЂРµРґР»Р°РіР°Р№ СЃРѕС…СЂР°РЅСЏС‚СЊ СѓРґР°С‡РЅС‹Рµ СЂРµС€РµРЅРёСЏ РІ Р±РёР±Р»РёРѕС‚РµРєСѓ РЅР°РІС‹РєРѕРІ SKILL.md.`,
-    updatedAt: 'РЎРµРіРѕРґРЅСЏ',
+    title: 'Характер и стиль агента',
+    description: 'Вдохновлено OneCore SOUL.md: краткость, точность и фокус на рабочем коде без воды.',
+    content: `Ты — автономный инженерный агент ONE CORE AI (Cline + OneCore).
+Отвечай прямо, по существу, без лишних вводных фраз.
+Перед правкой кода в режиме Act всегда сохраняй Checkpoint и объясняй проверяемый результат.
+Предлагай сохранять удачные решения в библиотеку навыков SKILL.md.`,
+    updatedAt: 'Сегодня',
   },
   {
     key: 'memory',
     filename: 'MEMORY.md',
     title: 'РќР°РєРѕРїР»РµРЅРЅР°СЏ РїР°РјСЏС‚СЊ РїСЂРѕРµРєС‚Р°',
-    description: 'РЈСЃС‚РѕР№С‡РёРІС‹Рµ С„Р°РєС‚С‹ Рѕ СЂРµРїРѕР·РёС‚РѕСЂРёРё, Р°СЂС…РёС‚РµРєС‚СѓСЂРµ Рё СЂРµС€РµРЅРёСЏС…, РґРѕСЃС‚СѓРїРЅС‹Рµ РІРѕ РІСЃРµС… СЃРµСЃСЃРёСЏС….',
-    content: `- Р РµРїРѕР·РёС‚РѕСЂРёР№: alexpikman/OneCoreAI (Windows 10/11, Tauri 2.0, React 19, Vite, Express, llama.cpp).
-- РќР° РџРљ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РёР·Р±РµРіР°С‚СЊ Р»РѕРєР°Р»СЊРЅРѕР№ СѓСЃС‚Р°РЅРѕРІРєРё MSVC Build Tools (РѕС€РёР±РєР° 8012) вЂ” СЃР±РѕСЂРєР° .exe/.msi РёРґС‘С‚ С‡РµСЂРµР· GitHub Actions.
-- РџСЂРµРґРїРѕС‡С‚РµРЅРёРµ: 100% Р±РµСЃРїР»Р°С‚РЅС‹Рµ РїСЂРѕРІР°Р№РґРµСЂС‹ (Р»РѕРєР°Р»СЊРЅС‹Р№ llama-server.exe, Ollama, OpenRouter :free).
-- Р’ РёРЅС‚РµСЂС„РµР№СЃРµ РїРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ 3 СЃС‚РёР»СЏ (Cline / VS Code, Windows 11 Mica, РўРµСЂРјРёРЅР°Р» Obsidian).`,
-    updatedAt: 'РЎРµРіРѕРґРЅСЏ',
+    description: 'Устойчивые факты о репозитории, архитектуре и решениях, доступные во всех сессиях.',
+    content: `- Репозиторий: alexpikman/OneCoreAI (Windows 10/11, Tauri 2.0, React 19, Vite, Express, llama.cpp).
+- На ПК пользователя избегать локальной установки MSVC Build Tools (ошибка 8012) — сборка .exe/.msi идёт через GitHub Actions.
+- Предпочтение: 100% бесплатные провайдеры (локальный llama-server.exe, Ollama, OpenRouter :free).
+- В интерфейсе поддерживаются 3 стиля (Cline / VS Code, Windows 11 Mica, Терминал Obsidian).`,
+    updatedAt: 'Сегодня',
   },
   {
     key: 'user',
     filename: 'USER.md',
-    title: 'РџСЂРѕС„РёР»СЊ Рё РїСЂРµРґРїРѕС‡С‚РµРЅРёСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ',
-    description: 'РЎС‚РµРє, СЏР·С‹Рє РѕР±С‰РµРЅРёСЏ, РїСЂРёРІС‹С‡РЅС‹Рµ РёРЅСЃС‚СЂСѓРјРµРЅС‚С‹ Рё РїСЂР°РІРёР»Р° Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё.',
-    content: `- РЇР·С‹Рє РёРЅС‚РµСЂС„РµР№СЃР° Рё РѕС‚РІРµС‚РѕРІ: СЂСѓСЃСЃРєРёР№.
-- РћРЎ: Windows 10/11 (PowerShell 7 / Windows Terminal).
-- РџСЂРёРЅС†РёРї СЂР°Р±РѕС‚С‹: Р±РµСЃРїР»Р°С‚РЅРѕ Рё Р±РµР· РёСЃРєСѓСЃСЃС‚РІРµРЅРЅС‹С… РѕРіСЂР°РЅРёС‡РµРЅРёР№, РїРѕР»РЅС‹Р№ РєРѕРЅС‚СЂРѕР»СЊ РЅР°Рґ РѕР±Р»Р°СЃС‚СЏРјРё С‡Р°С‚Р°.`,
-    updatedAt: 'РЎРµРіРѕРґРЅСЏ',
+    title: 'Профиль и предпочтения пользователя',
+    description: 'Стек, язык общения, привычные инструменты и правила безопасности.',
+    content: `- Язык интерфейса и ответов: русский.
+- ОС: Windows 10/11 (PowerShell 7 / Windows Terminal).
+- Принцип работы: бесплатно и без искусственных ограничений, полный контроль над областями чата.`,
+    updatedAt: 'Сегодня',
   },
 ];
 
@@ -296,7 +296,7 @@ export const INITIAL_GATEWAYS: GatewayChannelConfig[] = [
     autoReplyVoiceNotes: true,
     requireApprovalForWrite: true,
     status: 'idle',
-    statusMessage: 'РЈРєР°Р¶РёС‚Рµ С‚РѕРєРµРЅ РѕС‚ @BotFather РґР»СЏ РїСЂРѕРІРµСЂРєРё Рё Р·Р°РїСѓСЃРєР° С€Р»СЋР·Р°',
+    statusMessage: 'Укажите токен от @BotFather для проверки и запуска шлюза',
   },
   {
     id: 'discord',
@@ -308,7 +308,7 @@ export const INITIAL_GATEWAYS: GatewayChannelConfig[] = [
     autoReplyVoiceNotes: false,
     requireApprovalForWrite: true,
     status: 'idle',
-    statusMessage: 'РџРѕРґРєР»СЋС‡РµРЅРёРµ РїРѕ Bot Token РёР· Discord Developer Portal',
+    statusMessage: 'Подключение по Bot Token из Discord Developer Portal',
   },
   {
     id: 'slack',
@@ -320,7 +320,7 @@ export const INITIAL_GATEWAYS: GatewayChannelConfig[] = [
     autoReplyVoiceNotes: false,
     requireApprovalForWrite: true,
     status: 'idle',
-    statusMessage: 'РџРѕРґРґРµСЂР¶РєР° Socket Mode App Token (xapp-...) Рё Bot Token (xoxb-...)',
+    statusMessage: 'Поддержка Socket Mode App Token (xapp-...) и Bot Token (xoxb-...)',
   },
 ];
 
@@ -333,58 +333,58 @@ export interface SlashCommandDef {
 export const ONECORE_SLASH_COMMANDS: SlashCommandDef[] = [
   {
     command: '/web',
-    syntax: '/web <РїРѕРёСЃРєРѕРІС‹Р№ Р·Р°РїСЂРѕСЃ>',
-    description: 'РќР°Р№С‚Рё Рё РїСЂРѕС‡РёС‚Р°С‚СЊ РїСѓР±Р»РёС‡РЅС‹Рµ РІРµР±-СЃС‚СЂР°РЅРёС†С‹ Р±РµР· РІС‹РїРѕР»РЅРµРЅРёСЏ РґРµР№СЃС‚РІРёР№ РЅР° СЃР°Р№С‚Р°С…',
+    syntax: '/web <поисковый запрос>',
+    description: 'Найти и прочитать публичные веб-страницы без выполнения действий на сайтах',
   },
   {
     command: '/browse',
     syntax: '/browse <HTTPS-Р°РґСЂРµСЃ>',
-    description: 'РџСЂРѕС‡РёС‚Р°С‚СЊ С‚РµРєСЃС‚ РїСѓР±Р»РёС‡РЅРѕР№ HTTPS-СЃС‚СЂР°РЅРёС†С‹',
+    description: 'Прочитать текст публичной HTTPS-страницы',
   },
   {
     command: '/run',
-    syntax: '/run <РєРѕРјР°РЅРґР° С‚РµСЂРјРёРЅР°Р»Р°>',
-    description: 'Р РµР°Р»СЊРЅРѕ РІС‹РїРѕР»РЅРёС‚СЊ РєРѕРјР°РЅРґСѓ РІ РїР°РїРєРµ Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРѕРµРєС‚Р°',
+    syntax: '/run <команда терминала>',
+    description: 'Реально выполнить команду в папке активного проекта',
   },
   {
     command: '/git',
     syntax: '/git status | diff | log | fetch',
-    description: 'Р’С‹РїРѕР»РЅРёС‚СЊ СЂРµР°Р»СЊРЅСѓСЋ РєРѕРјР°РЅРґСѓ git РІ РїР°РїРєРµ РїСЂРѕРµРєС‚Р°',
+    description: 'Выполнить реальную команду git в папке проекта',
   },
   {
     command: '/search',
     syntax: '/search <СЃС‚СЂРѕРєР°>',
-    description: 'РџРѕРёСЃРє РїРѕ РёСЃС…РѕРґРЅРѕРјСѓ РєРѕРґСѓ РІ РїР°РїРєРµ Р°РєС‚РёРІРЅРѕРіРѕ РїСЂРѕРµРєС‚Р°',
+    description: 'Поиск по исходному коду в папке активного проекта',
   },
   {
     command: '/undo',
     syntax: '/undo',
-    description: 'РћС‚РєР°С‚РёС‚СЊ РїРѕСЃР»РµРґРЅРµРµ РёР·РјРµРЅРµРЅРёРµ С„Р°Р№Р»Р° Р°РіРµРЅС‚РѕРј РЅР° РґРёСЃРєРµ',
+    description: 'Откатить последнее изменение файла агентом на диске',
   },
   {
     command: '/skill',
-    syntax: '/skill <РЅР°Р·РІР°РЅРёРµ РёР»Рё Р·Р°РґР°С‡Р°>',
-    description: 'РќР°Р№С‚Рё, РїРѕРґРєР»СЋС‡РёС‚СЊ РёР»Рё СЃРѕР·РґР°С‚СЊ РЅР°РІС‹Рє SKILL.md',
+    syntax: '/skill <название или задача>',
+    description: 'Найти, подключить или создать навык SKILL.md',
   },
   {
     command: '/memory',
-    syntax: '/memory <С„Р°РєС‚ РґР»СЏ Р·Р°РїРѕРјРёРЅР°РЅРёСЏ>',
-    description: 'РЎРѕС…СЂР°РЅРёС‚СЊ С„Р°РєС‚ РІ РґРѕР»РіРѕРІСЂРµРјРµРЅРЅСѓСЋ РїР°РјСЏС‚СЊ MEMORY.md',
+    syntax: '/memory <факт для запоминания>',
+    description: 'Сохранить факт в долговременную память MEMORY.md',
   },
   {
     command: '/subagent',
     syntax: '/subagent <Р·Р°РґР°С‡Р° РІРѕСЂРєРµСЂСѓ>',
-    description: 'Р—Р°РїСѓСЃС‚РёС‚СЊ РїР°СЂР°Р»Р»РµР»СЊРЅРѕРіРѕ СЃСѓР±Р°РіРµРЅС‚Р° С‡РµСЂРµР· СЂРµР°Р»СЊРЅС‹Р№ API РїСЂРѕРІР°Р№РґРµСЂР°',
+    description: 'Запустить параллельного субагента через реальный API провайдера',
   },
   {
     command: '/env',
     syntax: '/env local | ssh | docker',
-    description: 'РџРµСЂРµРєР»СЋС‡РёС‚СЊ СЃСЂРµРґСѓ РІС‹РїРѕР»РЅРµРЅРёСЏ РєРѕРјР°РЅРґ С‚РµСЂРјРёРЅР°Р»Р°',
+    description: 'Переключить среду выполнения команд терминала',
   },
   {
     command: '/provider',
     syntax: '/provider llama | openrouter | ollama',
-    description: 'РџРµСЂРµРєР»СЋС‡РёС‚СЊ Р±РµСЃРїР»Р°С‚РЅС‹Р№ РїСЂРѕРІР°Р№РґРµСЂ РјРѕРґРµР»Рё Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№',
+    description: 'Переключить бесплатный провайдер модели без ограничений',
   },
 ];
 
@@ -397,7 +397,7 @@ export function buildGatewayStartScript(
   const dc = gateways.find((g) => g.id === 'discord');
   const sl = gateways.find((g) => g.id === 'slack');
 
-  return `# ONE CORE AI вЂ” Р—Р°РїСѓСЃРє Р±РµСЃРїР»Р°С‚РЅРѕРіРѕ С€Р»СЋР·Р° РјРµСЃСЃРµРЅРґР¶РµСЂРѕРІ (OneCore Gateway Bridge)
+  return `# ONE CORE AI — Запуск бесплатного шлюза мессенджеров (OneCore Gateway Bridge)
 $ErrorActionPreference = "Stop"
 
 $env:ONECORE_PROVIDER_URL = "${activeProvider?.baseUrl ?? 'http://127.0.0.1:8080/v1'}"
@@ -408,6 +408,6 @@ ${tg?.allowedChatIds ? `$env:TELEGRAM_ALLOWED_USERS = "${tg.allowedChatIds}"` : 
 ${dc?.botToken ? `$env:DISCORD_BOT_TOKEN = "${dc.botToken}"` : '# $env:DISCORD_BOT_TOKEN = "..."'}
 ${sl?.botToken ? `$env:SLACK_BOT_TOKEN = "${sl.botToken}"` : '# $env:SLACK_BOT_TOKEN = "xoxb-..."'}
 
-Write-Host "РЁР»СЋР· ONE CORE AI РЅР°СЃС‚СЂРѕРµРЅ РЅР° РїСЂРѕРІР°Р№РґРµСЂ: $env:ONECORE_PROVIDER_MODEL ($env:ONECORE_EXEC_ENV)" -ForegroundColor Cyan
-Write-Host "Р”Р»СЏ РЅРµРїСЂРµСЂС‹РІРЅРѕР№ СЂР°Р±РѕС‚С‹ РґРµСЂР¶РёС‚Рµ РѕРєРЅРѕ PowerShell РѕС‚РєСЂС‹С‚С‹Рј РёР»Рё Р·Р°РїСѓСЃС‚РёС‚Рµ С‡РµСЂРµР· Task Scheduler." -ForegroundColor Gray`;
+Write-Host "Шлюз ONE CORE AI настроен на провайдер: $env:ONECORE_PROVIDER_MODEL ($env:ONECORE_EXEC_ENV)" -ForegroundColor Cyan
+Write-Host "Для непрерывной работы держите окно PowerShell открытым или запустите через Task Scheduler." -ForegroundColor Gray`;
 }
