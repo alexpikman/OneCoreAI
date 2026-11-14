@@ -13,7 +13,7 @@ process.env.ONECORE_HOME = tempOneCoreHome;
 import { createApiApp } from '../server/app';
 import { recommendModelForHardware, type HardwareProfile } from '../server/hardware';
 import { getOneCoreHome } from '../server/paths';
-import { recordProjectMemory } from '../server/projectAgent';
+import { recordProjectMemory, safeResolveInside } from '../server/projectAgent';
 import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
 
 let apiServer: http.Server;
@@ -53,12 +53,35 @@ async function jsonReq<T = Record<string, unknown>>(
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      Origin: new URL(apiBaseUrl).origin,
       ...(init?.headers ?? {}),
     },
   });
   const data = (await res.json()) as T;
   return { status: res.status, data };
 }
+
+test('local API rejects untrusted browser origins', async () => {
+  const response = await fetch(`${apiBaseUrl}/api/health`, {
+    headers: { Origin: 'https://attacker.example' },
+  });
+  assert.equal(response.status, 403);
+});
+
+test('project path resolution rejects traversal and symbolic-link escapes', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-safe-root-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-safe-outside-'));
+  fs.writeFileSync(path.join(outside, 'secret.txt'), 'private-data', 'utf-8');
+
+  try {
+    assert.throws(() => safeResolveInside(root, '../onecore-safe-outside/secret.txt'));
+    fs.symlinkSync(outside, path.join(root, 'external'), 'dir');
+    assert.throws(() => safeResolveInside(root, 'external/secret.txt'), /символическ/i);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  }
+});
 
 test('agent router distinguishes chat from browser, project, and terminal work', () => {
   assert.deepEqual(routeAgentPrompt('Привет, расскажи, как устроен Git'), { kind: 'chat' });
@@ -559,11 +582,17 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(fs.existsSync(path.join(workdir, 'hello.py')), true);
 
     // Execute Node.js, which is already required to run ONE CORE AI.
+    const deniedExec = await jsonReq<{ ok: boolean }>(
+      `/api/projects/${encodeURIComponent(projectId)}/exec`,
+      { method: 'POST', body: JSON.stringify({ command: 'node -e "process.exit(0)"' }) },
+    );
+    assert.equal(deniedExec.status, 403);
+
     const execRes = await jsonReq<{ ok: boolean; stdout: string; exitCode: number }>(
       `/api/projects/${encodeURIComponent(projectId)}/exec`,
       {
         method: 'POST',
-        body: JSON.stringify({ command: 'node -e "console.log(\'Hello from OneCore\')"' }),
+        body: JSON.stringify({ command: 'node -e "console.log(\'Hello from OneCore\')"' , approved: true}),
       },
     );
     assert.equal(execRes.status, 200);
@@ -610,7 +639,7 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
       `/api/projects/${encodeURIComponent(projectId)}/exec`,
       {
         method: 'POST',
-        body: JSON.stringify({ command: taskRes.data.proposedCommand }),
+        body: JSON.stringify({ command: taskRes.data.proposedCommand, approved: true }),
       },
     );
     assert.equal(approvedCommand.status, 200);
