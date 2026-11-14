@@ -15,7 +15,7 @@
 - Terminal commands, mutating Git operations, file writes, and undo now require explicit API approval.
 - Agent-generated file changes and terminal commands remain pending until the user applies or runs them.
 - Added regression tests for untrusted origins, path traversal, symlink escapes, unapproved actions, and project tool allowlists.
-- Added Windows Credential Manager access through the native Windows Credential API; application settings now use the OS keychain where supported.
+- Added Windows Credential Manager access through the native Windows Credential API, macOS Keychain support, and Linux Secret Service integration; application settings now use OS credential storage where available.
 - Added CI on Linux and Windows for encoding checks, type-checking, integration tests, and production builds.
 - Restricted Windows installer release workflow to version tags or manual dispatch.
 - Added project governance and continuation documents.
@@ -29,7 +29,7 @@
 - Confirm the first Linux and Windows CI runs and resolve any failures.
 - Implement a session/token authentication layer for local API requests. Origin validation protects browser boundaries but is not authentication against other local processes.
 - Extend centralized permission enforcement to model management, SSH, browser/network actions, project deletion, and all other side-effect endpoints.
-- Strengthen the fallback vault key derivation for platforms without OS credential storage; preserve existing encrypted-vault migration compatibility.
+- Strengthen fallback vault key derivation for environments without an available OS credential service; preserve existing encrypted-vault migration compatibility.
 - Verify Windows Tauri startup, sidecar bundling, installer generation, Credential Manager persistence, and runtime behavior.
 - Audit remaining SSRF, file browser, model download, and provider proxy routes.
 - Complete UI route, navigation, responsive, typography, and accessibility audit.
