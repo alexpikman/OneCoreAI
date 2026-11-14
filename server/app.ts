@@ -1061,6 +1061,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     const model = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
     const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
     const temperature = typeof req.body?.temperature === 'number' ? req.body.temperature : 0.2;
+    const stream = req.body?.stream === true;
 
     if (!rawBaseUrl || !model || messages.length === 0) {
       res.status(400).json({ ok: false, error: 'Не заданы baseUrl, model или messages' });
@@ -1070,7 +1071,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     const cleanBase = rawBaseUrl.replace(/\/+$/, '');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      Accept: 'application/json',
+      Accept: stream ? 'text/event-stream' : 'application/json',
       'HTTP-Referer': 'https://github.com/alexpikman/OneCoreAI',
       'X-Title': 'ONE CORE AI',
     };
@@ -1082,7 +1083,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const response = await fetch(`${cleanBase}/chat/completions`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ model, messages, temperature, stream: false }),
+        body: JSON.stringify({ model, messages, temperature, stream }),
         signal: controller.signal,
       });
       clearTimeout(timeout);
@@ -1093,6 +1094,23 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
           ok: false,
           error: text.slice(0, 300) || `HTTP ${response.status}`,
         });
+        return;
+      }
+
+      if (stream) {
+        res.status(200).set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+        const reader = response.body?.getReader();
+        if (!reader) { res.end(); return; }
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            res.write(Buffer.from(value));
+          }
+        } finally {
+          reader.releaseLock();
+          res.end();
+        }
         return;
       }
 

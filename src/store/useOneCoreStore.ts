@@ -1523,6 +1523,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         ? `/${route.browserAction === 'read' ? 'browse' : 'web'} ${route.query || trimmed}`
         : trimmed;
 
+    let assistantStreamMessageId: string | null = null;
     const pushReply = (
       replyText: string,
       opts: {
@@ -1538,43 +1539,64 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       set((s) => ({
         centerPaneMode: 'chat',
         lastTokenUsage: opts.tokenUsage ?? s.lastTokenUsage,
-        sessions: s.sessions.map((sess) =>
-          sess.id === sessionId
-            ? {
-                ...sess,
-                title: sess.messages.length === 0 ? trimmed.slice(0, 44) : sess.title,
-                updatedAt: 'Сейчас',
-                messages: [
+        sessions: s.sessions.map((sess) => {
+          if (sess.id !== sessionId) return sess;
+          const finalMessage = {
+            id: assistantStreamMessageId ?? `msg-a-${Date.now()}`,
+            role: 'assistant' as const,
+            mode,
+            roleName: opts.roleName,
+            providerLabel: opts.providerLabel,
+            tokenUsage: opts.tokenUsage,
+            timestamp: nowTime(),
+            content: replyText,
+            readFiles: opts.readFiles,
+            webSources: opts.webSources,
+            diff: opts.diff,
+            command: opts.command,
+            isStreaming: false,
+          };
+          return {
+            ...sess,
+            title: sess.messages.length === 0 ? trimmed.slice(0, 44) : sess.title,
+            updatedAt: 'Сейчас',
+            messages: assistantStreamMessageId
+              ? sess.messages.map((message) => message.id === assistantStreamMessageId ? { ...message, ...finalMessage } : message)
+              : [
                   ...sess.messages,
-                  ...(options?.skipUserMessage
-                    ? []
-                    : [
-                        {
-                          id: `msg-u-${Date.now()}`,
-                          role: 'user' as const,
-                          mode,
-                          timestamp: nowTime(),
-                          content: trimmed,
-                        },
-                      ]),
-                  {
-                    id: `msg-a-${Date.now() + 1}`,
-                    role: 'assistant',
-                    mode,
-                    roleName: opts.roleName,
-                    providerLabel: opts.providerLabel,
-                    tokenUsage: opts.tokenUsage,
-                    timestamp: nowTime(),
-                    content: replyText,
-                    readFiles: opts.readFiles,
-                    webSources: opts.webSources,
-                    diff: opts.diff,
-                    command: opts.command,
-                  },
+                  ...(options?.skipUserMessage ? [] : [{ id: `msg-u-${Date.now()}`, role: 'user' as const, mode, timestamp: nowTime(), content: trimmed }]),
+                  finalMessage,
                 ],
-              }
-            : sess,
-        ),
+          };
+        }),
+      }));
+      assistantStreamMessageId = null;
+    };
+    const beginAssistantResponse = () => {
+      const timestamp = nowTime();
+      const userMessageId = `msg-u-${Date.now()}`;
+      assistantStreamMessageId = `msg-a-stream-${Date.now() + 1}`;
+      set((s) => ({
+        centerPaneMode: 'chat',
+        sessions: s.sessions.map((sess) => sess.id === sessionId ? {
+          ...sess,
+          title: sess.messages.length === 0 ? trimmed.slice(0, 44) : sess.title,
+          updatedAt: 'Сейчас',
+          messages: [
+            ...sess.messages,
+            ...(options?.skipUserMessage ? [] : [{ id: userMessageId, role: 'user' as const, mode, timestamp, content: trimmed }]),
+            { id: assistantStreamMessageId!, role: 'assistant' as const, mode, timestamp, content: '', isStreaming: true },
+          ],
+        } : sess),
+      }));
+    };
+    const appendAssistantDelta = (delta: string) => {
+      if (!assistantStreamMessageId || !delta) return;
+      set((s) => ({
+        sessions: s.sessions.map((sess) => sess.id === sessionId ? {
+          ...sess,
+          messages: sess.messages.map((message) => message.id === assistantStreamMessageId ? { ...message, content: message.content + delta, isStreaming: true } : message),
+        } : sess),
       }));
     };
 
@@ -1831,6 +1853,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         ? 'reading'
         : 'thinking';
     set({ serverStatus: 'generating', agentActivity: activity });
+    beginAssistantResponse();
 
     try {
       if (activeProj && (route.kind === 'project' || route.kind === 'terminal')) {
@@ -1948,6 +1971,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             apiKey: activeProvider.apiKey,
             model: providerModel,
             temperature: state.inferenceSettings.temperature,
+            stream: true,
             messages: [
               {
                 role: 'system',
@@ -1961,23 +1985,46 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             ],
           }),
         });
-        const json = (await resp.json()) as { ok?: boolean; content?: string; error?: string; promptTokens?: number | null; completionTokens?: number | null; totalTokens?: number | null };
-        if (resp.ok && json.ok && json.content) {
-          pushReply(json.content, {
-            roleName: route.kind === 'chat' ? 'Общий агент' : activeRole.name,
-            providerLabel: `${activeProvider.name} · ${providerModel}`,
-            tokenUsage: { promptTokens: json.promptTokens ?? null, completionTokens: json.completionTokens ?? null, totalTokens: json.totalTokens ?? null, estimatedPromptTokens: history.reduce((sum, message) => sum + Math.ceil(message.content.length / 4), Math.ceil(trimmed.length / 4)), source: json.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() },
-          });
-        } else {
-          const keyHint =
-            activeProvider.requiresKey && !activeProvider.apiKey.trim()
-              ? ' Для облачного провайдера добавьте API-ключ в настройках провайдеров.'
-              : '';
-          pushReply(
-            `Не удалось получить ответ от **${activeProvider.name}** (${json.error || `HTTP ${resp.status}`}).${keyHint}`,
-            { roleName: 'Общий агент' },
-          );
+        if (!resp.ok || !resp.body) {
+          const errorText = await resp.text();
+          throw new Error(errorText || `HTTP ${resp.status}`);
         }
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let assistantText = '';
+        let streamError = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split(/\r?\n\r?\n/);
+          buffer = events.pop() ?? '';
+          for (const event of events) {
+            const dataLine = event.split(/\r?\n/).find((line) => line.startsWith('data:'));
+            if (!dataLine) continue;
+            const payload = dataLine.slice(5).trim();
+            if (!payload || payload === '[DONE]') continue;
+            try {
+              const chunk = JSON.parse(payload) as { choices?: Array<{ delta?: { content?: string } }>; error?: { message?: string } };
+              if (chunk.error?.message) streamError = chunk.error.message;
+              const delta = chunk.choices?.[0]?.delta?.content;
+              if (typeof delta === 'string' && delta) {
+                assistantText += delta;
+                appendAssistantDelta(delta);
+              }
+            } catch {
+              // Ignore incomplete or provider-specific SSE payloads.
+            }
+          }
+        }
+        if (streamError) throw new Error(streamError);
+        if (!assistantText) throw new Error('Провайдер завершил поток без текста ответа.');
+        pushReply(assistantText, {
+          roleName: route.kind === 'chat' ? 'Общий агент' : activeRole.name,
+          providerLabel: `${activeProvider.name} · ${providerModel}`,
+          tokenUsage: { promptTokens: null, completionTokens: null, totalTokens: null, estimatedPromptTokens: history.reduce((sum, message) => sum + Math.ceil(message.content.length / 4), Math.ceil(trimmed.length / 4)), source: 'estimate', recordedAt: new Date().toISOString() },
+        });
       }
     } catch (err) {
       pushReply(
