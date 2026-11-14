@@ -493,12 +493,13 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(createProj.data.ok, true);
     const projectId = createProj.data.project.id;
 
+    const restrictedWorkdir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-restricted-project-'));
     const restrictedProject = await jsonReq<{ ok: boolean; project: { id: string } }>('/api/projects', {
       method: 'POST',
       body: JSON.stringify({
         name: 'Restricted Project',
         folderSource: 'local',
-        folderPath: workdir,
+        folderPath: restrictedWorkdir,
         allowedTools: ['read_file'],
       }),
     });
@@ -512,6 +513,7 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     );
     assert.equal(restrictedExec.status, 403);
     await jsonReq(`/api/projects/${encodeURIComponent(restrictedProject.data.project.id)}`, { method: 'DELETE' });
+    fs.rmSync(restrictedWorkdir, { recursive: true, force: true });
 
     const clearProject = await jsonReq<{ ok: boolean; activeProjectId: string }>(
       '/api/projects/activate',
