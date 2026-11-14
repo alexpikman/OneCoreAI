@@ -1765,6 +1765,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           body: JSON.stringify({
             prompt: trimmed,
             mode,
+            approved: trimmed === '/undo',
             provider: {
               baseUrl: activeProvider.baseUrl,
               apiKey: activeProvider.apiKey,
