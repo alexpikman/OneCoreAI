@@ -443,7 +443,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   directives: INITIAL_DIRECTIVES,
   pipelineStages: INITIAL_PIPELINE_STAGES,
   pipelineProjectName: 'OneCore Project',
-  pipelineStack: 'TypeScript В· Node В· React',
+  pipelineStack: 'TypeScript · Node · React',
   pipelineRunning: false,
 
   files: [],
@@ -1629,7 +1629,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             {
               roleName: 'Веб-браузер',
               providerLabel: summary
-                ? `${provider.name} В· ${provider.selectedModel}`
+                ? `${provider.name} · ${provider.selectedModel}`
                 : 'Только чтение веб-страниц',
               webSources,
             },
@@ -1841,7 +1841,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         pushReply(data.replyText || 'Задача выполнена.', {
           roleName: route.kind === 'terminal' ? 'Терминал' : activeRole.name,
           providerLabel: data.usedLiveLlm
-            ? `${activeProvider.name} В· ${providerModel}`
+            ? `${activeProvider.name} · ${providerModel}`
             : `Проект: ${activeProj.name}`,
           readFiles: data.readFiles,
           diff: diffObj,
@@ -1882,7 +1882,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         if (resp.ok && json.ok && json.content) {
           pushReply(json.content, {
             roleName: route.kind === 'chat' ? 'Общий агент' : activeRole.name,
-            providerLabel: `${activeProvider.name} В· ${providerModel}`,
+            providerLabel: `${activeProvider.name} · ${providerModel}`,
           });
         } else {
           const keyHint =
@@ -2754,7 +2754,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                   role: 'assistant',
                   mode: s.agentMode,
                   roleName: `Субагент · ${role.name}`,
-                  providerLabel: `${provider.name} В· ${provider.selectedModel}`,
+                  providerLabel: `${provider.name} · ${provider.selectedModel}`,
                   timestamp: nowTime(),
                   content: `Субагент **${taskTitle}** отправлен на \`${provider.selectedModel}\`.`,
                   subagentRun: initialRun,
