@@ -587,6 +587,7 @@ export interface PersistedAppSettings {
   appSettings: AppSettings;
   roles: ModelRole[];
   activeRoleId: string;
+  enabledRoleIds?: string[];
   modelCategory: AiProviderCategory;
   modelSource: AiProviderCategory;
   providerSelectionByCategory: Record<AiProviderCategory, string>;

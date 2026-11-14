@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import {
+  GENERAL_AGENT_SYSTEM_PROMPT,
   INITIAL_DIRECTIVES,
   INITIAL_PERMISSIONS,
   INITIAL_PIPELINE_STAGES,
@@ -161,6 +162,7 @@ interface OneCoreStore {
 
   roles: ModelRole[];
   activeRoleId: string;
+  enabledRoleIds: string[];
   permissions: PermissionRule[];
   directives: ModelDirective[];
   pipelineStages: PipelineStage[];
@@ -260,6 +262,7 @@ interface OneCoreStore {
   setAgentMode: (mode: AgentMode) => void;
 
   setActiveRole: (roleId: string, syncTemp?: boolean) => void;
+  toggleAgentRole: (roleId: string) => void;
   addCustomRole: (role: Omit<ModelRole, 'id' | 'isCustom'>) => void;
   deleteCustomRole: (roleId: string) => void;
   setPermissionPolicy: (ruleId: string, policy: PermissionPolicy) => void;
@@ -459,6 +462,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   roles: INITIAL_ROLES,
   activeRoleId: INITIAL_ROLES[0].id,
+  enabledRoleIds: ['role-developer'],
   permissions: INITIAL_PERMISSIONS,
   directives: INITIAL_DIRECTIVES,
   pipelineStages: INITIAL_PIPELINE_STAGES,
@@ -1105,6 +1109,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         appSettings: saved.appSettings,
         roles: saved.roles,
         activeRoleId: saved.activeRoleId,
+        enabledRoleIds: saved.enabledRoleIds ?? [saved.activeRoleId],
         permissions: saved.permissions,
         directives: saved.directives,
         pipelineStages: saved.pipelineStages,
@@ -1178,6 +1183,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       appSettings: state.appSettings,
       roles: state.roles,
       activeRoleId: state.activeRoleId,
+      enabledRoleIds: state.enabledRoleIds,
       permissions: state.permissions,
       directives: state.directives,
       pipelineStages: state.pipelineStages,
@@ -1304,6 +1310,11 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         s.id === state.activeSessionId ? { ...s, mode } : s,
       ),
     })),
+
+  toggleAgentRole: (roleId) => {
+    set((state) => ({ enabledRoleIds: state.enabledRoleIds.includes(roleId) ? state.enabledRoleIds.filter((id) => id !== roleId) : [...state.enabledRoleIds, roleId] }));
+    void get().saveSettings();
+  },
 
   setActiveRole: (roleId, syncTemp = true) => {
     const role = get().roles.find((r) => r.id === roleId);
@@ -1764,6 +1775,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
 
     const activeRole = state.roles.find((r) => r.id === state.activeRoleId) ?? state.roles[0];
+    const enabledRoles = state.roles.filter((role) => state.enabledRoleIds.includes(role.id));
     const localModel = state.localModels.find((m) => m.id === state.activeModelId);
     const activeProvider =
       state.freeProviders.find((provider) => provider.id === state.activeProviderId) ??
@@ -1776,7 +1788,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const estimatedContextTokens = state.files.filter((file) => file.inContext).reduce((sum, file) => sum + file.tokensEstimate, 0) + (state.includeProjectTree ? 180 : 0) + (state.includeTerminalOutput ? 120 : 0) + Math.ceil(trimmed.length / 4);
 
     const systemContext = [
-      activeRole.systemPrompt,
+      GENERAL_AGENT_SYSTEM_PROMPT,
+      enabledRoles.length > 0 ? `## Активные инженерные роли\n${enabledRoles.map((role) => `### ${role.name}\n${role.systemPrompt}`).join('\n\n')}` : '## Режим общего агента\nВсе специализированные роли отключены. Работай как единый универсальный агент и руководствуйся общими правилами ONE CORE AI.',
       activeProj
         ? [
             PROJECT_AGENT_INSTRUCTIONS,

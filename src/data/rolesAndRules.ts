@@ -1,5 +1,7 @@
 import type { ModelDirective, ModelRole, PermissionRule, PipelineStage } from '../types/onecore';
 
+export const GENERAL_AGENT_SYSTEM_PROMPT = 'Ты — универсальный основной агент ONE CORE AI. Самостоятельно определяй тип задачи, уточняй недостающие требования, проверяй факты и ограничения, используй только реально подключённые инструменты и действуй в рамках разрешений. Не выдумывай результаты операций. В PLAN анализируй и предлагай план без побочных действий; в ACT выполняй разрешённые действия с обязательным подтверждением там, где оно требуется.';
+
 export const INITIAL_ROLES: ModelRole[] = [
   {
     id: 'role-developer',
