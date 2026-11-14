@@ -29,6 +29,11 @@
 - Added a separate LOCAL/CLOUD/RUNTIME provider/model configuration for the subagent subsystem; subagent API keys are stored under separate OS-vault references and blanked in the JSON settings manifest.
 - Removed obsolete mascot/provider-card visibility toggles after consolidating the header and provider controls.
 
+- Added the project-agent contract defining a project as a persistent workspace with source files, plan, task list, permissions, and action history. The primary project agent receives the contract, project metadata, plan, task IDs/statuses, allowed tools, and inspected file snippets.
+- ACT-mode structured responses can create project tasks and update existing task statuses; PLAN mode is explicitly read-only. File edits and shell commands remain pending approval proposals.
+- Added provider token usage fields and a model capability self-assessment endpoint. The right inspector separates model-reported claims from actual OneCoreAI tool availability and project permissions; file deletion, SSH execution, and direct GitHub actions remain unavailable until dedicated tools are implemented.
+- Added right-inspector indicators for project/task state, token usage, estimated file context, configured context window, and local VRAM/RAM. Cloud model memory is correctly marked as not observable.
+
 ## Verification status
 - Changes are committed directly to `main`; no feature branch or pull request was created.
 - GitHub Actions run `43573269150` completed successfully on both `ubuntu-latest` and `windows-latest`.

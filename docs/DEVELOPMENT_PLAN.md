@@ -38,6 +38,16 @@
 - [x] Add working rules, development plan, current state, and continuation prompt.
 - [x] Confirm Linux and Windows CI; encoding, type-check, integration tests, and production build pass on both runners.
 
+## Phase 8 — Project agent, model capabilities, and telemetry
+- [x] Define the project workspace contract: files, metadata, plan, tasks, permissions, and action history.
+- [x] Inject active project context and task state into the primary project-agent prompt.
+- [x] Support structured task creation/status updates in ACT mode while keeping PLAN mode read-only.
+- [x] Add model self-assessment for file, terminal, Git, SSH, GitHub, web, function-calling, and vision capabilities.
+- [x] Separate model claims from actual application tools and project permissions.
+- [x] Display provider token usage, estimated file context, configured context window, and local runtime memory.
+- [ ] Verify capability probes against Ollama, LM Studio, cloud, and llama.cpp-compatible providers; unknown responses must remain unknown.
+- [ ] Implement file deletion, SSH, and direct GitHub project tools before advertising them as available.
+
 ## Phase 7 — UI consistency
 - [x] Set the first-run theme to light Mica and align browser/PWA startup colors without overriding saved preferences.
 - [x] Keep the agent header visible across all application routes and show provider, model, and active mode.

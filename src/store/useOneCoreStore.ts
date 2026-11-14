@@ -2611,6 +2611,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         state.activeProviderId;
       return {
         activeProviderId: providerId,
+        modelCapabilityReport: null,
+        modelCapabilityStatus: 'idle',
         modelCategory: category,
         modelSource: category,
         aiSettingsCategory: category,

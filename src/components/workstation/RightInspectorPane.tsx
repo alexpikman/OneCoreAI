@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bot, Cpu, Layers, Play, Power, SlidersHorizontal } from 'lucide-react';
+import { Activity, Bot, CheckCircle2, Cpu, Layers, Play, Power, RefreshCw, ShieldCheck, SlidersHorizontal, XCircle } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -38,11 +38,22 @@ export const RightInspectorPane: React.FC = () => {
     launchSubagent,
     clearCompletedSubagents,
     hardwareProfile,
+    projects,
+    activeProjectId,
+    projectWorkspace,
+    activeProviderId,
+    modelSource,
+    modelCapabilityReport,
+    modelCapabilityStatus,
+    checkModelCapabilities,
+    lastTokenUsage,
   } = useOneCoreStore();
 
   const [quickSubagentPrompt, setQuickSubagentPrompt] = useState('');
   const tokens = getUiTokens(uiStyle);
   const activeModel = localModels.find((m) => m.id === activeModelId);
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? null;
+  const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId);
   const runtimeProvider = freeProviders.find(
     (provider) => provider.id === providerSelectionByCategory.runtime,
   );
@@ -85,6 +96,167 @@ export const RightInspectorPane: React.FC = () => {
 
   return (
     <aside className={cn('w-full lg:w-[288px] xl:w-[312px] shrink-0 border-t lg:border-t-0 lg:border-l flex flex-col overflow-y-auto', tokens.sidebarBg)}>
+      {/* Project workspace and effective application permissions */}
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-blue-500" />
+            Проект и доступы
+          </span>
+          <span className={cn('text-[10px] px-1.5 py-0.5 rounded', activeProject ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800')}>
+            {activeProject ? 'Подключён' : 'Не выбран'}
+          </span>
+        </div>
+        {activeProject ? (
+          <>
+            <div className="min-w-0">
+              <div className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">{activeProject.name}</div>
+              <div className="text-[10.5px] text-zinc-500 truncate" title={activeProject.folderPath}>{activeProject.folderPath}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+              <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+                <div className="text-zinc-500">Задачи</div>
+                <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{projectWorkspace.tasks.length}</div>
+              </div>
+              <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+                <div className="text-zinc-500">Прогресс плана</div>
+                <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{projectWorkspace.plan?.progress ?? 0}%</div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              {([
+                ['Чтение файлов', activeProject.allowedTools?.includes('read_file') ?? false],
+                ['Изменение файлов', activeProject.allowedTools?.includes('write_file') ?? false],
+                ['Удаление файлов', false],
+                ['Терминал', activeProject.allowedTools?.includes('run_command') ?? false],
+                ['Git', activeProject.allowedTools?.includes('git') ?? false],
+                ['SSH', false],
+                ['GitHub API', false],
+              ] as Array<[string, boolean]>).map(([label, enabled]) => (
+                <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="text-zinc-600 dark:text-zinc-400">{label}</span>
+                  <span className={cn('inline-flex items-center gap-1', enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400')}>
+                    {enabled ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+                    {enabled ? 'Разрешено' : 'Недоступно'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-zinc-500 leading-relaxed">
+              Запись и команды требуют подтверждения. Удаление, SSH и прямые GitHub-действия пока не подключены к агенту.
+            </p>
+          </>
+        ) : (
+          <p className="text-[11px] text-zinc-500">Выберите проект, чтобы агент получил его задачи, план, файлы и разрешения.</p>
+        )}
+      </div>
+
+      {/* Model self-report is not an application permission grant */}
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
+            <Bot className="w-3.5 h-3.5 text-blue-500" />
+            Возможности модели
+          </span>
+          <button type="button" onClick={() => void checkModelCapabilities()} disabled={modelCapabilityStatus === 'checking' || !activeProvider} className="inline-flex items-center gap-1 text-[10.5px] text-blue-600 dark:text-blue-400 disabled:opacity-40">
+            <RefreshCw className={cn('w-3 h-3', modelCapabilityStatus === 'checking' && 'animate-spin')} />
+            Проверить
+          </button>
+        </div>
+        <div className="text-[10.5px] text-zinc-500 truncate">{activeProvider?.name ?? 'Провайдер не выбран'} · {modelSource === 'runtime' ? activeModel?.filename ?? 'Runtime-модель' : activeProvider?.selectedModel ?? 'Модель не выбрана'}</div>
+        {modelCapabilityReport ? (
+          <>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500">Окно контекста по самооценке</span>
+              <span className="font-mono tabular-nums text-zinc-800 dark:text-zinc-200">{modelCapabilityReport.contextWindowTokens?.toLocaleString('ru-RU') ?? 'Неизвестно'} tok</span>
+            </div>
+            <div className="text-[10px] uppercase tracking-wide text-zinc-400">Заявлено самой моделью · не гарантия</div>
+            {([
+              ['Чтение файлов', 'readFiles'],
+              ['Изменение файлов', 'writeFiles'],
+              ['Удаление файлов', 'deleteFiles'],
+              ['Выполнение команд', 'runCommands'],
+              ['Git', 'git'],
+              ['SSH', 'ssh'],
+              ['GitHub', 'github'],
+              ['Веб-доступ', 'web'],
+              ['Function calling', 'functionCalling'],
+              ['Vision', 'vision'],
+            ] as const).map(([label, key]) => {
+              const claim = modelCapabilityReport.selfReported[key];
+              const appTool = modelCapabilityReport.application[key];
+              return (
+                <div key={key} className="py-1 border-b border-zinc-100 dark:border-zinc-800/70 space-y-0.5">
+                  <div className="flex items-center justify-between gap-2 text-[11px]">
+                    <span className="text-zinc-600 dark:text-zinc-400">{label}</span>
+                    <span className={cn('font-medium', claim === true ? 'text-emerald-600 dark:text-emerald-400' : claim === false ? 'text-rose-500' : 'text-zinc-400')}>
+                      {claim === true ? 'Модель: да' : claim === false ? 'Модель: нет' : 'Модель: ?'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-zinc-500">
+                    OneCoreAI: {appTool.available ? 'доступно' : 'недоступно'} · {appTool.reason}
+                  </div>
+                </div>
+              );
+            })}
+            <p className="text-[10px] text-zinc-500 leading-relaxed">{modelCapabilityReport.notes}</p>
+            <p className="text-[10px] text-zinc-500">Проверено: {new Date(modelCapabilityReport.checkedAt).toLocaleString('ru-RU')}</p>
+          </>
+        ) : (
+          <p className="text-[10.5px] text-zinc-500">
+            {modelCapabilityStatus === 'checking' ? 'Модель отвечает на проверочный запрос…' : modelCapabilityStatus === 'error' ? 'Проверка не удалась. Возможности модели неизвестны.' : 'Самооценка ещё не запрашивалась.'}
+          </p>
+        )}
+        <p className="text-[10px] text-zinc-500 leading-relaxed">
+          Самооценка не выдаёт разрешений. Реальные доступы определяются инструментами OneCoreAI и политикой проекта.
+        </p>
+      </div>
+
+      {/* Token usage and memory telemetry */}
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
+        <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
+          <Layers className="w-3.5 h-3.5 text-zinc-500" />
+          Токены и память
+        </div>
+        <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+          <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+            <div className="text-zinc-500">Вход</div>
+            <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{lastTokenUsage?.promptTokens?.toLocaleString('ru-RU') ?? '—'}</div>
+          </div>
+          <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+            <div className="text-zinc-500">Выход</div>
+            <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{lastTokenUsage?.completionTokens?.toLocaleString('ru-RU') ?? '—'}</div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-zinc-500">Последний запрос</span>
+          <span className="font-mono tabular-nums">{lastTokenUsage?.totalTokens?.toLocaleString('ru-RU') ?? 'нет данных'} tok</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-zinc-500">Оценка файлового контекста</span>
+          <span className="font-mono tabular-nums">~{includedTokens.toLocaleString('ru-RU')} tok</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-zinc-500">Настроенное окно</span>
+          <span className="font-mono tabular-nums">{inferenceSettings.contextSize.toLocaleString('ru-RU')} tok</span>
+        </div>
+        <div className="text-[10px] text-zinc-500">Точный usage зависит от ответа провайдера; оценка файлового контекста приблизительная.</div>
+        {runtimeConnected ? (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500">VRAM рантайма</span>
+              <span className="font-mono tabular-nums">{serverStatus === 'stopped' ? '0.0' : vramUsedGb} GB</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-zinc-500">Системная RAM</span>
+              <span className="font-mono tabular-nums">{ramUsedGb} GB</span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-[10px] text-zinc-500">Память облачной модели приложению не видна.</div>
+        )}
+      </div>
+
       {/* Local runtime telemetry */}
       {chatVisibility.showTelemetry && runtimeConnected && (
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
@@ -355,7 +527,7 @@ export const RightInspectorPane: React.FC = () => {
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-zinc-500" />
-              Активный контекст
+              Файлы контекста
             </span>
             <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
               ~{includedTokens} / {inferenceSettings.contextSize} tok

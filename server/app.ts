@@ -969,6 +969,90 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
   });
 
+  app.post('/api/providers/capabilities', async (req, res) => {
+    const baseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim().replace(/\\/+$/, '') : '';
+    const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+    const model = typeof req.body?.model === 'string' ? req.body.model.trim() : '';
+    const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : '';
+    if (!baseUrl || !model) {
+      res.status(400).json({ ok: false, error: 'Не заданы провайдер или модель' });
+      return;
+    }
+
+    const project = projectId ? getProjectById(projectId) : null;
+    const canUse = (tool: 'read_file' | 'write_file' | 'run_command' | 'git') =>
+      Boolean(project && isProjectToolAllowed(project.id, tool));
+    const application = {
+      readFiles: { available: canUse('read_file'), reason: project ? (canUse('read_file') ? 'Разрешено политикой проекта' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
+      writeFiles: { available: canUse('write_file'), reason: project ? (canUse('write_file') ? 'Доступно через diff и подтверждение пользователя' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
+      deleteFiles: { available: false, reason: 'Отдельный инструмент удаления файлов не реализован' },
+      runCommands: { available: canUse('run_command'), reason: project ? (canUse('run_command') ? 'Команды требуют явного подтверждения' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
+      git: { available: canUse('git'), reason: project ? (canUse('git') ? 'Git доступен; изменяющие операции требуют подтверждения' : 'Git отключён в разрешениях проекта') : 'Нет активного проекта' },
+      ssh: { available: false, reason: 'SSH ещё не подключён к инструментам проектного агента' },
+      github: { available: false, reason: 'Прямые GitHub-действия проектного агента ещё не реализованы' },
+      web: { available: true, reason: 'Встроенный браузер публичных страниц доступен' },
+      functionCalling: { available: false, reason: 'Native function calling не подключён; используется JSON-протокол' },
+      vision: { available: false, reason: 'Визуальный ввод не проверяется этим endpoint' },
+    };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+      if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+      const response = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          temperature: 0,
+          max_tokens: 500,
+          messages: [
+            {
+              role: 'system',
+              content: 'Проведи самооценку только собственных возможностей модели. Не учитывай инструменты, плагины, API или права приложения. Верни только JSON: {"contextWindowTokens": число или null, "capabilities": {"readFiles": boolean или null, "writeFiles": boolean или null, "deleteFiles": boolean или null, "runCommands": boolean или null, "git": boolean или null, "ssh": boolean или null, "github": boolean или null, "web": boolean или null, "functionCalling": boolean или null, "vision": boolean или null}, "notes": "коротко"}. Если не знаешь точного ответа, используй null. Не выдумывай лимиты.',
+            },
+            { role: 'user', content: `Укажи возможности модели ${model}. Отвечай строго JSON.` },
+          ],
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!response.ok) {
+        const detail = await response.text();
+        res.status(response.status).json({ ok: false, error: detail.slice(0, 300) || `HTTP ${response.status}` });
+        return;
+      }
+      const payload = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      const raw = payload.choices?.[0]?.message?.content ?? '';
+      const candidate = raw.match(/\\{[\\s\\S]*\\}/)?.[0];
+      let parsed: { contextWindowTokens?: number | null; capabilities?: Record<string, unknown>; notes?: string } = {};
+      if (candidate) {
+        try { parsed = JSON.parse(candidate) as typeof parsed; } catch { /* unknown self-report */ }
+      }
+      const keys = ['readFiles', 'writeFiles', 'deleteFiles', 'runCommands', 'git', 'ssh', 'github', 'web', 'functionCalling', 'vision'] as const;
+      const selfReported = Object.fromEntries(keys.map((key) => [
+        key,
+        typeof parsed.capabilities?.[key] === 'boolean' ? parsed.capabilities[key] as boolean : null,
+      ]));
+      res.json({
+        ok: true,
+        report: {
+          providerId: typeof req.body?.providerId === 'string' ? req.body.providerId : '',
+          modelId: model,
+          checkedAt: new Date().toISOString(),
+          contextWindowTokens: Number.isSafeInteger(parsed.contextWindowTokens) && Number(parsed.contextWindowTokens) > 0 ? Number(parsed.contextWindowTokens) : null,
+          selfReported,
+          application,
+          notes: typeof parsed.notes === 'string' ? parsed.notes.slice(0, 500) : 'Модель не вернула пояснение.',
+        },
+      });
+    } catch (err) {
+      res.status(502).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось проверить возможности модели' });
+    }
+  });
+
   app.post('/api/providers/chat', async (req, res) => {
     const rawBaseUrl = typeof req.body?.baseUrl === 'string' ? req.body.baseUrl.trim() : '';
     const apiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
