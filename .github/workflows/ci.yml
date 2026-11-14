@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
+      - name: Check source encoding
+        run: npm run check:encoding
+
       - name: Type-check
         run: npm run lint
 
