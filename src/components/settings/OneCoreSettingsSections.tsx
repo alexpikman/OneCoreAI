@@ -430,7 +430,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                       {sk.title}
                     </div>
                     <div className="text-[11px] font-mono text-zinc-500 mt-0.5 tabular-nums">
-                      {sk.category} В· {sk.usageCount}x В· {sk.source}
+                      {sk.category} · {sk.usageCount}x · {sk.source}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -498,7 +498,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                     : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-600 dark:text-zinc-400',
                 )}
               >
-                {doc.filename} В· {doc.title}
+                {doc.filename} · {doc.title}
               </button>
             ))}
           </div>
