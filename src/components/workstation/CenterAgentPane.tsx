@@ -14,7 +14,6 @@ import {
   Save,
   ShieldCheck,
   Terminal,
-  SlidersHorizontal,
   UserCheck,
 } from 'lucide-react';
 import { ONECORE_SLASH_COMMANDS } from '../../data/oneCoreSeed';
@@ -43,7 +42,6 @@ export const CenterAgentPane: React.FC = () => {
     centerPaneMode,
     setCenterPaneMode,
     agentMode,
-    setAgentMode,
     files,
     selectedFilePath,
     checkpoints,
@@ -56,7 +54,6 @@ export const CenterAgentPane: React.FC = () => {
     rollbackToCheckpoint,
     localModels,
     activeModelId,
-    openSettingsSection,
     serverStatus,
     inferenceSettings,
     includeProjectTree,
@@ -66,12 +63,10 @@ export const CenterAgentPane: React.FC = () => {
     freeProviders,
     activeProviderId,
     learnSkillFromMessage,
-    launchSubagent,
   } = useOneCoreStore();
 
   const tokens = getUiTokens(uiStyle);
   const [input, setInput] = useState('');
-  const [checkpointMenuOpen, setCheckpointMenuOpen] = useState(false);
   const [editingFile, setEditingFile] = useState(false);
   const [fileDraft, setFileDraft] = useState('');
   const [fileSaveMsg, setFileSaveMsg] = useState<string | null>(null);
@@ -79,7 +74,6 @@ export const CenterAgentPane: React.FC = () => {
   const streamEndRef = useRef<HTMLDivElement>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const chatNavigatorRef = useRef<HTMLElement>(null);
-  const cpRef = useRef<HTMLDivElement>(null);
   const [activeChatMessageIndex, setActiveChatMessageIndex] = useState(0);
 
   const activeProject = projects.find((p) => p.id === activeProjectId) ?? null;
@@ -149,16 +143,6 @@ export const CenterAgentPane: React.FC = () => {
       ?.scrollIntoView({ block: 'nearest' });
   }, [activeChatMessageIndex]);
 
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (checkpointMenuOpen && cpRef.current && !cpRef.current.contains(e.target as Node)) {
-        setCheckpointMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [checkpointMenuOpen]);
-
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim()) return;
@@ -183,163 +167,6 @@ export const CenterAgentPane: React.FC = () => {
 
   return (
     <section className="flex-1 min-w-0 flex flex-col overflow-hidden">
-      {/* Sub-toolbar */}
-      {chatVisibility.showToolbar && (
-        <div className={cn('min-h-12 shrink-0 px-4 py-1.5 border-b flex flex-wrap items-center justify-between gap-2.5', tokens.headerBg)}>
-          <div className="flex flex-wrap items-center gap-2.5 min-w-0">
-            <div className={cn('inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
-              {(['act', 'plan'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setAgentMode(mode)}
-                  aria-pressed={agentMode === mode}
-                  className={cn(
-                    'min-w-14 px-3 py-1 text-xs font-semibold tracking-wide transition-colors',
-                    tokens.inputRadius,
-                    agentMode === mode
-                      ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                  )}
-                >
-                  {mode.toUpperCase()}
-                </button>
-              ))}
-            </div>
-            {activeProject && (
-              <div
-                title={activeProject.folderPath}
-                className="min-w-0 max-w-[34vw] truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400"
-              >
-                {activeProject.folderPath}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setInput('/web ')}
-              title="Найти и прочитать публичные веб-страницы"
-              className={cn(
-                'h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                tokens.inputRadius,
-              )}
-            >
-              <Globe className="w-3.5 h-3.5 text-blue-500" />
-              <span className="hidden sm:inline">Браузер</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setInput('/run ')}
-              title="Подготовить команду для терминала проекта"
-              className={cn(
-                'h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                tokens.inputRadius,
-              )}
-            >
-              <Terminal className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="hidden sm:inline">Терминал</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                launchSubagent({
-                  prompt: `Аудит текущего контекста (${activeProject?.name ?? 'ONE CORE AI'})`,
-                })
-              }
-              title="Запустить параллельного субагента"
-              className={cn(
-                'h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                tokens.inputRadius,
-              )}
-            >
-              <Bot className="w-3.5 h-3.5 text-blue-500" />
-              <span className="hidden md:inline">Субагент</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openSettingsSection('ui-chat')}
-              title="Настроить видимые области чата и стиль интерфейса"
-              className={cn(
-                'h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                tokens.inputRadius,
-              )}
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />
-              <span className="hidden sm:inline">Области и стиль</span>
-            </button>
-
-            <div className="relative" ref={cpRef}>
-              <button
-                type="button"
-                onClick={() => setCheckpointMenuOpen((v) => !v)}
-                className={cn(
-                  'h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                  tokens.inputRadius,
-                )}
-              >
-                <History className="w-3.5 h-3.5 text-zinc-500" />
-                <span>Checkpoints</span>
-                <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
-                  ({checkpoints.length})
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-              </button>
-
-              {checkpointMenuOpen && (
-                <div className={cn('absolute right-0 mt-2 w-80 border shadow-xl p-3 z-40', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-200 dark:border-zinc-800">
-                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                      Снапшоты проекта
-                    </span>
-                    <span className="text-[11px] text-zinc-500">Локальный откат</span>
-                  </div>
-                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                    {checkpoints.length === 0 ? (
-                      <div className="text-xs text-zinc-500 py-2">
-                        Снапшоты появятся при записи файлов через диффы. Для файловых действий также работает /undo.
-                      </div>
-                    ) : (
-                      checkpoints.map((cp, idx) => (
-                        <div
-                          key={cp.id}
-                          className={cn('p-2 border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-900/50 flex items-start justify-between gap-2', tokens.cardRadius)}
-                        >
-                          <div className="min-w-0">
-                            <div className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                              {cp.label}
-                            </div>
-                            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-                              <span className="font-mono">{cp.id}</span> ·{' '}
-                              <span className="font-mono tabular-nums">{cp.timestamp}</span>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              void rollbackToCheckpoint(cp.id);
-                              setCheckpointMenuOpen(false);
-                            }}
-                            className="px-2 py-1 rounded text-[11px] font-medium bg-zinc-200/80 dark:bg-zinc-800 hover:bg-blue-600 hover:text-white text-zinc-800 dark:text-zinc-200 inline-flex items-center gap-1 shrink-0 transition-colors"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            <span>{idx === 0 ? 'Откат' : 'Восст.'}</span>
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Task Banner */}
       {chatVisibility.showTaskBanner && centerPaneMode === 'chat' && (
         <div className={cn('px-4 py-2 border-b text-xs flex flex-wrap items-center justify-between gap-2', tokens.taskBannerBg)}>
@@ -797,6 +624,7 @@ export const CenterAgentPane: React.FC = () => {
           )}
 
           <div className={cn('flex items-end gap-2 border border-zinc-300 dark:border-zinc-700/80 bg-white dark:bg-zinc-950 p-2 focus-within:border-blue-500 transition-colors', tokens.cardRadius)}>
+            <div className="flex shrink-0 items-center gap-1 pb-1"><button type="button" onClick={() => setInput((value) => value.startsWith('/web ') ? value : `/web ${value}`)} title="Браузер: поиск и чтение веб-страниц" aria-label="Браузер" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10"><Globe className="h-4 w-4" /></button><button type="button" onClick={() => setInput((value) => value.startsWith('/run ') ? value : `/run ${value}`)} title="Терминал: подготовить команду проекта" aria-label="Терминал" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10"><Terminal className="h-4 w-4" /></button></div>
             <textarea
               rows={2}
               value={input}

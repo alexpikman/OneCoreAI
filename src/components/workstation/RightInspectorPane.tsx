@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, Bot, CheckCircle2, Cpu, Layers, Play, Power, RefreshCw, ShieldCheck, SlidersHorizontal, XCircle } from 'lucide-react';
+import { Activity, Bot, CheckCircle2, Cpu, History, Layers, Play, Power, RefreshCw, RotateCcw, ShieldCheck, SlidersHorizontal, X, XCircle } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -15,6 +15,9 @@ const BACKEND_OPTIONS: { value: GpuBackend; label: string }[] = [
 export const RightInspectorPane: React.FC = () => {
   const {
     files,
+    checkpoints,
+    rollbackToCheckpoint,
+    sshHosts,
     toggleFileContext,
     includeProjectTree,
     setIncludeProjectTree,
@@ -52,6 +55,7 @@ export const RightInspectorPane: React.FC = () => {
   } = useOneCoreStore();
 
   const [quickSubagentPrompt, setQuickSubagentPrompt] = useState('');
+  const [checkpointMenuOpen, setCheckpointMenuOpen] = useState(false);
   const tokens = getUiTokens(uiStyle);
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? null;
@@ -126,6 +130,86 @@ export const RightInspectorPane: React.FC = () => {
 
   return (
     <aside className={cn('w-full lg:w-[288px] xl:w-[312px] shrink-0 border-t lg:border-t-0 lg:border-l flex flex-col overflow-y-auto', tokens.sidebarBg)}>
+      <div className="relative flex items-center justify-between border-b border-zinc-200 px-4 py-2.5 dark:border-zinc-800"><span className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-300">Checkpoints <span className="font-mono text-zinc-400">({checkpoints.length})</span></span><button type="button" onClick={() => setCheckpointMenuOpen((value) => !value)} aria-expanded={checkpointMenuOpen} title="История контрольных точек" className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"><History className="h-4 w-4" /></button>{checkpointMenuOpen && <div className={cn('absolute right-3 top-full z-40 mt-1 w-80 border p-3 shadow-xl', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}><div className="mb-2 flex items-center justify-between border-b border-zinc-200 pb-2 dark:border-zinc-800"><span className="text-xs font-semibold">Контрольные точки</span><button type="button" onClick={() => setCheckpointMenuOpen(false)} aria-label="Закрыть"><X className="h-3.5 w-3.5" /></button></div><div className="max-h-64 space-y-1.5 overflow-y-auto">{checkpoints.length === 0 ? <p className="py-2 text-xs text-zinc-500">Контрольные точки появятся после изменений проекта.</p> : checkpoints.map((checkpoint, index) => <div key={checkpoint.id} className="flex items-center justify-between gap-2 rounded-lg border border-zinc-200 p-2 text-xs dark:border-zinc-800"><div className="min-w-0"><div className="truncate font-medium">{checkpoint.label}</div><div className="font-mono text-[10px] text-zinc-500">{checkpoint.id} · {checkpoint.timestamp}</div></div><button type="button" onClick={() => { void rollbackToCheckpoint(checkpoint.id); setCheckpointMenuOpen(false); }} className="inline-flex shrink-0 items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 text-[10px] hover:bg-blue-600 hover:text-white dark:bg-zinc-800"><RotateCcw className="h-3 w-3" />{index === 0 ? 'Откат' : 'Восст.'}</button></div>)}</div></div>}</div>
+      {/* Section 2.5: OneCore Subagents Parallel Runner */}
+      {chatVisibility.showSubagentsPanel && (
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
+              <Bot className="w-3.5 h-3.5 text-blue-500" />
+              <span>Субагенты</span>
+              <span className="font-mono tabular-nums text-[11px] text-zinc-500">
+                ({subagentRuns.length})
+              </span>
+            </span>
+            {subagentRuns.some((r) => r.status === 'completed') && (
+              <button
+                type="button"
+                onClick={clearCompletedSubagents}
+                className="text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
+              >
+                Очистить
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleLaunchQuickSubagent} className="flex gap-1.5">
+            <input
+              type="text"
+              value={quickSubagentPrompt}
+              onChange={(e) => setQuickSubagentPrompt(e.target.value)}
+              placeholder="Параллельная подзадача..."
+              className={cn(
+                'flex-1 min-w-0 h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-[11.5px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
+                tokens.inputRadius,
+              )}
+            />
+            <button
+              type="submit"
+              disabled={!quickSubagentPrompt.trim()}
+              title="Запустить субагента"
+              className={cn(
+                'h-8 px-2.5 disabled:opacity-45 text-[11px] font-medium inline-flex items-center gap-1 shrink-0',
+                tokens.inputRadius,
+                tokens.accentButton,
+              )}
+            >
+              <Play className="w-3 h-3" />
+            </button>
+          </form>
+
+          {subagentRuns.length > 0 && (
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {subagentRuns.slice(0, 4).map((run) => (
+                <div
+                  key={run.id}
+                  className={cn('p-2 border text-[11px] space-y-1', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                      {run.title}
+                    </span>
+                    <span
+                      className={cn(
+                        'font-mono tabular-nums shrink-0',
+                        run.status === 'completed'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-blue-600 dark:text-blue-400',
+                      )}
+                    >
+                      {run.progressPct}%
+                    </span>
+                  </div>
+                  <div className="text-[10.5px] text-zinc-500 dark:text-zinc-400 truncate">
+                    {run.roleName} · {run.modelName}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Project workspace and effective application permissions */}
       <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -160,7 +244,7 @@ export const RightInspectorPane: React.FC = () => {
                 ['Удаление файлов', false],
                 ['Терминал', modelCapabilityReport?.application.runCommands.available ?? (activeProject.allowedTools?.includes('run_command') ?? true)],
                 ['Git', modelCapabilityReport?.application.git.available ?? (activeProject.allowedTools?.includes('git') ?? true)],
-                ['SSH', false],
+                ['SSH', Boolean(activeProject.sshConfig && sshHosts.some((host) => host.host === activeProject.sshConfig?.host && host.status === 'connected'))],
                 ['GitHub API', false],
               ] as Array<[string, boolean]>).map(([label, enabled]) => (
                 <div key={label} className="flex items-center justify-between gap-2 text-[11px]">
@@ -173,7 +257,7 @@ export const RightInspectorPane: React.FC = () => {
               ))}
             </div>
             <p className="text-[10px] text-zinc-500 leading-relaxed">
-              Запись и команды требуют подтверждения. Удаление, SSH и прямые GitHub-действия пока не подключены к агенту.
+              Запись и команды требуют подтверждения. Серые SVG-индикаторы обозначают настроенные, но не подключённые возможности.
             </p>
           </>
         ) : (
@@ -474,85 +558,6 @@ export const RightInspectorPane: React.FC = () => {
               className="w-full accent-blue-600 disabled:opacity-40"
             />
           </div>
-        </div>
-      )}
-
-      {/* Section 2.5: OneCore Subagents Parallel Runner */}
-      {chatVisibility.showSubagentsPanel && (
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
-              <Bot className="w-3.5 h-3.5 text-blue-500" />
-              <span>Субагенты</span>
-              <span className="font-mono tabular-nums text-[11px] text-zinc-500">
-                ({subagentRuns.length})
-              </span>
-            </span>
-            {subagentRuns.some((r) => r.status === 'completed') && (
-              <button
-                type="button"
-                onClick={clearCompletedSubagents}
-                className="text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
-              >
-                Очистить
-              </button>
-            )}
-          </div>
-
-          <form onSubmit={handleLaunchQuickSubagent} className="flex gap-1.5">
-            <input
-              type="text"
-              value={quickSubagentPrompt}
-              onChange={(e) => setQuickSubagentPrompt(e.target.value)}
-              placeholder="Параллельная подзадача..."
-              className={cn(
-                'flex-1 min-w-0 h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-[11.5px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
-                tokens.inputRadius,
-              )}
-            />
-            <button
-              type="submit"
-              disabled={!quickSubagentPrompt.trim()}
-              title="Запустить субагента"
-              className={cn(
-                'h-8 px-2.5 disabled:opacity-45 text-[11px] font-medium inline-flex items-center gap-1 shrink-0',
-                tokens.inputRadius,
-                tokens.accentButton,
-              )}
-            >
-              <Play className="w-3 h-3" />
-            </button>
-          </form>
-
-          {subagentRuns.length > 0 && (
-            <div className="space-y-1.5 max-h-40 overflow-y-auto">
-              {subagentRuns.slice(0, 4).map((run) => (
-                <div
-                  key={run.id}
-                  className={cn('p-2 border text-[11px] space-y-1', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-zinc-900 dark:text-zinc-100 truncate">
-                      {run.title}
-                    </span>
-                    <span
-                      className={cn(
-                        'font-mono tabular-nums shrink-0',
-                        run.status === 'completed'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-blue-600 dark:text-blue-400',
-                      )}
-                    >
-                      {run.progressPct}%
-                    </span>
-                  </div>
-                  <div className="text-[10.5px] text-zinc-500 dark:text-zinc-400 truncate">
-                    {run.roleName} · {run.modelName}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 
