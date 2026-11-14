@@ -77,7 +77,7 @@ export type ModelFitCategory = 'fits-vram' | 'fits-ram' | 'too-heavy';
 export interface ModelRecommendation {
   id: string;
   category: ModelFitCategory;
-  categoryLabel: 'РџРѕРјРµСЃС‚РёС‚СЃСЏ РІ VRAM' | 'РџРѕРјРµСЃС‚РёС‚СЃСЏ РІ RAM (CPU)' | 'РЎР»РёС€РєРѕРј С‚СЏР¶РµР»Рѕ';
+  categoryLabel: 'Поместится в VRAM' | 'Поместится в RAM (CPU)' | 'Слишком тяжело';
   requiredVramGb: number;
   requiredRamGb: number;
   remainingVramAfterGb: number;
@@ -228,7 +228,7 @@ export interface AgentSkill {
   id: string;
   slug: string;
   title: string;
-  category: 'Р Р°Р·СЂР°Р±РѕС‚РєР°' | 'DevOps' | 'РСЃСЃР»РµРґРѕРІР°РЅРёРµ' | 'РђРІС‚РѕРјР°С‚РёР·Р°С†РёСЏ';
+  category: 'Разработка' | 'DevOps' | 'Исследование' | 'Автоматизация';
   triggerHint: string;
   contentMarkdown: string;
   enabled: boolean;
@@ -371,7 +371,7 @@ export interface ModelRole {
 
 export interface PermissionRule {
   id: string;
-  category: 'Р¤Р°Р№Р»РѕРІР°СЏ СЃРёСЃС‚РµРјР°' | 'РўРµСЂРјРёРЅР°Р»' | 'РЎРµС‚СЊ Рё РјРѕРґРµР»Рё' | 'Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ';
+  category: 'Файловая система' | 'Терминал' | 'Сеть и модели' | 'Безопасность';
   title: string;
   description: string;
   policy: PermissionPolicy;
@@ -379,7 +379,7 @@ export interface PermissionRule {
 
 export interface ModelDirective {
   id: string;
-  category: 'РђСЂС…РёС‚РµРєС‚СѓСЂР°' | 'РљР°С‡РµСЃС‚РІРѕ РєРѕРґР°' | 'Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ' | 'РЎС‚РёР»СЊ РѕС‚РІРµС‚Р°';
+  category: 'Архитектура' | 'Качество кода' | 'Безопасность' | 'Стиль ответа';
   title: string;
   instruction: string;
   enabled: boolean;
