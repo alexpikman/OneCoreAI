@@ -94,6 +94,9 @@ test('agent router distinguishes chat from browser, project, and terminal work',
   assert.deepEqual(routeAgentPrompt('Запусти тесты'), { kind: 'terminal' });
   assert.deepEqual(routeAgentPrompt('Исправь баг в файле src/server.ts'), { kind: 'project' });
   assert.deepEqual(routeAgentPrompt('Прочитай файл src/server.ts'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Добавь задачу проверить сборку'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Выполни задачу task-123'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Какие задачи есть в проекте?'), { kind: 'project' });
   assert.deepEqual(routeAgentPrompt('Открой сайт https://example.com'), {
     kind: 'browser',
     browserAction: 'read',
