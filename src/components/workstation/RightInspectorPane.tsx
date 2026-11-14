@@ -244,7 +244,7 @@ export const RightInspectorPane: React.FC = () => {
                 ['Удаление файлов', false],
                 ['Терминал', modelCapabilityReport?.application.runCommands.available ?? (activeProject.allowedTools?.includes('run_command') ?? true)],
                 ['Git', modelCapabilityReport?.application.git.available ?? (activeProject.allowedTools?.includes('git') ?? true)],
-                ['SSH', Boolean(activeProject.sshConfig && sshHosts.some((host) => host.host === activeProject.sshConfig?.host && host.status === 'connected'))],
+                ['SSH', Boolean(activeProject.sshConfig && sshHosts.some((host) => host.hostName === activeProject.sshConfig?.host && host.status === 'connected'))],
                 ['GitHub API', false],
               ] as Array<[string, boolean]>).map(([label, enabled]) => (
                 <div key={label} className="flex items-center justify-between gap-2 text-[11px]">

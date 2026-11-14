@@ -48,6 +48,7 @@ export const CenterAgentPane: React.FC = () => {
     sendPrompt,
     applyDiff,
     rejectDiff,
+    openSettingsSection,
     runCommand,
     skipCommand,
     diagnoseCommandError,
