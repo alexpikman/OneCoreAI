@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Автоматический установщик ONE CORE AI (Windows 10/11) без локальной сборки MSVC (нет ошибки 8012).
 .DESCRIPTION
