@@ -98,22 +98,50 @@ function estimateParamsBillions(id: string): number {
 export function createApiApp(rootDir: string = process.cwd()): express.Express {
   const app = express();
   const tauriOrigins = new Set(['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost']);
+  const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1']);
+
   app.use((req, res, next) => {
+    const requestHost = req.hostname.toLowerCase();
+    if (!loopbackHosts.has(requestHost)) {
+      res.status(403).json({ ok: false, error: 'The local OneCore API only accepts loopback hosts' });
+      return;
+    }
+
     const origin = req.header('Origin');
-    if (origin) {
-      let isLoopbackOrigin = tauriOrigins.has(origin);
+    const fetchSite = req.header('Sec-Fetch-Site');
+    const isTauriOrigin = origin ? tauriOrigins.has(origin) : false;
+    let isAllowedOrigin = isTauriOrigin;
+
+    if (origin && !isTauriOrigin) {
       try {
         const parsed = new URL(origin);
-        isLoopbackOrigin ||= parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+        const originPort = parsed.port
+          ? Number(parsed.port)
+          : parsed.protocol === 'https:'
+            ? 443
+            : 80;
+        isAllowedOrigin =
+          (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+          parsed.hostname.toLowerCase() === requestHost &&
+          originPort === req.socket.localPort &&
+          !parsed.username &&
+          !parsed.password;
       } catch {
-        isLoopbackOrigin = false;
+        isAllowedOrigin = false;
       }
+    }
 
-      if (!isLoopbackOrigin) {
-        res.status(403).json({ ok: false, error: 'Origin is not allowed to access the local OneCore API' });
-        return;
-      }
+    if (origin && !isAllowedOrigin) {
+      res.status(403).json({ ok: false, error: 'Origin is not allowed to access the local OneCore API' });
+      return;
+    }
 
+    if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none' && !isTauriOrigin) {
+      res.status(403).json({ ok: false, error: 'Cross-site requests are not allowed' });
+      return;
+    }
+
+    if (origin) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
@@ -640,6 +668,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/projects/:id/exec', async (req, res) => {
+    if (req.body?.approved !== true) {
+      res.status(403).json({ ok: false, error: 'Выполнение команды требует явного подтверждения пользователя' });
+      return;
+    }
     try {
       const command = typeof req.body?.command === 'string' ? req.body.command : '';
       const timeoutMs = typeof req.body?.timeoutMs === 'number' ? req.body.timeoutMs : 30000;
@@ -653,8 +685,17 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.post('/api/projects/:id/git', async (req, res) => {
     try {
       const action = req.body?.action;
+      const allowedActions = ['status', 'diff', 'log', 'commit', 'fetch', 'push', 'init'];
+      if (typeof action !== 'string' || !allowedActions.includes(action)) {
+        res.status(400).json({ ok: false, error: 'Неизвестная операция Git' });
+        return;
+      }
+      if (['commit', 'fetch', 'push', 'init'].includes(action) && req.body?.approved !== true) {
+        res.status(403).json({ ok: false, error: 'Операция Git требует явного подтверждения пользователя' });
+        return;
+      }
       const commitMessage = typeof req.body?.message === 'string' ? req.body.message : undefined;
-      const result = await runProjectGit(req.params.id, action, commitMessage);
+      const result = await runProjectGit(req.params.id, action as 'status' | 'diff' | 'log' | 'commit' | 'fetch' | 'push' | 'init', commitMessage);
       res.json({ ok: result.exitCode === 0, ...result });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка git' });
