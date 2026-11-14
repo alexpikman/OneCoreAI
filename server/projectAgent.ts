@@ -598,6 +598,7 @@ export async function executeProjectTask(input: {
 
   // Handle explicit terminal execution prefix: /run <cmd>
   if (prompt.startsWith('/run ')) {
+    assertProjectToolAllowed(project.id, 'run_command');
     const cmd = prompt.slice(5).trim();
     return {
       replyText: `Команда ${cmd} подготовлена, но не запускалась. Нажмите «Выполнить» для явного подтверждения.`,
