@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
@@ -6,6 +6,35 @@ import { promisify } from 'util';
 import { getVaultPath } from './paths';
 
 const execFileAsync = promisify(execFile);
+
+async function runSecretTool(args: string[], input?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('secret-tool', args, {
+      env: process.env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.setEncoding('utf-8');
+    child.stderr.setEncoding('utf-8');
+    child.stdout.on('data', (chunk: string) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk: string) => {
+      stderr += chunk;
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(stdout.replace(/\\r?\\n$/, ''));
+      } else {
+        reject(new Error(stderr.trim() || `secret-tool exited with code ${code}`));
+      }
+    });
+    child.stdin.end(input ?? '');
+  });
+}
 // Keep these identifiers stable so existing encrypted vaults and keychain entries remain usable.
 const SERVICE_NAME = 'kova-studio';
 
@@ -185,7 +214,11 @@ async function tryOsKeychainSet(account: string, secret: string): Promise<boolea
     }
     if (platform === 'linux' && process.env.DBUS_SESSION_BUS_ADDRESS) {
       await execFileAsync('which', ['secret-tool']);
-      return false; // secret-tool expects stdin piping; fallback to AES-256-GCM vault unless interactive
+      await runSecretTool(
+        ['store', '--label=ONE CORE AI', 'service', SERVICE_NAME, 'account', account],
+        secret,
+      );
+      return true;
     }
   } catch {
     return false;
@@ -205,7 +238,11 @@ async function tryOsKeychainGet(account: string): Promise<string | null> {
         SERVICE_NAME,
         '-w',
       ]);
-      return stdout.trimEnd();
+      return stdout.replace(/\\r?\\n$/, '');
+    }
+    if (platform === 'linux' && process.env.DBUS_SESSION_BUS_ADDRESS) {
+      await execFileAsync('which', ['secret-tool']);
+      return await runSecretTool(['lookup', 'service', SERVICE_NAME, 'account', account]);
     }
     if (platform === 'win32') {
       return await runWindowsCredentialBridge('read', account);
@@ -229,6 +266,8 @@ async function tryOsKeychainDelete(account: string): Promise<void> {
       ]);
     } else if (platform === 'win32') {
       await runWindowsCredentialBridge('delete', account);
+    } else if (platform === 'linux' && process.env.DBUS_SESSION_BUS_ADDRESS) {
+      await runSecretTool(['clear', 'service', SERVICE_NAME, 'account', account]);
     }
   } catch {
     // ignore missing keychain entries
