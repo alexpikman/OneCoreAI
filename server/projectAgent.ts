@@ -5,6 +5,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { ensureOneCoreDirs } from './paths';
 import { getProjectById, type ProjectRecord } from './projectsManager';
+import { assertProjectToolAllowed, isProjectToolAllowed } from './permissionManager';
 
 const execFileAsync = promisify(execFile);
 
@@ -259,6 +260,7 @@ export function writeProjectFile(
   summary = 'Обновление файла',
 ): { path: string; existedBefore: boolean; logEntry: ProjectActionLogEntry } {
   const project = requireLocalProject(projectId);
+  assertProjectToolAllowed(projectId, 'write_file');
   const full = safeResolveInside(project.folderPath, relPath);
   const normalizedRel = path.relative(path.resolve(project.folderPath), full).split(path.sep).join('/');
 
@@ -293,6 +295,7 @@ export function undoLastProjectAction(projectId: string): {
   action?: 'restored' | 'deleted';
 } {
   const project = requireLocalProject(projectId);
+  assertProjectToolAllowed(projectId, 'write_file');
   const log = readProjectActionLog(projectId);
   const target = log.find((entry) => entry.kind === 'file_write' && !entry.undone && entry.filePath);
 
@@ -348,6 +351,7 @@ export function searchProjectCode(
 ): Array<{ path: string; line: number; text: string }> {
   const q = query.trim();
   if (!q) return [];
+  assertProjectToolAllowed(projectId, 'search_code');
   const files = listProjectFiles(projectId, 250);
   const matches: Array<{ path: string; line: number; text: string }> = [];
   const qLower = q.toLowerCase();
@@ -400,6 +404,7 @@ export async function execProjectCommand(
   timeoutMs = 30000,
 ): Promise<ExecCommandResult> {
   const project = requireLocalProject(projectId);
+  assertProjectToolAllowed(projectId, 'run_command');
   const raw = commandInput.trim();
   if (!raw) {
     throw new Error('Пустая команда для выполнения');
@@ -495,6 +500,7 @@ export async function runProjectGit(
   commitMessage?: string,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const project = requireLocalProject(projectId);
+  assertProjectToolAllowed(projectId, 'git');
   const cwd = path.resolve(project.folderPath);
 
   let args: string[] = [];
@@ -577,7 +583,8 @@ export async function executeProjectTask(input: {
     };
   }
 
-  const projectFiles = listProjectFiles(project.id, 60);
+  const canReadProjectFiles = isProjectToolAllowed(project.id, 'read_file');
+  const projectFiles = canReadProjectFiles ? listProjectFiles(project.id, 60) : [];
   const readFilesList = projectFiles.slice(0, 5).map((f) => f.path);
   const snippets: string[] = [];
   for (const rel of readFilesList) {
@@ -704,6 +711,7 @@ export async function executeProjectTask(input: {
               };
               if (parsed.reply) replyText = parsed.reply;
               if (parsed.writeFile?.path && typeof parsed.writeFile.content === 'string') {
+                assertProjectToolAllowed(project.id, 'write_file');
                 const full = safeResolveInside(project.folderPath, parsed.writeFile.path);
                 const oldContent = fs.existsSync(full) ? fs.readFileSync(full, 'utf-8') : '';
                 diff = {
