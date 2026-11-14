@@ -325,7 +325,7 @@ interface OneCoreStore {
   setActiveProvider: (providerId: string) => void;
   checkModelCapabilities: () => Promise<void>;
   updateFreeProvider: (providerId: string, patch: Partial<FreeProviderProfile>) => void;
-  fetchProviderModels: (providerId: string) => Promise<void>;
+  fetchProviderModels: (providerId: string) => Promise<boolean>;
 
   toggleSkill: (skillId: string) => void;
   addSkill: (payload: {
@@ -1123,10 +1123,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         sshSettings: saved.sshSettings,
         githubAccess: saved.githubAccess,
         freeProviders: saved.freeProviders,
-        activeProviderId:
-          saved.providerSelectionByCategory?.[saved.modelCategory ?? saved.modelSource ?? 'cloud'] ??
-          saved.activeProviderId ??
-          'prov-deepseek-api',
+        activeProviderId: saved.activeProviderId ?? 'prov-deepseek-api',
         modelCategory: saved.modelCategory ?? saved.modelSource ?? 'cloud',
         modelSource: saved.modelSource ?? saved.modelCategory ?? 'cloud',
         providerSelectionByCategory: saved.providerSelectionByCategory ?? {
@@ -1314,7 +1311,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     })),
 
   toggleAgentRole: (roleId) => {
-    set((state) => ({ enabledRoleIds: state.enabledRoleIds.includes(roleId) ? state.enabledRoleIds.filter((id) => id !== roleId) : [...state.enabledRoleIds, roleId] }));
+    set((state) => ({
+      enabledRoleIds: state.enabledRoleIds.includes(roleId) ? [] : [roleId],
+    }));
     void get().saveSettings();
   },
 
@@ -2712,7 +2711,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   fetchProviderModels: async (providerId) => {
     const provider = get().freeProviders.find((p) => p.id === providerId);
-    if (!provider) return;
+    if (!provider) return false;
 
     set((s) => ({
       freeProviders: s.freeProviders.map((p) =>
@@ -2747,7 +2746,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
               : p,
           ),
         }));
-        return;
+        return false;
       }
 
       const models = data.models && data.models.length > 0 ? data.models : provider.availableModels;
@@ -2764,6 +2763,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             : p,
         ),
       }));
+      return true;
     } catch (err) {
       set((s) => ({
         freeProviders: s.freeProviders.map((p) =>
@@ -2776,6 +2776,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             : p,
         ),
       }));
+      return false;
     }
   },
 
