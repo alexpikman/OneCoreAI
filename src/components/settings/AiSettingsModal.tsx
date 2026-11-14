@@ -98,6 +98,9 @@ export const AiSettingsModal: React.FC = () => {
     setAiSettingsCategory,
     closeAiSettingsModal,
     freeProviders,
+    roles,
+    enabledRoleIds,
+    toggleAgentRole,
     activeProviderId,
     providerSelectionByCategory,
     setProviderSelectionForCategory,
@@ -235,6 +238,7 @@ export const AiSettingsModal: React.FC = () => {
                   </button>
                 ))}
               </div>
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-zinc-200/70 pt-3 pb-2 dark:border-zinc-800/80"><span className="mr-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Инженерные роли</span>{roles.filter((role) => ['developer', 'architect', 'reviewer', 'qa'].includes(role.persona)).map((role) => { const enabled = enabledRoleIds.includes(role.id); return <button key={role.id} type="button" aria-pressed={enabled} onClick={() => toggleAgentRole(role.id)} className={cn('rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-colors', enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300' : 'border-zinc-200 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800')}>{role.name}</button>; })}<span className="ml-auto text-[10px] text-zinc-500">{enabledRoleIds.length === 0 ? 'Общий агент' : `${enabledRoleIds.length} активно`}</span></div>
             </header>
 
             <main className="grid min-h-0 flex-1 grid-cols-12 gap-4 p-4">

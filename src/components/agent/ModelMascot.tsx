@@ -73,7 +73,7 @@ export const ModelMascot: React.FC<ModelMascotProps> = ({
       type="button"
       onClick={onClick}
       className={cn(
-        'group text-left rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#141418] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors w-full',
+        'group text-left rounded-xl bg-transparent hover:bg-zinc-100/70 dark:hover:bg-zinc-900/60 transition-colors w-full',
         compact ? 'p-1.5 flex items-center gap-2' : 'p-3.5 flex items-center gap-3.5',
       )}
     >

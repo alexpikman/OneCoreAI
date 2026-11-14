@@ -23,6 +23,7 @@ export const TopHeader: React.FC = () => {
     activeTab,
     setActiveTab,
     agentMode,
+    setAgentMode,
     centerPaneMode,
     appNavigationWidth,
     openSettingsSection,
@@ -37,7 +38,7 @@ export const TopHeader: React.FC = () => {
     activeModelId,
     roles,
     activeRoleId,
-    setActiveRole,
+    enabledRoleIds,
     agentActivity,
     tokensPerSec,
     chatVisibility,
@@ -57,6 +58,7 @@ export const TopHeader: React.FC = () => {
   const trayRef = useRef<HTMLDivElement>(null);
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeRole = roles.find((role) => role.id === activeRoleId) ?? roles[0];
+  const activeRoleLabel = enabledRoleIds.length === 0 ? 'Общий агент' : enabledRoleIds.length === 1 ? roles.find((role) => role.id === enabledRoleIds[0])?.name ?? 'Общий агент' : `Ролей: ${enabledRoleIds.length}`;
   const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId) ?? freeProviders[0];
   const activeProviderModel =
     modelCategory === 'runtime' && activeModel ? activeModel.name : activeProvider?.selectedModel ?? '';
@@ -97,7 +99,7 @@ export const TopHeader: React.FC = () => {
                 status={serverStatus}
                 activity={agentActivity}
                 persona={activeRole.persona}
-                roleName={activeRole.name}
+                roleName={activeRoleLabel}
                 modelName={activeModel?.name || activeProviderModel}
                 tokensPerSec={tokensPerSec}
                 onClick={() => openAiSettingsModal(modelCategory)}
@@ -106,35 +108,15 @@ export const TopHeader: React.FC = () => {
             <button
               type="button"
               onClick={() => openAiSettingsModal(modelCategory)}
-              aria-label={`Аватар агента, роль ${activeRole.name}`}
-              title={`ONE CORE AI · ${activeRole.name}`}
-              className="md:hidden w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200"
+              aria-label={`Глобальные настройки ИИ · ${activeRoleLabel}`}
+              title={`ONE CORE AI · ${activeRoleLabel}`}
+              className="md:hidden w-9 h-9 shrink-0 inline-flex items-center justify-center text-zinc-700 dark:text-zinc-200"
             >
               <Bot className="w-5 h-5" />
             </button>
           </>
         )}
-        {activeTab === 'workstation' && centerPaneMode === 'chat' && chatVisibility.showRoleSwitcher && (
-          <div className="flex items-center gap-1 overflow-x-auto min-w-0">
-            {roles.map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                onClick={() => setActiveRole(role.id)}
-                aria-pressed={role.id === activeRoleId}
-                title={role.name}
-                className={cn(
-                  'h-7 px-2.5 shrink-0 border text-[10px] font-medium rounded-md transition-colors',
-                  role.id === activeRoleId
-                    ? 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300'
-                    : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
-                )}
-              >
-                {role.name}
-              </button>
-            ))}
-          </div>
-        )}
+
       </div>
 
       <div className="hidden sm:flex items-center gap-2 shrink-0 pr-2 text-[10px] min-w-0 max-w-[32vw]">
@@ -146,9 +128,9 @@ export const TopHeader: React.FC = () => {
             {activeProviderModel || 'Модель не выбрана'}
           </div>
         </div>
-        <span className="px-2 py-1 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 font-mono font-semibold">
-          {agentMode.toUpperCase()}
-        </span>
+        <span className="inline-flex items-center gap-1.5 text-[10px] text-zinc-500" title={serverStatus === 'error' ? 'Ошибка модели' : serverStatus === 'generating' ? 'Модель выполняет запрос' : serverStatus === 'ready' ? 'Модель готова' : serverStatus === 'loading' ? 'Загрузка модели' : 'Модель остановлена'}><span className={cn('h-2 w-2 rounded-full', serverStatus === 'error' ? 'bg-rose-500' : serverStatus === 'generating' ? 'bg-blue-500 animate-pulse' : serverStatus === 'ready' ? 'bg-emerald-500' : serverStatus === 'loading' ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400')} /><span className="hidden lg:inline">{serverStatus === 'error' ? 'Ошибка' : serverStatus === 'generating' ? 'Работает' : serverStatus === 'ready' ? 'Готов' : serverStatus === 'loading' ? 'Загрузка' : 'Остановлен'}</span></span>
+        <span className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden="true" />
+        <button type="button" onClick={() => setAgentMode(agentMode === 'act' ? 'plan' : 'act')} aria-label={`Режим ${agentMode.toUpperCase()}. Переключить ACT / PLAN`} aria-pressed={agentMode === 'act'} title="Переключить режим ACT / PLAN" className={cn('relative inline-flex h-7 w-[76px] shrink-0 items-center rounded-full border transition-colors', agentMode === 'act' ? 'border-blue-500/40 bg-blue-500/10' : 'border-amber-500/40 bg-amber-500/10')}><span className={cn('absolute h-5 w-8 rounded-full shadow-sm transition-transform', agentMode === 'act' ? 'translate-x-[39px] bg-blue-600' : 'translate-x-1 bg-amber-500')} /><span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'plan' ? 'text-white' : 'text-zinc-500')}>PLAN</span><span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'act' ? 'text-white' : 'text-zinc-500')}>ACT</span></button>
       </div>
 
       {/* Install, Theme, Windows Tray & Primary Action */}
