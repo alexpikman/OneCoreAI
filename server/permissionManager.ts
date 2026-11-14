@@ -12,9 +12,7 @@ const LEGACY_DEFAULT_TOOLS: ProjectTool[] = [
 
 export function isProjectToolAllowed(projectId: string, tool: ProjectTool): boolean {
   const project = getProjectById(projectId);
-  if (!project) {
-    throw new Error(`Проект ${projectId} не найден`);
-  }
+  if (!project) return false;
 
   const allowedTools = Array.isArray(project.allowedTools)
     ? project.allowedTools
