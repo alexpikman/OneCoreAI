@@ -49,7 +49,7 @@ const MODEL_SETTINGS_ITEMS: {
   group: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: 'providers', label: 'Провайдеры и API-модели', group: 'НАСТРОЙКИ', icon: Sparkles },
+  { id: 'providers', label: 'ПРОВАЙДЕРЫ', group: 'НАСТРОЙКИ', icon: Sparkles },
   { id: 'model-manager', label: 'Менеджер моделей', group: 'НАСТРОЙКИ', icon: Cpu },
   { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'НАСТРОЙКИ', icon: Cpu },
   { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'НАСТРОЙКИ', icon: UserCheck },
