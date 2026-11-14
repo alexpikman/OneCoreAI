@@ -84,7 +84,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   },
 ];
 
-export const SettingsView: React.FC = () => {
+export const SettingsView: React.FC<{ modelOnly?: boolean }> = ({ modelOnly = false }) => {
   const {
     settingsSection,
     appNavigationWidth,
@@ -157,8 +157,8 @@ export const SettingsView: React.FC = () => {
             {settingsSaveStatus === 'saving' ? 'Сохранение…' : 'Сохранить настройки'}
           </button>
         </div>
-        {settingsSection === 'roles-pipeline' && <RolesAndPipelineView />}
-        {settingsSection === 'ui-chat' && (
+        {modelOnly && settingsSection === 'roles-pipeline' && <RolesAndPipelineView />}
+        {!modelOnly && settingsSection === 'ui-chat' && (
           <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
             {/* Section 1: 3 Interface Styles */}
             <div className={cn('p-5 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
@@ -331,7 +331,7 @@ export const SettingsView: React.FC = () => {
           </div>
         )}
 
-        {settingsSection === 'updates' && (
+        {!modelOnly && settingsSection === 'updates' && (
           <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
             <div className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -423,7 +423,7 @@ export const SettingsView: React.FC = () => {
           </div>
         )}
 
-        {settingsSection === 'engine-paths' && (
+        {modelOnly && settingsSection === 'engine-paths' && (
           <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
             <div className={cn('p-6 border space-y-6', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
               <div>
@@ -599,16 +599,14 @@ export const SettingsView: React.FC = () => {
           </div>
         )}
 
-        {(settingsSection === 'providers' ||
-          settingsSection === 'skills-memory' ||
-          settingsSection === 'execution-env' ||
-          settingsSection === 'gateway') && (
+        {((modelOnly && (settingsSection === 'providers' || settingsSection === 'skills-memory')) ||
+          (!modelOnly && (settingsSection === 'execution-env' || settingsSection === 'gateway'))) && (
           <OneCoreSettingsSections section={settingsSection} />
         )}
 
-        {settingsSection === 'ssh-github' && <SshGithubView />}
+        {!modelOnly && settingsSection === 'ssh-github' && <SshGithubView />}
 
-        {settingsSection === 'github-download' && (
+        {!modelOnly && settingsSection === 'github-download' && (
           <div className="max-w-4xl mx-auto px-6 py-6 space-y-5">
             <div className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
               <div className="flex items-center justify-between gap-2">
