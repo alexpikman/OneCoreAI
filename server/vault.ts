@@ -77,7 +77,7 @@ public static class OneCoreCredentialBridge
         try
         {
             Credential credential = Marshal.PtrToStructure<Credential>(buffer);
-            byte[] blob = new byte[credential.CredentialBlobSize];
+            byte[] blob = new byte[checked((int)credential.CredentialBlobSize)];
             Marshal.Copy(credential.CredentialBlob, blob, 0, blob.Length);
             return Encoding.UTF8.GetString(blob);
         }
@@ -106,9 +106,9 @@ async function runWindowsCredentialBridge(
     WINDOWS_CREDENTIAL_BRIDGE,
     "'@",
     operation === 'write'
-      ? "[OneCoreCredentialBridge]::Write($env:ONECORE_CREDENTIAL_TARGET, $env:USERNAME, $env:ONECORE_CREDENTIAL_SECRET) | Out-Null"
+      ? "if (-not [OneCoreCredentialBridge]::Write($env:ONECORE_CREDENTIAL_TARGET, $env:USERNAME, $env:ONECORE_CREDENTIAL_SECRET)) { exit 1 }"
       : operation === 'read'
-        ? "$value = [OneCoreCredentialBridge]::Read($env:ONECORE_CREDENTIAL_TARGET); if ($null -eq $value) { exit 1 }; [Console]::Out.Write($value)"
+        ? "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $value = [OneCoreCredentialBridge]::Read($env:ONECORE_CREDENTIAL_TARGET); if ($null -eq $value) { exit 1 }; [Console]::Out.Write($value)"
         : "[OneCoreCredentialBridge]::Delete($env:ONECORE_CREDENTIAL_TARGET) | Out-Null",
    ].join("\r\n");
 
