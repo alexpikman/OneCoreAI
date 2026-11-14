@@ -278,13 +278,14 @@ export const RightInspectorPane: React.FC = () => {
         {runtimeConnected ? (
           <div className="space-y-1">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-zinc-500">VRAM рантайма</span>
-              <span className="font-mono tabular-nums">{serverStatus === 'stopped' ? '0.0' : vramUsedGb} GB</span>
+              <span className="text-zinc-500">Оценка VRAM модели</span>
+              <span className="font-mono tabular-nums">~{serverStatus === 'stopped' ? '0.0' : vramUsedGb} GB</span>
             </div>
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-zinc-500">Системная RAM</span>
+              <span className="text-zinc-500">Занято RAM системы (ОС)</span>
               <span className="font-mono tabular-nums">{ramUsedGb} GB</span>
             </div>
+            <div className="text-[10px] text-zinc-500">Фактическая память процесса модели пока не измеряется: VRAM — оценка по профилю модели, RAM — общий расход ОС.</div>
           </div>
         ) : (
           <div className="text-[10px] text-zinc-500">Память облачной модели приложению не видна.</div>
@@ -344,10 +345,10 @@ export const RightInspectorPane: React.FC = () => {
 
                 <div>
                   <div className="flex items-center justify-between text-[11px] mb-1">
-                    <span className="text-zinc-500 dark:text-zinc-400">VRAM GPU</span>
+                    <span className="text-zinc-500 dark:text-zinc-400">Оценка VRAM модели</span>
                     <span className="font-mono tabular-nums text-zinc-800 dark:text-zinc-200">
                       {inferenceSettings.maxVramGb > 0
-                        ? `${serverStatus === 'stopped' ? '0.0' : vramUsedGb} / ${inferenceSettings.maxVramGb} GB`
+                        ? `~${serverStatus === 'stopped' ? '0.0' : vramUsedGb} / ${inferenceSettings.maxVramGb} GB`
                         : 'GPU не обнаружен'}
                     </span>
                   </div>
