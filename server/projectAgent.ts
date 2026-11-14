@@ -98,12 +98,51 @@ export function recordProjectMemory(projectId: string, summary: string): void {
 }
 
 export function safeResolveInside(projectRoot: string, relPath: string): string {
-  const cleanRel = relPath.trim().replace(/^[/\\]+/, '');
+  const cleanRel = relPath.trim();
+  if (
+    !cleanRel ||
+    cleanRel.includes('\0') ||
+    path.isAbsolute(cleanRel) ||
+    path.posix.isAbsolute(cleanRel) ||
+    path.win32.isAbsolute(cleanRel) ||
+    /^[a-zA-Z]:/.test(cleanRel)
+  ) {
+    throw new Error(`Путь должен быть относительным и находиться внутри проекта: ${relPath}`);
+  }
+
   const rootResolved = fs.realpathSync(path.resolve(projectRoot));
-  const target = path.resolve(rootResolved, cleanRel);
-  if (target !== rootResolved && !target.startsWith(`${rootResolved}${path.sep}`)) {
+  const portableRel = cleanRel.replace(/[\\/]+/g, path.sep);
+  const target = path.resolve(rootResolved, portableRel);
+  const relative = path.relative(rootResolved, target);
+
+  if (
+    relative === '..' ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  ) {
     throw new Error(`Доступ за пределы папки проекта запрещён: ${relPath}`);
   }
+
+  let current = rootResolved;
+  const segments = relative.split(path.sep).filter(Boolean);
+  for (let index = 0; index < segments.length; index += 1) {
+    current = path.join(current, segments[index]);
+    let stat: fs.Stats;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') break;
+      throw error;
+    }
+
+    if (stat.isSymbolicLink()) {
+      throw new Error(`Символические ссылки внутри проекта запрещены: ${relPath}`);
+    }
+    if (index < segments.length - 1 && !stat.isDirectory()) {
+      throw new Error(`Промежуточный компонент пути не является каталогом: ${relPath}`);
+    }
+  }
+
   return target;
 }
 
@@ -227,7 +266,8 @@ export function writeProjectFile(
   const previousContent = existedBefore ? fs.readFileSync(full, 'utf-8') : null;
 
   fs.mkdirSync(path.dirname(full), { recursive: true });
-  fs.writeFileSync(full, newContent, 'utf-8');
+  const verifiedFull = safeResolveInside(project.folderPath, relPath);
+  fs.writeFileSync(verifiedFull, newContent, 'utf-8');
 
   const logEntry = appendActionLog({
     projectId,
@@ -268,7 +308,8 @@ export function undoLastProjectAction(projectId: string): {
 
   if (target.existedBefore && target.previousContent !== null && target.previousContent !== undefined) {
     fs.mkdirSync(path.dirname(full), { recursive: true });
-    fs.writeFileSync(full, target.previousContent, 'utf-8');
+    const verifiedFull = safeResolveInside(project.folderPath, target.filePath);
+    fs.writeFileSync(verifiedFull, target.previousContent, 'utf-8');
     action = 'restored';
   } else {
     if (fs.existsSync(full)) {
