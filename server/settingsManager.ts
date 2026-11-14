@@ -1,6 +1,6 @@
 import fs from 'fs';
 import { getSettingsManifestPath } from './paths';
-import { deleteSecret, getSecret, setEncryptedVaultSecret } from './vault';
+import { deleteSecret, getSecret, setSecret } from './vault';
 import type { PersistedAppSettings } from '../src/types/onecore';
 
 interface SettingsManifest {
@@ -43,7 +43,7 @@ function writeSettingsManifest(manifest: SettingsManifest): void {
 
 async function saveSecret(reference: string, value: string): Promise<void> {
   if (value) {
-    setEncryptedVaultSecret(reference, value);
+    await setSecret(reference, value);
   } else {
     await deleteSecret(reference);
   }
