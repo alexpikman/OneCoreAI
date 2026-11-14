@@ -29,16 +29,24 @@
 - [x] Use Windows Credential Manager through the native Windows Credential API.
 - [x] Use macOS Keychain where supported.
 - [x] Implement Linux Secret Service storage.
+- [x] Store subagent provider API keys under separate OS-vault references; do not persist them in the JSON settings manifest.
 - [ ] Strengthen fallback vault key derivation and define recovery/migration behavior without losing existing credentials.
 
 ## Phase 6 — Quality gates and documentation
 - [x] Add CI for encoding checks, type-check, integration tests, and production build on Linux and Windows.
 - [x] Restrict Windows installer publishing to version tags or manual dispatch.
 - [x] Add working rules, development plan, current state, and continuation prompt.
-- [ ] Confirm the first CI run and fix all failures.
+- [x] Confirm Linux and Windows CI; encoding, type-check, integration tests, and production build pass on both runners.
 
 ## Phase 7 — UI consistency
 - [x] Set the first-run theme to light Mica and align browser/PWA startup colors without overriding saved preferences.
+- [x] Keep the agent header visible across all application routes and show provider, model, and active mode.
+- [x] Restrict role-switcher buttons to chat and replace the old chat/code toolbar selector with ACT/PLAN.
+- [x] Reorder chat tools and display the active project path.
+- [x] Group provider, local model/runtime, roles/pipeline, and skills/subagents settings under MODELS.
+- [x] Enforce one active LOCAL, CLOUD, or RUNTIME source for the primary agent.
+- [x] Gate right-side local runtime controls on a connected selected RUNTIME provider.
+- [x] Add separate LOCAL/CLOUD/RUNTIME provider and model settings for the subagent subsystem.
 - [ ] Audit all routes, navigation actions, modal flows, and responsive layouts.
 - [ ] Preserve the light-first One Core visual direction.
 - [x] Replace remote Google Fonts loading with bundled local Manrope / DM Mono assets.

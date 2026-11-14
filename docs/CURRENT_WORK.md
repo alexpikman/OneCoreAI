@@ -21,11 +21,20 @@
 - Changed the first-run UI default to the light Mica preset and aligned the browser/PWA startup colors; existing saved theme preferences remain intact.
 - Bundled Manrope and DM Mono locally and removed remote Google Fonts requests.
 - Added project governance and continuation documents.
+- Reworked the global header: the agent avatar/name remains visible across routes, active provider/model and ACT/PLAN are shown, and role switching is limited to chat.
+- Replaced the old chat/code toolbar selector with ACT/PLAN; moved the project path and Browser, Terminal, Subagent, Areas & Style, and Checkpoints actions into the requested order.
+- Grouped provider/API model settings, local model/runtime settings, roles/pipeline, and skills/memory/subagents under one MODELS section.
+- Made LOCAL, CLOUD, and RUNTIME mutually exclusive for the primary agent and synchronized the active provider/model with the selected category.
+- Removed the duplicate provider selector from the right inspector; local runtime telemetry and inference controls now appear only for a connected selected RUNTIME provider.
+- Added a separate LOCAL/CLOUD/RUNTIME provider/model configuration for the subagent subsystem; subagent API keys are stored under separate OS-vault references and blanked in the JSON settings manifest.
+- Removed obsolete mascot/provider-card visibility toggles after consolidating the header and provider controls.
 
 ## Verification status
-- Changes are committed directly to `main`.
-- CI has not yet been confirmed as green from this audit session.
-- Local `npm run check:encoding`, `npm run lint`, `npm test`, and `npm run build` have not been executed in this environment.
+- Changes are committed directly to `main`; no feature branch or pull request was created.
+- GitHub Actions run `43573269150` completed successfully on both `ubuntu-latest` and `windows-latest`.
+- Both CI jobs passed encoding checks, TypeScript type-checking, integration tests, and production builds.
+- The malformed command string in an existing integration test was corrected so the CI type-check could run.
+- Local npm commands were not run in this environment; verification was performed by the Linux and Windows CI runners.
 
 ## Remaining work
 - Confirm the first Linux and Windows CI runs and resolve any failures.
