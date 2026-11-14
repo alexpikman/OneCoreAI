@@ -80,7 +80,7 @@ export default function App() {
         <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
           {activeTab === 'workstation' && <WorkstationView />}
           {activeTab === 'models' && (
-            ['providers', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)
+            ['providers', 'model-manager', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)
               ? <SettingsView modelOnly />
               : <ModelHubView />
           )}
