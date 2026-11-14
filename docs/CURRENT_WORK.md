@@ -29,6 +29,7 @@
 ## Remaining work
 - Confirm the first Linux and Windows CI runs and resolve any failures.
 - Implement a session/token authentication layer for local API requests. Origin validation protects browser boundaries but is not authentication against other local processes.
+- Stop returning secret values in `/api/settings`; route provider requests through server-side secret references instead.
 - Extend centralized permission enforcement to model management, SSH, browser/network actions, project deletion, and all other side-effect endpoints.
 - Strengthen fallback vault key derivation for environments without an available OS credential service; preserve existing encrypted-vault migration compatibility.
 - Verify Windows Tauri startup, sidecar bundling, installer generation, Credential Manager persistence, and runtime behavior.
