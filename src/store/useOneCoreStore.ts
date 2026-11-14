@@ -1920,6 +1920,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         await Promise.all([
           get().refreshProjectFiles(activeProj.id),
           get().refreshProjectLogs(activeProj.id),
+          get().refreshProjectWorkspace(activeProj.id),
         ]);
       } else {
         const history = (state.sessions.find((session) => session.id === sessionId)?.messages ?? [])
