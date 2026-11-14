@@ -33,6 +33,7 @@ import { cn } from '../../utils/cn';
 import { UI_STYLE_META, getUiTokens } from '../../utils/uiStyle';
 import { APP_VERSION } from '../../utils/appUpdates';
 import { OneCoreSettingsSections } from './OneCoreSettingsSections';
+import { ModelHubView } from '../models/ModelHubView';
 import { SshGithubView } from './SshGithubView';
 import { RolesAndPipelineView } from '../roles/RolesAndPipelineView';
 
@@ -157,6 +158,7 @@ export const SettingsView: React.FC<{ modelOnly?: boolean }> = ({ modelOnly = fa
             {settingsSaveStatus === 'saving' ? 'Сохранение…' : 'Сохранить настройки'}
           </button>
         </div>
+        {modelOnly && settingsSection === 'model-manager' && <ModelHubView />}
         {modelOnly && settingsSection === 'roles-pipeline' && <RolesAndPipelineView />}
         {!modelOnly && settingsSection === 'ui-chat' && (
           <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
