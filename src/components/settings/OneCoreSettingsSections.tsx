@@ -559,7 +559,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                 <span>Субагенты и параллельное делегирование</span>
               </h2>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Изолированные воркеры без лимитов: выберите роль и бесплатного провайдера по умолчанию.
+                Изолированные воркеры с отдельными профилями, настраиваемыми правилами делегирования и привязкой к плану проекта.
               </p>
             </div>
             <label className="inline-flex items-center gap-2 text-xs cursor-pointer">

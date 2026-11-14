@@ -1111,7 +1111,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         activeRoleId: saved.activeRoleId,
         enabledRoleIds: saved.enabledRoleIds ?? [saved.activeRoleId],
         permissions: saved.permissions,
-        directives: saved.directives,
+        directives: saved.directives?.some((directive) => directive.id === 'dir-general-agent')
+          ? saved.directives
+          : [...INITIAL_DIRECTIVES.filter((directive) => directive.id === 'dir-general-agent'), ...(saved.directives ?? [])],
         pipelineStages: saved.pipelineStages,
         pipelineProjectName: saved.pipelineProjectName,
         pipelineStack: saved.pipelineStack,
