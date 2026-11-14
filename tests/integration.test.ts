@@ -75,7 +75,7 @@ test('project path resolution rejects traversal and symbolic-link escapes', () =
 
   try {
     assert.throws(() => safeResolveInside(root, '../onecore-safe-outside/secret.txt'));
-    fs.symlinkSync(outside, path.join(root, 'external'), 'dir');
+    fs.symlinkSync(outside, path.join(root, 'external'), process.platform === 'win32' ? 'junction' : 'dir');
     assert.throws(() => safeResolveInside(root, 'external/secret.txt'), /символическ/i);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
