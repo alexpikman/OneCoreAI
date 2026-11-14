@@ -21,6 +21,7 @@ type SubSection = 'roles' | 'permissions' | 'pipeline';
 export const RolesAndPipelineView: React.FC = () => {
   const {
     roles,
+    enabledRoleIds,
     generalAgentConfig,
     updateGeneralAgentConfig,
     activeRoleId,
@@ -70,6 +71,7 @@ export const RolesAndPipelineView: React.FC = () => {
 
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeRole = roles.find((r) => r.id === activeRoleId) ?? roles[0];
+  const isGeneralAgentActive = enabledRoleIds.length === 0;
   const selectedStage =
     pipelineStages.find((st) => st.id === selectedStageId) ?? pipelineStages[0];
 
@@ -124,8 +126,8 @@ export const RolesAndPipelineView: React.FC = () => {
           <div className="w-full lg:w-72 shrink-0">
             <ModelMascot
               status={serverStatus}
-              persona={activeRole.persona}
-              roleName={activeRole.name}
+              persona={isGeneralAgentActive ? 'custom' : activeRole.persona}
+              roleName={isGeneralAgentActive ? 'Общий агент' : activeRole.name}
               modelName={activeModel?.name}
               tokensPerSec={tokensPerSec}
               compact
@@ -204,7 +206,7 @@ export const RolesAndPipelineView: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {roles.map((r) => {
-                  const active = r.id === activeRoleId;
+                  const active = enabledRoleIds.includes(r.id);
                   return (
                     <div
                       key={r.id}
