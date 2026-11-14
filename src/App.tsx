@@ -14,6 +14,7 @@ import { getUiTokens } from './utils/uiStyle';
 export default function App() {
   const {
     activeTab,
+    settingsSection,
     setActiveTab,
     checkpoints,
     rollbackToCheckpoint,
@@ -78,7 +79,11 @@ export default function App() {
         <AppNavigation />
         <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
           {activeTab === 'workstation' && <WorkstationView />}
-          {activeTab === 'models' && <ModelHubView />}
+          {activeTab === 'models' && (
+            ['providers', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)
+              ? <SettingsView modelOnly />
+              : <ModelHubView />
+          )}
           {activeTab === 'projects' && <ProjectsView />}
           {activeTab === 'settings' && <SettingsView />}
         </main>
