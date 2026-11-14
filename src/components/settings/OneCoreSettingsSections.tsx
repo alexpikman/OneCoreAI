@@ -697,6 +697,37 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
             </div>
           </div>
 
+          <section className="space-y-2.5 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Правила запуска субагентов</h3>
+                <p className="text-[10px] text-zinc-500">Правила добавляются к каждому поручению. Привязанные к плану получают актуальный план активного проекта.</p>
+              </div>
+              <button type="button" onClick={() => updateSubagentConfig({ rules: [...(subagentConfig.rules ?? []), { id: `sub-rule-${Date.now()}`, title: 'Новое правило', instruction: 'Опишите ожидаемое поведение субагента.', enabled: true, locked: false, bindToPlan: true }] })} className="inline-flex h-8 items-center gap-1 rounded-lg border border-zinc-200 px-2.5 text-[10px] font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"><Plus className="h-3 w-3" />Добавить правило</button>
+            </div>
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+              <table className="w-full min-w-[680px] text-left text-[10px]">
+                <thead className="bg-zinc-50 text-zinc-500 dark:bg-zinc-900/70">
+                  <tr><th className="px-2.5 py-2 font-medium">Правило / инструкция</th><th className="px-2 py-2 text-center font-medium">Вкл.</th><th className="px-2 py-2 text-center font-medium">Фикс.</th><th className="px-2 py-2 text-center font-medium">План</th><th className="px-2 py-2" /></tr>
+                </thead>
+                <tbody>
+                  {(subagentConfig.rules ?? []).map((rule) => (
+                    <tr key={rule.id} className="border-t border-zinc-100 align-top dark:border-zinc-800/80">
+                      <td className="space-y-1.5 px-2.5 py-2">
+                        <input value={rule.title} disabled={rule.locked} aria-label="Название правила" onChange={(event) => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).map((item) => item.id === rule.id ? { ...item, title: event.target.value } : item) })} className="h-7 w-full rounded-md border border-zinc-200 bg-white px-2 text-[10px] font-semibold disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950" />
+                        <textarea rows={2} value={rule.instruction} disabled={rule.locked} aria-label="Инструкция правила" onChange={(event) => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).map((item) => item.id === rule.id ? { ...item, instruction: event.target.value } : item) })} className="w-full resize-y rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-[10px] leading-relaxed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950" />
+                      </td>
+                      <td className="px-2 py-3 text-center"><input type="checkbox" checked={rule.enabled} aria-label="Включить правило" onChange={(event) => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).map((item) => item.id === rule.id ? { ...item, enabled: event.target.checked } : item) })} className="accent-blue-600" /></td>
+                      <td className="px-2 py-3 text-center"><input type="checkbox" checked={rule.locked} aria-label="Зафиксировать правило" onChange={(event) => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).map((item) => item.id === rule.id ? { ...item, locked: event.target.checked } : item) })} className="accent-blue-600" /></td>
+                      <td className="px-2 py-3 text-center"><input type="checkbox" checked={rule.bindToPlan} aria-label="Связать с планом проекта" onChange={(event) => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).map((item) => item.id === rule.id ? { ...item, bindToPlan: event.target.checked } : item) })} className="accent-blue-600" /></td>
+                      <td className="px-2 py-3 text-center">{!rule.locked && <button type="button" onClick={() => updateSubagentConfig({ rules: (subagentConfig.rules ?? []).filter((item) => item.id !== rule.id) })} title="Удалить правило" aria-label="Удалить правило" className="rounded p-1 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10"><Trash2 className="h-3.5 w-3.5" /></button>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
