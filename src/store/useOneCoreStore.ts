@@ -401,8 +401,8 @@ function ensureDownloadPolling(get: () => OneCoreStore) {
 export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   hydrated: false,
   activeTab: 'workstation',
-  theme: 'dark',
-  uiStyle: 'cline-vscode',
+  theme: 'light',
+  uiStyle: 'mica-windows',
   settingsSection: 'ui-chat',
   appNavigationWidth: 260,
   chatVisibility: FULL_CHAT_VISIBILITY,
