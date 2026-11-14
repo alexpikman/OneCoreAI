@@ -5,6 +5,7 @@ import type {
   FreeProviderProfile,
   GatewayChannelConfig,
   SubagentConfig,
+  SubagentProviderSettings,
 } from '../types/onecore';
 
 export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
@@ -264,12 +265,7 @@ export const INITIAL_MEMORY_DOCS: AgentMemoryDoc[] = [
   },
 ];
 
-export const INITIAL_SUBAGENT_CONFIG: SubagentConfig = {
-  enabled: true,
-  maxParallel: 4,
-  maxIterations: 12,
-  defaultRoleId: 'role-reviewer',
-  defaultProviderId: 'prov-llama-cpp',
+const createSubagentProviderSettings = (): SubagentProviderSettings => ({
   providerCategory: 'runtime',
   providerSelectionByCategory: {
     local: 'prov-ollama',
@@ -280,6 +276,21 @@ export const INITIAL_SUBAGENT_CONFIG: SubagentConfig = {
     ...provider,
     availableModels: [...provider.availableModels],
   })),
+});
+
+export const INITIAL_SUBAGENT_CONFIG: SubagentConfig = {
+  enabled: true,
+  maxParallel: 4,
+  maxIterations: 12,
+  defaultRoleId: 'role-reviewer',
+  defaultProviderId: 'prov-llama-cpp',
+  ...createSubagentProviderSettings(),
+  providerProfilesByRole: Object.fromEntries(
+    ['role-developer', 'role-architect', 'role-reviewer', 'role-qa'].map((roleId) => [
+      roleId,
+      createSubagentProviderSettings(),
+    ]),
+  ),
   autoSummarizeResult: true,
 };
 

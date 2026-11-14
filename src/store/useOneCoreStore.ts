@@ -1130,6 +1130,10 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
               providers: saved.subagentConfig.providers?.length
                 ? saved.subagentConfig.providers
                 : INITIAL_SUBAGENT_CONFIG.providers,
+              providerProfilesByRole: {
+                ...INITIAL_SUBAGENT_CONFIG.providerProfilesByRole,
+                ...saved.subagentConfig.providerProfilesByRole,
+              },
             }
           : INITIAL_SUBAGENT_CONFIG,
         executionEnv: saved.executionEnv,
@@ -2761,6 +2765,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         providerSelectionByCategory: patch.providerSelectionByCategory
           ? { ...state.subagentConfig.providerSelectionByCategory, ...patch.providerSelectionByCategory }
           : state.subagentConfig.providerSelectionByCategory,
+        providerProfilesByRole: patch.providerProfilesByRole
+          ? { ...state.subagentConfig.providerProfilesByRole, ...patch.providerProfilesByRole }
+          : state.subagentConfig.providerProfilesByRole,
       },
     })),
 
@@ -2769,14 +2776,18 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const role =
       state.roles.find((r) => r.id === (roleId ?? state.subagentConfig.defaultRoleId)) ??
       state.roles[0];
+    const subagentProviderSettings =
+      state.subagentConfig.providerProfilesByRole[role.id] ?? state.subagentConfig;
     const subagentProviderId =
       providerId ??
-      state.subagentConfig.providerSelectionByCategory[state.subagentConfig.providerCategory] ??
+      subagentProviderSettings.providerSelectionByCategory[subagentProviderSettings.providerCategory] ??
       state.subagentConfig.defaultProviderId;
     const provider =
-      state.subagentConfig.providers.find((item) => item.id === subagentProviderId) ??
-      state.subagentConfig.providers.find((item) => getProviderCategory(item.kind) === state.subagentConfig.providerCategory) ??
-      state.subagentConfig.providers[0];
+      subagentProviderSettings.providers.find((item) => item.id === subagentProviderId) ??
+      subagentProviderSettings.providers.find(
+        (item) => getProviderCategory(item.kind) === subagentProviderSettings.providerCategory,
+      ) ??
+      subagentProviderSettings.providers[0];
     const runId = `sub-${Date.now().toString(36)}`;
     const taskTitle = title?.trim() || prompt.trim().slice(0, 44) || 'Субагент';
 

@@ -106,23 +106,37 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
 
   const tokens = getUiTokens(uiStyle);
   const activeProvider = freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
-  const subagentProvider = subagentConfig.providers.find(
-    (provider) => provider.id === subagentConfig.providerSelectionByCategory[subagentConfig.providerCategory],
-  ) ?? subagentConfig.providers[0];
+  const subagentProviderSettings =
+    subagentConfig.providerProfilesByRole[subagentConfig.defaultRoleId] ?? subagentConfig;
+  const subagentProvider = subagentProviderSettings.providers.find(
+    (provider) =>
+      provider.id ===
+      subagentProviderSettings.providerSelectionByCategory[subagentProviderSettings.providerCategory],
+  ) ?? subagentProviderSettings.providers[0];
   const updateSubagentProvider = (providerId: string, patch: Partial<FreeProviderProfile>) =>
     updateSubagentConfig({
-      providers: subagentConfig.providers.map((provider) =>
-        provider.id === providerId ? { ...provider, ...patch } : provider,
-      ),
+      providerProfilesByRole: {
+        ...subagentConfig.providerProfilesByRole,
+        [subagentConfig.defaultRoleId]: {
+          ...subagentProviderSettings,
+          providers: subagentProviderSettings.providers.map((provider) =>
+            provider.id === providerId ? { ...provider, ...patch } : provider,
+          ),
+        },
+      },
     });
-  const selectSubagentCategory = (category: AiProviderCategory) => {
+  const selectSubagentCategory = (category: AiProviderCategory) =>
     updateSubagentConfig({
-      providerCategory: category,
-      defaultProviderId: subagentConfig.providerSelectionByCategory[category],
+      providerProfilesByRole: {
+        ...subagentConfig.providerProfilesByRole,
+        [subagentConfig.defaultRoleId]: {
+          ...subagentProviderSettings,
+          providerCategory: category,
+        },
+      },
     });
-  };
   const providersForSubagentCategory = (category: AiProviderCategory) =>
-    subagentConfig.providers.filter((provider) => {
+    subagentProviderSettings.providers.filter((provider) => {
       if (category === 'local') return provider.kind === 'ollama' || provider.kind === 'lmstudio';
       if (category === 'cloud') return ['deepseek-api', 'qwen-api', 'openai-api', 'openrouter-free', 'groq-free'].includes(provider.kind);
       return provider.kind === 'llama-cpp' || provider.kind === 'custom';
@@ -601,18 +615,20 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
               </select>
             </div>
             <div className="sm:col-span-2 space-y-2.5">
-              <label className="block text-[11px] text-zinc-500">Независимое подключение субагентов</label>
+              <label className="block text-[11px] text-zinc-500">
+                Отдельное подключение субагента · {roles.find((role) => role.id === subagentConfig.defaultRoleId)?.name ?? 'Выбранная роль'}
+              </label>
               <div className="flex flex-wrap gap-1.5">
                 {(['local', 'cloud', 'runtime'] as const).map((category) => (
                   <button
                     key={category}
                     type="button"
                     onClick={() => selectSubagentCategory(category)}
-                    aria-pressed={subagentConfig.providerCategory === category}
+                    aria-pressed={subagentProviderSettings.providerCategory === category}
                     className={cn(
                       'h-8 px-3 border text-[11px] font-semibold tracking-wide',
                       tokens.inputRadius,
-                      subagentConfig.providerCategory === category
+                      subagentProviderSettings.providerCategory === category
                         ? 'border-blue-600 bg-blue-600 text-white'
                         : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300',
                     )}
@@ -626,16 +642,21 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                 onChange={(event) => {
                   const providerId = event.target.value;
                   updateSubagentConfig({
-                    defaultProviderId: providerId,
-                    providerSelectionByCategory: {
-                      ...subagentConfig.providerSelectionByCategory,
-                      [subagentConfig.providerCategory]: providerId,
+                    providerProfilesByRole: {
+                      ...subagentConfig.providerProfilesByRole,
+                      [subagentConfig.defaultRoleId]: {
+                        ...subagentProviderSettings,
+                        providerSelectionByCategory: {
+                          ...subagentProviderSettings.providerSelectionByCategory,
+                          [subagentProviderSettings.providerCategory]: providerId,
+                        },
+                      },
                     },
                   });
                 }}
                 className={cn('w-full h-9 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs', tokens.inputRadius)}
               >
-                {providersForSubagentCategory(subagentConfig.providerCategory).map((provider) => (
+                {providersForSubagentCategory(subagentProviderSettings.providerCategory).map((provider) => (
                   <option key={provider.id} value={provider.id}>{provider.name}</option>
                 ))}
               </select>

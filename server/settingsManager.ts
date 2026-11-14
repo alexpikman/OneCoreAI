@@ -54,7 +54,7 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
   if (!manifest) return null;
 
   const settings = manifest.settings;
-  const [cloudFallbackKey, githubToken, providers, subagentProviders, gateways] = await Promise.all([
+  const [cloudFallbackKey, githubToken, providers, subagentProviders, roleSubagentProviders, gateways] = await Promise.all([
     getSecret(CLOUD_FALLBACK_KEY),
     getSecret(GITHUB_TOKEN),
     Promise.all(
@@ -70,6 +70,15 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
       })),
     ),
     Promise.all(
+      Object.entries(settings.subagentConfig?.providerProfilesByRole ?? {}).flatMap(([roleId, profile]) =>
+        profile.providers.map(async (provider) => ({
+          roleId,
+          id: provider.id,
+          apiKey: await getSecret(`settings:subagent-provider:${roleId}:${provider.id}`),
+        })),
+      ),
+    ),
+    Promise.all(
       settings.gateways.map(async (gateway) => ({
         id: gateway.id,
         botToken: await getSecret(`settings:gateway:${gateway.id}`),
@@ -78,6 +87,9 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
   ]);
   const providerKeys = new Map(providers.map(({ id, apiKey }) => [id, apiKey]));
   const subagentProviderKeys = new Map(subagentProviders.map(({ id, apiKey }) => [id, apiKey]));
+  const roleSubagentProviderKeys = new Map<string, string>(
+    roleSubagentProviders.map(({ roleId, id, apiKey }) => [`${roleId}:${id}`, apiKey]),
+  );
   const gatewayTokens = new Map(gateways.map(({ id, botToken }) => [id, botToken]));
 
   return {
@@ -97,6 +109,18 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
               ...provider,
               apiKey: subagentProviderKeys.get(provider.id) ?? '',
             })),
+            providerProfilesByRole: Object.fromEntries(
+              Object.entries(settings.subagentConfig.providerProfilesByRole ?? {}).map(([roleId, profile]) => [
+                roleId,
+                {
+                  ...profile,
+                  providers: profile.providers.map((provider) => ({
+                    ...provider,
+                    apiKey: roleSubagentProviderKeys.get(`${roleId}:${provider.id}`) ?? '',
+                  })),
+                },
+              ]),
+            ),
           }
         : settings.subagentConfig,
       gateways: settings.gateways.map((gateway) => ({
@@ -126,6 +150,11 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
     (settings.subagentConfig?.providers ?? []).some(
       (provider) => typeof provider.id !== 'string' || typeof provider.apiKey !== 'string',
     ) ||
+    Object.values(settings.subagentConfig?.providerProfilesByRole ?? {}).some(
+      (profile) =>
+        !Array.isArray(profile.providers) ||
+        profile.providers.some((provider) => typeof provider.id !== 'string' || typeof provider.apiKey !== 'string'),
+    ) ||
     settings.gateways.some(
       (gateway) => typeof gateway.id !== 'string' || typeof gateway.botToken !== 'string',
     )
@@ -140,6 +169,11 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
   }
   for (const provider of settings.subagentConfig?.providers ?? []) {
     await saveSecret(`settings:subagent-provider:${provider.id}`, provider.apiKey);
+  }
+  for (const [roleId, profile] of Object.entries(settings.subagentConfig?.providerProfilesByRole ?? {})) {
+    for (const provider of profile.providers) {
+      await saveSecret(`settings:subagent-provider:${roleId}:${provider.id}`, provider.apiKey);
+    }
   }
   for (const gateway of settings.gateways) {
     await saveSecret(`settings:gateway:${gateway.id}`, gateway.botToken);
@@ -158,6 +192,15 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
             ...provider,
             apiKey: '',
           })),
+          providerProfilesByRole: Object.fromEntries(
+            Object.entries(settings.subagentConfig.providerProfilesByRole ?? {}).map(([roleId, profile]) => [
+              roleId,
+              {
+                ...profile,
+                providers: profile.providers.map((provider) => ({ ...provider, apiKey: '' })),
+              },
+            ]),
+          ),
         }
       : settings.subagentConfig,
     gateways: settings.gateways.map((gateway) => ({ ...gateway, botToken: '' })),

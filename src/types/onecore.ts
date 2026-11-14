@@ -263,6 +263,12 @@ export interface SubagentRun {
   startedAt: string;
 }
 
+export interface SubagentProviderSettings {
+  providerCategory: AiProviderCategory;
+  providerSelectionByCategory: Record<AiProviderCategory, string>;
+  providers: FreeProviderProfile[];
+}
+
 export interface SubagentConfig {
   enabled: boolean;
   maxParallel: number;
@@ -272,6 +278,7 @@ export interface SubagentConfig {
   providerCategory: AiProviderCategory;
   providerSelectionByCategory: Record<AiProviderCategory, string>;
   providers: FreeProviderProfile[];
+  providerProfilesByRole: Record<string, SubagentProviderSettings>;
   autoSummarizeResult: boolean;
 }
 
