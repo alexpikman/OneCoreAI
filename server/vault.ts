@@ -110,7 +110,7 @@ async function runWindowsCredentialBridge(
       : operation === 'read'
         ? "$value = [OneCoreCredentialBridge]::Read($env:ONECORE_CREDENTIAL_TARGET); if ($null -eq $value) { exit 1 }; [Console]::Out.Write($value)"
         : "[OneCoreCredentialBridge]::Delete($env:ONECORE_CREDENTIAL_TARGET) | Out-Null",
-  ].join("; ");
+   ].join("\r\n");
 
   const { stdout } = await execFileAsync(
     'powershell.exe',
