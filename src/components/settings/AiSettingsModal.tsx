@@ -91,9 +91,9 @@ const serverStatusLabel = (status: string) => {
   }
 };
 
-interface AiSettingsModalProps { embedded?: boolean; }
+interface AiSettingsModalProps { embedded?: boolean; page?: boolean; }
 
-export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = false }) => {
+export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = false, page = false }) => {
   const {
     aiSettingsModalOpen,
     aiSettingsCategory,
@@ -226,18 +226,26 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
     <AnimatePresence>
       {(embedded || aiSettingsModalOpen) && (
         <motion.div
-          className={embedded ? "flex w-full justify-center" : "fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"}
+          className={page ? "w-full max-w-7xl mx-auto px-6 py-6 space-y-5" : embedded ? "flex w-full justify-center" : "fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 backdrop-blur-[2px]"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={embedded ? undefined : closeAiSettingsModal}
         >
+          {page && (
+            <div className="pb-5 border-b border-zinc-200 dark:border-zinc-800">
+              <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">ПРОВАЙДЕРЫ</h1>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-2xl">
+                Единая настройка локальных, облачных и runtime-провайдеров, API-ключей и доступных моделей.
+              </p>
+            </div>
+          )}
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.99 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.99 }}
             transition={{ duration: 0.16, ease: 'easeOut' }}
-            className={cn("relative flex w-full flex-col overflow-hidden border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-[#12161d]", embedded ? "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-sm" : "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-2xl")}
+            className={cn("relative flex w-full flex-col overflow-hidden border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-[#12161d]", page ? "min-h-[620px] rounded-2xl shadow-sm" : embedded ? "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-sm" : "h-[610px] max-h-[88vh] w-[860px] max-w-[95vw] rounded-2xl shadow-2xl")}
             onClick={(event) => { if (!embedded) event.stopPropagation(); }}
           >
             <header className="shrink-0 border-b border-zinc-200/80 px-5 pt-4 dark:border-zinc-800">
@@ -248,10 +256,10 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
                   </div>
                   <div className="min-w-0">
                     <div className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                      Глобальные настройки ИИ
+                      {page ? "Параметры подключения" : "Глобальные настройки ИИ"}
                     </div>
                     <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                      Провайдер и модель для чата и задач
+                      {page ? "Настройки провайдеров и API-моделей" : "Провайдер и модель для чата и задач"}
                     </div>
                   </div>
                 </div>
@@ -319,7 +327,7 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
               </div>
             </header>
 
-            <main className={cn("grid min-h-0 flex-1 grid-cols-12 gap-3 px-4 pb-4 pt-2", embedded ? "min-h-[520px]" : "")}>
+            <main className={cn("grid min-h-0 flex-1 grid-cols-12 gap-3 px-4 pb-4 pt-2", page ? "min-h-[560px] gap-4 px-5 pb-5 pt-3" : embedded ? "min-h-[520px]" : "")}>
               <div className="col-span-5 h-full space-y-2 overflow-y-auto pr-1">
                 {visibleProviders.map((provider) => {
                   const isSelected = provider.id === pendingProviderId;
