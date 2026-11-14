@@ -170,18 +170,25 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
 
   if (section === 'skills-memory') {
     return (
-      <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pb-5 border-b border-zinc-200 dark:border-zinc-800">
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+              Самообучающиеся навыки SKILL.md (agentskills.io)
+            </h1>
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1 max-w-2xl">
+              Библиотека навыков, постоянная память и настройки параллельных субагентов.
+            </p>
+          </div>
+        </div>
         {/* Skills Library */}
         <div className={cn('p-5 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+              <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-blue-500" />
-                <span>Самообучающиеся навыки SKILL.md (agentskills.io)</span>
+                <span>Библиотека навыков</span>
               </h2>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-                Безлимитная библиотека навыков: агент использует активные навыки и умеет сохранять новые прямо из чата.
-              </p>
             </div>
             <button
               type="button"
