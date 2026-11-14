@@ -37,6 +37,7 @@
 - [ ] Confirm the first CI run and fix all failures.
 
 ## Phase 7 — UI consistency
+- [x] Set the first-run theme to light Mica and align browser/PWA startup colors without overriding saved preferences.
 - [ ] Audit all routes, navigation actions, modal flows, and responsive layouts.
 - [ ] Preserve the light-first One Core visual direction.
 - [ ] Verify typography, spacing, focus states, and keyboard accessibility across every page.
