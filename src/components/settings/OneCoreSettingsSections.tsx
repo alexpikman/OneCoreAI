@@ -162,7 +162,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
 
   if (section === 'providers') {
     return (
-      <div className="mx-auto w-full max-w-7xl px-6 py-6">
+      <div className="mx-auto w-full max-w-5xl px-6 py-6">
         <AiSettingsModal embedded />
       </div>
     );
