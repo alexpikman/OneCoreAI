@@ -203,18 +203,11 @@ export const RolesAndPipelineView: React.FC = () => {
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setActiveRole(r.id)}
-                        className={cn(
-                          'h-8 px-3 rounded-lg text-xs font-medium transition-colors',
-                          active
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200',
-                        )}
-                      >
-                        {active ? 'Активна в рабочей станции' : 'Переключиться на эту роль'}
-                      </button>
+                      {active && (
+                        <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                          Активна в чате
+                        </span>
+                      )}
                     </div>
                   );
                 })}

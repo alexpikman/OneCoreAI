@@ -41,6 +41,7 @@ export const CenterAgentPane: React.FC = () => {
     sessions,
     activeSessionId,
     centerPaneMode,
+    setCenterPaneMode,
     agentMode,
     setAgentMode,
     files,
@@ -89,7 +90,7 @@ export const CenterAgentPane: React.FC = () => {
   const activeProvider =
     freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
   const latestCheckpoint = checkpoints[0];
-   const includedTokens =
+  const includedTokens =
     files.filter((f) => f.inContext).reduce((acc, f) => acc + f.tokensEstimate, 0) +
     (includeProjectTree ? 180 : 0) +
     (includeTerminalOutput ? 120 : 0);

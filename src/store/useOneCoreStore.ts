@@ -2557,7 +2557,6 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }),
   setProviderSelectionForCategory: (category, providerId) =>
     set((state) => ({
-      activeProviderId: state.modelCategory === category ? providerId : state.activeProviderId,
       providerSelectionByCategory: {
         ...state.providerSelectionByCategory,
         [category]: providerId,

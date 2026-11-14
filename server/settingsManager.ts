@@ -54,13 +54,19 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
   if (!manifest) return null;
 
   const settings = manifest.settings;
-  const [cloudFallbackKey, githubToken, providers, gateways] = await Promise.all([
+  const [cloudFallbackKey, githubToken, providers, subagentProviders, gateways] = await Promise.all([
     getSecret(CLOUD_FALLBACK_KEY),
     getSecret(GITHUB_TOKEN),
     Promise.all(
       settings.freeProviders.map(async (provider) => ({
         id: provider.id,
         apiKey: await getSecret(`settings:provider:${provider.id}`),
+      })),
+    ),
+    Promise.all(
+      (settings.subagentConfig?.providers ?? []).map(async (provider) => ({
+        id: provider.id,
+        apiKey: await getSecret(`settings:subagent-provider:${provider.id}`),
       })),
     ),
     Promise.all(
@@ -71,6 +77,7 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
     ),
   ]);
   const providerKeys = new Map(providers.map(({ id, apiKey }) => [id, apiKey]));
+  const subagentProviderKeys = new Map(subagentProviders.map(({ id, apiKey }) => [id, apiKey]));
   const gatewayTokens = new Map(gateways.map(({ id, botToken }) => [id, botToken]));
 
   return {
@@ -83,6 +90,15 @@ export async function readAppSettings(): Promise<SettingsManifest | null> {
         ...provider,
         apiKey: providerKeys.get(provider.id) ?? '',
       })),
+      subagentConfig: settings.subagentConfig
+        ? {
+            ...settings.subagentConfig,
+            providers: (settings.subagentConfig.providers ?? []).map((provider) => ({
+              ...provider,
+              apiKey: subagentProviderKeys.get(provider.id) ?? '',
+            })),
+          }
+        : settings.subagentConfig,
       gateways: settings.gateways.map((gateway) => ({
         ...gateway,
         botToken: gatewayTokens.get(gateway.id) ?? '',
@@ -107,6 +123,9 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
     settings.freeProviders.some(
       (provider) => typeof provider.id !== 'string' || typeof provider.apiKey !== 'string',
     ) ||
+    (settings.subagentConfig?.providers ?? []).some(
+      (provider) => typeof provider.id !== 'string' || typeof provider.apiKey !== 'string',
+    ) ||
     settings.gateways.some(
       (gateway) => typeof gateway.id !== 'string' || typeof gateway.botToken !== 'string',
     )
@@ -119,6 +138,9 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
   for (const provider of settings.freeProviders) {
     await saveSecret(`settings:provider:${provider.id}`, provider.apiKey);
   }
+  for (const provider of settings.subagentConfig?.providers ?? []) {
+    await saveSecret(`settings:subagent-provider:${provider.id}`, provider.apiKey);
+  }
   for (const gateway of settings.gateways) {
     await saveSecret(`settings:gateway:${gateway.id}`, gateway.botToken);
   }
@@ -129,6 +151,15 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
     appSettings: { ...settings.appSettings, cloudFallbackKey: '' },
     githubAccess: { ...settings.githubAccess, tokenInput: '' },
     freeProviders: settings.freeProviders.map((provider) => ({ ...provider, apiKey: '' })),
+    subagentConfig: settings.subagentConfig
+      ? {
+          ...settings.subagentConfig,
+          providers: (settings.subagentConfig.providers ?? []).map((provider) => ({
+            ...provider,
+            apiKey: '',
+          })),
+        }
+      : settings.subagentConfig,
     gateways: settings.gateways.map((gateway) => ({ ...gateway, botToken: '' })),
   };
   const manifest = { settings: safeSettings, savedAt };
