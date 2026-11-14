@@ -194,7 +194,7 @@ export const AiSettingsModal: React.FC = () => {
             onClick={(event) => event.stopPropagation()}
           >
             <header className="shrink-0 border-b border-zinc-200/80 px-5 pt-4 dark:border-zinc-800">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-300">
                     <Sparkles className="h-4.5 w-4.5" />
@@ -208,16 +208,45 @@ export const AiSettingsModal: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={closeAiSettingsModal}
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                  aria-label="Закрыть"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+
+                <div className="flex min-w-0 items-center justify-end gap-3">
+                  <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+                    <span className="mr-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">Инженерные роли</span>
+                    {roles.filter((role) => ['developer', 'architect', 'reviewer', 'qa'].includes(role.persona)).map((role) => {
+                      const enabled = enabledRoleIds.includes(role.id);
+                      return (
+                        <button
+                          key={role.id}
+                          type="button"
+                          aria-pressed={enabled}
+                          onClick={() => toggleAgentRole(role.id)}
+                          className={cn(
+                            'rounded-md border px-2 py-1 text-[9px] font-medium transition-colors',
+                            enabled
+                              ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                              : 'border-zinc-200 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800',
+                          )}
+                        >
+                          {role.name}
+                        </button>
+                      );
+                    })}
+                    <span className="ml-1 whitespace-nowrap text-[9px] text-zinc-500">
+                      {enabledRoleIds.length === 0 ? 'Общий агент' : `${enabledRoleIds.length} активно`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeAiSettingsModal}
+                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-200 text-zinc-600 transition hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    aria-label="Закрыть"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="mt-4 flex gap-1">
+
+              <div className="mt-3 flex gap-1">
                 {CATEGORY_ORDER.map((category) => (
                   <button
                     key={category}
@@ -238,10 +267,9 @@ export const AiSettingsModal: React.FC = () => {
                   </button>
                 ))}
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-zinc-200/70 pt-3 pb-2 dark:border-zinc-800/80"><span className="mr-2 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Инженерные роли</span>{roles.filter((role) => ['developer', 'architect', 'reviewer', 'qa'].includes(role.persona)).map((role) => { const enabled = enabledRoleIds.includes(role.id); return <button key={role.id} type="button" aria-pressed={enabled} onClick={() => toggleAgentRole(role.id)} className={cn('rounded-lg border px-2.5 py-1.5 text-[10px] font-medium transition-colors', enabled ? 'border-blue-500/40 bg-blue-500/10 text-blue-700 dark:text-blue-300' : 'border-zinc-200 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800')}>{role.name}</button>; })}<span className="ml-auto text-[10px] text-zinc-500">{enabledRoleIds.length === 0 ? 'Общий агент' : `${enabledRoleIds.length} активно`}</span></div>
             </header>
 
-            <main className="grid min-h-0 flex-1 grid-cols-12 gap-4 p-4">
+            <main className="grid min-h-0 flex-1 grid-cols-12 gap-3 px-4 pb-4 pt-2">
               <div className="col-span-5 h-full space-y-2 overflow-y-auto pr-1">
                 {visibleProviders.map((provider) => {
                   const isSelected = provider.id === selectedProviderId;
