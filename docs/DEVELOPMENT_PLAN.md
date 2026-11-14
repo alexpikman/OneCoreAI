@@ -40,4 +40,6 @@
 - [x] Set the first-run theme to light Mica and align browser/PWA startup colors without overriding saved preferences.
 - [ ] Audit all routes, navigation actions, modal flows, and responsive layouts.
 - [ ] Preserve the light-first One Core visual direction.
-- [ ] Verify typography, spacing, focus states, and keyboard accessibility across every page.
+- [ ] Replace remote Google Fonts loading with bundled local font assets; use the approved Manrope / DM Mono typography system.
+- [ ] Audit small text sizes and establish consistent readable typography tokens.
+- [ ] Verify spacing, focus states, and keyboard accessibility across every page.
