@@ -2891,6 +2891,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   launchSubagent: async ({ title, prompt, roleId, providerId }) => {
     const state = get();
+    if (!state.subagentConfig.enabled) return;
     const role =
       state.roles.find((r) => r.id === (roleId ?? state.subagentConfig.defaultRoleId)) ??
       state.roles[0];

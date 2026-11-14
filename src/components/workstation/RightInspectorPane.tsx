@@ -39,6 +39,7 @@ export const RightInspectorPane: React.FC = () => {
     modelCategory,
     providerSelectionByCategory,
     subagentRuns,
+    subagentConfig,
     launchSubagent,
     clearCompletedSubagents,
     hardwareProfile,
@@ -159,7 +160,7 @@ export const RightInspectorPane: React.FC = () => {
               type="text"
               value={quickSubagentPrompt}
               onChange={(e) => setQuickSubagentPrompt(e.target.value)}
-              placeholder="Параллельная подзадача..."
+              placeholder={subagentConfig.enabled ? 'Параллельная подзадача...' : 'Субагенты отключены в настройках'}
               className={cn(
                 'flex-1 min-w-0 h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-[11.5px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
                 tokens.inputRadius,
@@ -167,7 +168,7 @@ export const RightInspectorPane: React.FC = () => {
             />
             <button
               type="submit"
-              disabled={!quickSubagentPrompt.trim()}
+              disabled={!subagentConfig.enabled || !quickSubagentPrompt.trim()}
               title="Запустить субагента"
               className={cn(
                 'h-8 px-2.5 disabled:opacity-45 text-[11px] font-medium inline-flex items-center gap-1 shrink-0',
