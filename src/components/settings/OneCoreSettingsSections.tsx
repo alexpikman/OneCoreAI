@@ -63,11 +63,11 @@ const PROVIDER_LINKS: Partial<Record<FreeProviderKind, { label: string; url: str
     url: 'https://github.com/ggml-org/llama.cpp/releases',
   },
   ollama: {
-    label: 'РћС‚РєСЂС‹С‚СЊ СЃР°Р№С‚ Ollama',
+    label: 'Открыть сайт Ollama',
     url: 'https://ollama.com/download',
   },
   lmstudio: {
-    label: 'РћС‚РєСЂС‹С‚СЊ СЃР°Р№С‚ LM Studio',
+    label: 'Открыть сайт LM Studio',
     url: 'https://lmstudio.ai/',
   },
 };
@@ -216,7 +216,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                           : 'border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200/70 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-200',
                       )}
                     >
-                      {isActive ? 'Р’С‹Р±СЂР°РЅ' : 'Р’С‹Р±СЂР°С‚СЊ'}
+                      {isActive ? 'Выбран' : 'Выбрать'}
                     </button>
                   </div>
 
@@ -256,7 +256,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                         <label className="block text-[10.5px] text-zinc-500 mb-1">
                           {prov.kind === 'custom'
                             ? 'API-ключ (если требуется)'
-                            : 'API-РєР»СЋС‡ РїСЂРѕРІР°Р№РґРµСЂР°'}
+                            : 'API-ключ провайдера'}
                         </label>
                         <input
                           type="password"
@@ -267,7 +267,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                               ? 'sk-or-v1-...'
                               : prov.kind === 'groq-free'
                                 ? 'gsk_...'
-                                : 'API-РєР»СЋС‡ РїСЂРѕРІР°Р№РґРµСЂР°'
+                                : 'API-ключ провайдера'
                           }
                           className={cn('w-full h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 font-mono text-[11px] text-zinc-900 dark:text-zinc-100', tokens.inputRadius)}
                         />
@@ -402,7 +402,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                   onClick={() => setNewSkillOpen(false)}
                   className={cn('h-8 px-3 border border-zinc-200 dark:border-zinc-800 text-xs', tokens.inputRadius)}
                 >
-                  РћС‚РјРµРЅР°
+                  Отмена
                 </button>
                 <button type="submit" className={cn('h-8 px-3 text-xs font-medium', tokens.inputRadius, tokens.accentButton)}>
                   Сохранить в библиотеку
@@ -477,7 +477,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
           <div>
             <h2 className="font-display text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
               <Brain className="w-4 h-4 text-emerald-500" />
-              <span>РўСЂС‘С…СЃР»РѕР№РЅР°СЏ РїР°РјСЏС‚СЊ OneCore (SOUL.md / MEMORY.md / USER.md)</span>
+              <span>Трёхслойная память OneCore (SOUL.md / MEMORY.md / USER.md)</span>
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Сохраняется между всеми сессиями и автоматически передаётся как системный контекст.
@@ -532,7 +532,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                 onChange={(e) => updateSubagentConfig({ enabled: e.target.checked })}
                 className="accent-blue-600"
               />
-              <span>Р’РєР»СЋС‡РµРЅРѕ</span>
+              <span>Включено</span>
             </label>
           </div>
 
@@ -578,7 +578,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] text-zinc-500 mb-1">Р‘РµСЃРїР»Р°С‚РЅС‹Р№ РїСЂРѕРІР°Р№РґРµСЂ</label>
+              <label className="block text-[11px] text-zinc-500 mb-1">Бесплатный провайдер</label>
               <select
                 value={subagentConfig.defaultProviderId}
                 onChange={(e) => updateSubagentConfig({ defaultProviderId: e.target.value })}
@@ -625,7 +625,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
 
   if (section === 'execution-env') {
     const envCards: { id: ExecutionEnvKind; title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }[] = [
-      { id: 'local', title: 'Р›РѕРєР°Р»СЊРЅРѕ (Windows)', subtitle: 'PowerShell / CMD РЅР°РїСЂСЏРјСѓСЋ РІ РїР°РїРєРµ РїСЂРѕРµРєС‚Р°', icon: Laptop },
+      { id: 'local', title: 'Локально (Windows)', subtitle: 'PowerShell / CMD напрямую в папке проекта', icon: Laptop },
       { id: 'ssh', title: 'Удалённый SSH-хост', subtitle: 'Использует профили OpenSSH из раздела SSH и GitHub', icon: Server },
       { id: 'docker', title: 'Docker-контейнер', subtitle: 'Изолированная песочница без риска для хоста', icon: Container },
     ];
@@ -673,7 +673,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
           {executionEnv.activeEnv === 'local' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
               <div>
-                <label className="block text-[11px] text-zinc-500 mb-1">РћР±РѕР»РѕС‡РєР° Windows</label>
+                <label className="block text-[11px] text-zinc-500 mb-1">Оболочка Windows</label>
                 <select
                   value={executionEnv.localShell}
                   onChange={(e) =>
@@ -728,7 +728,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
           {executionEnv.activeEnv === 'docker' && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-zinc-200 dark:border-zinc-800">
               <div>
-                <label className="block text-[11px] text-zinc-500 mb-1">РћР±СЂР°Р· РєРѕРЅС‚РµР№РЅРµСЂР°</label>
+                <label className="block text-[11px] text-zinc-500 mb-1">Образ контейнера</label>
                 <input
                   type="text"
                   value={executionEnv.dockerImage}
@@ -754,7 +754,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                   }
                   className={cn('w-full h-9 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs', tokens.inputRadius)}
                 >
-                  <option value="bridge">bridge (РґРѕСЃС‚СѓРї РІ СЃРµС‚СЊ)</option>
+                  <option value="bridge">bridge (доступ в сеть)</option>
                   <option value="none">none (строгий офлайн)</option>
                 </select>
               </div>
@@ -805,7 +805,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
             >
               <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">{gw.name}</div>
               <div className="text-[11px] font-mono text-zinc-500 mt-0.5">
-                {gw.enabled ? 'Р’РєР»СЋС‡С‘РЅ' : 'РћС‚РєР»СЋС‡С‘РЅ'} В· {gw.prefixCommand}
+                {gw.enabled ? 'Включён' : 'Отключён'} · {gw.prefixCommand}
               </div>
             </button>
           ))}
@@ -848,7 +848,7 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                   type="password"
                   value={activeGateway.botToken}
                   onChange={(e) => updateGateway(activeGateway.id, { botToken: e.target.value })}
-                  placeholder={activeGateway.id === 'telegram' ? '123456789:AAH...' : 'РўРѕРєРµРЅ Р±РѕС‚Р°...'}
+                  placeholder={activeGateway.id === 'telegram' ? '123456789:AAH...' : 'Токен бота...'}
                   className={cn('w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs', tokens.inputRadius)}
                 />
               </div>
