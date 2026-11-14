@@ -30,6 +30,7 @@ import {
   createOrUpdateProject,
   deleteProjectRecord,
   deleteProjectTask,
+  getProjectById,
   getProjectWorkspaceData,
   listProjects,
   saveProjectPlan,
@@ -1012,13 +1013,15 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const json = (await response.json()) as {
         choices?: Array<{ message?: { content?: string } }>;
         model?: string;
-        usage?: { total_tokens?: number };
+        usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
       };
       res.json({
         ok: true,
         content: json.choices?.[0]?.message?.content ?? '',
         model: json.model ?? model,
-        totalTokens: json.usage?.total_tokens ?? 0,
+        promptTokens: json.usage?.prompt_tokens ?? null,
+        completionTokens: json.usage?.completion_tokens ?? null,
+        totalTokens: json.usage?.total_tokens ?? null,
       });
     } catch (err) {
       res.status(502).json({

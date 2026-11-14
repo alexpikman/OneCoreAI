@@ -17,6 +17,24 @@ export type GpuBackend = 'auto' | 'cuda' | 'vulkan' | 'cpu';
 export type ServerStatus = 'ready' | 'generating' | 'loading' | 'stopped' | 'error';
 export type AgentActivity = 'idle' | 'thinking' | 'reading' | 'editing' | 'writing' | 'terminal';
 export type UpdateCheckStatus = 'idle' | 'checking' | 'current' | 'available' | 'error';
+export type ModelCapabilityKey = 'readFiles' | 'writeFiles' | 'deleteFiles' | 'runCommands' | 'git' | 'ssh' | 'github' | 'web' | 'functionCalling' | 'vision';
+export interface ModelCapabilityReport {
+  providerId: string;
+  modelId: string;
+  checkedAt: string;
+  contextWindowTokens: number | null;
+  selfReported: Partial<Record<ModelCapabilityKey, boolean | null>>;
+  application: Record<ModelCapabilityKey, { available: boolean; reason: string }>;
+  notes: string;
+}
+export interface ModelTokenUsage {
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+  estimatedPromptTokens: number;
+  source: 'provider' | 'estimate';
+  recordedAt: string;
+}
 
 export interface AppUpdateRelease {
   version: string;
@@ -464,6 +482,7 @@ export interface AgentMessage {
   checkpointId?: string;
   subagentRun?: SubagentRun;
   skillLearned?: boolean;
+  tokenUsage?: ModelTokenUsage;
   isStreaming?: boolean;
 }
 

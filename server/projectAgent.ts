@@ -4,7 +4,8 @@ import os from 'os';
 import path from 'path';
 import { promisify } from 'util';
 import { ensureOneCoreDirs } from './paths';
-import { getProjectById, type ProjectRecord } from './projectsManager';
+import { getProjectById, getProjectWorkspaceData, saveProjectTask, type ProjectRecord } from './projectsManager';
+import { PROJECT_AGENT_INSTRUCTIONS } from './projectAgentInstructions';
 import { assertProjectToolAllowed, isProjectToolAllowed } from './permissionManager';
 
 const execFileAsync = promisify(execFile);
@@ -569,6 +570,9 @@ export async function executeProjectTask(input: {
   commandResult?: ExecCommandResult;
   proposedCommand?: string;
   diff?: { filePath: string; oldContent: string; newContent: string; summary: string };
+  createdTasks?: Array<{ id: string; title: string }>;
+  updatedTasks?: Array<{ id: string; status: string }>;
+  usage?: { promptTokens: number | null; completionTokens: number | null; totalTokens: number | null };
   usedLiveLlm: boolean;
 }> {
   const project = requireLocalProject(input.projectId);
@@ -583,6 +587,7 @@ export async function executeProjectTask(input: {
     };
   }
 
+  const workspace = getProjectWorkspaceData(project.id);
   const canReadProjectFiles = isProjectToolAllowed(project.id, 'read_file');
   const projectFiles = canReadProjectFiles ? listProjectFiles(project.id, 60) : [];
   const readFilesList = projectFiles.slice(0, 5).map((f) => f.path);
@@ -651,13 +656,18 @@ export async function executeProjectTask(input: {
   if (input.provider?.baseUrl && input.provider?.model) {
     const base = input.provider.baseUrl.replace(/\/+$/, '');
     const sys = [
-      input.provider.systemPrompt || 'Ты инженерный агент ONE CORE AI.',
-      `Текущий проект: ${project.name} (${project.folderPath}). Режим: ${input.mode.toUpperCase()}.`,
+      input.provider.systemPrompt || 'Ты основной инженерный агент ONE CORE AI.',
+      PROJECT_AGENT_INSTRUCTIONS,
+      `Текущий проект: ${project.name} (${project.folderPath}). Источник: ${project.folderSource}. Режим: ${input.mode.toUpperCase()}.`,
+      `Описание проекта: ${project.description || 'не задано'}`,
+      `Разрешённые инструменты проекта: ${project.allowedTools.join(', ') || 'нет'}.`,
+      `План проекта:\n${workspace.plan?.content ?? 'План пока не создан.'}\nПрогресс: ${workspace.plan?.progress ?? 0}%.`,
+      `Задачи проекта:\n${workspace.tasks.map((task) => `- [${task.status}] ${task.id} | ${task.title}: ${task.description}`).join('\n') || 'Задач пока нет.'}`,
       `Файлы в папке проекта (${projectFiles.length}): ${projectFiles.map((f) => f.path).join(', ') || '(папка пуста)'}.`,
       snippets.length > 0 ? `Содержимое первых файлов:\n${snippets.join('\n\n')}` : '',
       input.mode === 'act'
-        ? `Если для решения задачи нужно создать/изменить файл и/или выполнить команду, верни ТОЛЬКО JSON-объект (или markdown + JSON-блок \`\`\`onecore-action ... \`\`\`) вида: {"reply":"...","writeFile":{"path":"rel/path","content":"...","summary":"..."},"runCommand":"..."}`
-        : 'Ты в режиме Plan: проанализируй реальные файлы проекта и предложи точный план без изменения файлов.',
+        ? 'ACT JSON contract: {"reply":"...","writeFile":{"path":"relative/path","content":"...","summary":"..."},"runCommand":"...","createTasks":[{"title":"...","description":"...","status":"todo"}],"updateTasks":[{"id":"existing-task-id","status":"in-progress|done"}]}. Only create/update tasks when the user requested it or it is an explicit part of the task. File edits and commands are proposals requiring approval. Never delete files automatically.'
+        : 'PLAN is read-only: inspect, analyze and plan. Do not modify files, tasks, plan, task statuses, run commands or mutate Git state.',
     ]
       .filter(Boolean)
       .join('\n\n');
@@ -692,6 +702,7 @@ export async function executeProjectTask(input: {
       if (resp.ok) {
         const json = (await resp.json()) as {
           choices?: Array<{ message?: { content?: string } }>;
+          usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
         };
         const rawContent = json.choices?.[0]?.message?.content?.trim() || '';
         if (rawContent) {
@@ -701,6 +712,8 @@ export async function executeProjectTask(input: {
 
           let diff: { filePath: string; oldContent: string; newContent: string; summary: string } | undefined;
           let proposedCommand: string | undefined;
+          let createdTasks: Array<{ id: string; title: string }> = [];
+          let updatedTasks: Array<{ id: string; status: string }> = [];
           let replyText = rawContent;
 
           if (jsonCandidate && input.mode === 'act') {
@@ -709,6 +722,8 @@ export async function executeProjectTask(input: {
                 reply?: string;
                 writeFile?: { path: string; content: string; summary?: string };
                 runCommand?: string;
+                createTasks?: Array<{ title: string; description?: string; status?: 'todo' | 'in-progress' | 'done' }>;
+                updateTasks?: Array<{ id: string; status: 'todo' | 'in-progress' | 'done' }>;
               };
               if (parsed.reply) replyText = parsed.reply;
               if (parsed.writeFile?.path && typeof parsed.writeFile.content === 'string') {
@@ -722,7 +737,23 @@ export async function executeProjectTask(input: {
                   summary: parsed.writeFile.summary || 'Правка от ИИ-агента',
                 };
               }
-              if (parsed.runCommand?.trim()) proposedCommand = parsed.runCommand.trim();
+              if (parsed.runCommand?.trim() && isProjectToolAllowed(project.id, 'run_command')) proposedCommand = parsed.runCommand.trim();
+              if (Array.isArray(parsed.createTasks) && input.mode === 'act') {
+                createdTasks = parsed.createTasks.filter((task) => typeof task.title === 'string' && task.title.trim()).slice(0, 10).map((task) => {
+                  const saved = saveProjectTask(project.id, { title: task.title, description: task.description ?? '', status: task.status ?? 'todo' });
+                  recordProjectMemory(project.id, `Агент добавил задачу: ${saved.title}`);
+                  return { id: saved.id, title: saved.title };
+                });
+              }
+              if (Array.isArray(parsed.updateTasks) && input.mode === 'act') {
+                const currentTasks = getProjectWorkspaceData(project.id).tasks;
+                updatedTasks = parsed.updateTasks.filter((task) => currentTasks.some((item) => item.id === task.id)).slice(0, 20).map((task) => {
+                  const current = currentTasks.find((item) => item.id === task.id)!;
+                  const saved = saveProjectTask(project.id, { title: current.title, description: current.description, status: task.status, id: current.id });
+                  recordProjectMemory(project.id, `Агент обновил статус задачи «${saved.title}»: ${saved.status}`);
+                  return { id: saved.id, status: saved.status };
+                });
+              }
             } catch {
               // keep raw markdown reply
             }
@@ -733,6 +764,9 @@ export async function executeProjectTask(input: {
             readFiles: readFilesList,
             diff,
             proposedCommand,
+            createdTasks,
+            updatedTasks,
+            usage: { promptTokens: typeof json.usage?.prompt_tokens === 'number' ? json.usage.prompt_tokens : null, completionTokens: typeof json.usage?.completion_tokens === 'number' ? json.usage.completion_tokens : null, totalTokens: typeof json.usage?.total_tokens === 'number' ? json.usage.total_tokens : null },
             usedLiveLlm: true,
           };
         }

@@ -47,6 +47,8 @@ import type {
   InferenceSettings,
   LocalModel,
   ModelCatalogItem,
+  ModelCapabilityReport,
+  ModelTokenUsage,
   ModelDirective,
   ModelRole,
   PermissionPolicy,
@@ -197,6 +199,9 @@ interface OneCoreStore {
 
   freeProviders: FreeProviderProfile[];
   activeProviderId: string;
+  modelCapabilityReport: ModelCapabilityReport | null;
+  modelCapabilityStatus: 'idle' | 'checking' | 'ready' | 'error';
+  lastTokenUsage: ModelTokenUsage | null;
 
   skills: AgentSkill[];
   memoryDocs: AgentMemoryDoc[];
@@ -314,6 +319,7 @@ interface OneCoreStore {
   verifyGitHubAccess: () => Promise<void>;
 
   setActiveProvider: (providerId: string) => void;
+  checkModelCapabilities: () => Promise<void>;
   updateFreeProvider: (providerId: string, patch: Partial<FreeProviderProfile>) => void;
   fetchProviderModels: (providerId: string) => Promise<void>;
 
@@ -510,6 +516,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   freeProviders: INITIAL_FREE_PROVIDERS,
   activeProviderId: 'prov-deepseek-api',
+  modelCapabilityReport: null,
+  modelCapabilityStatus: 'idle',
+  lastTokenUsage: null,
   modelSource: 'cloud',
   skills: INITIAL_SKILLS,
   memoryDocs: INITIAL_MEMORY_DOCS,
@@ -1507,6 +1516,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       opts: {
         roleName?: string;
         providerLabel?: string;
+        tokenUsage?: ModelTokenUsage;
         readFiles?: string[];
         webSources?: ChatSession['messages'][number]['webSources'];
         diff?: ChatSession['messages'][number]['diff'];
@@ -1515,6 +1525,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     ) => {
       set((s) => ({
         centerPaneMode: 'chat',
+        lastTokenUsage: opts.tokenUsage ?? s.lastTokenUsage,
         sessions: s.sessions.map((sess) =>
           sess.id === sessionId
             ? {
@@ -1540,6 +1551,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
                     mode,
                     roleName: opts.roleName,
                     providerLabel: opts.providerLabel,
+                    tokenUsage: opts.tokenUsage,
                     timestamp: nowTime(),
                     content: replyText,
                     readFiles: opts.readFiles,
@@ -1823,6 +1835,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           proposedCommand?: string;
           diff?: { filePath: string; oldContent: string; newContent: string; summary: string };
           usedLiveLlm?: boolean;
+          usage?: { promptTokens?: number | null; completionTokens?: number | null; totalTokens?: number | null };
         };
 
         if (!res.ok || !data.ok) {
@@ -1882,6 +1895,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           readFiles: data.readFiles,
           diff: diffObj,
           command: cmdObj,
+          tokenUsage: data.usage
+            ? { promptTokens: data.usage.promptTokens ?? null, completionTokens: data.usage.completionTokens ?? null, totalTokens: data.usage.totalTokens ?? null, estimatedPromptTokens: includedTokens, source: data.usage.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() }
+            : { promptTokens: null, completionTokens: null, totalTokens: null, estimatedPromptTokens: includedTokens, source: 'estimate', recordedAt: new Date().toISOString() },
         });
 
         await Promise.all([
@@ -1914,11 +1930,12 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             ],
           }),
         });
-        const json = (await resp.json()) as { ok?: boolean; content?: string; error?: string };
+        const json = (await resp.json()) as { ok?: boolean; content?: string; error?: string; promptTokens?: number | null; completionTokens?: number | null; totalTokens?: number | null };
         if (resp.ok && json.ok && json.content) {
           pushReply(json.content, {
             roleName: route.kind === 'chat' ? 'Общий агент' : activeRole.name,
             providerLabel: `${activeProvider.name} · ${providerModel}`,
+            tokenUsage: { promptTokens: json.promptTokens ?? null, completionTokens: json.completionTokens ?? null, totalTokens: json.totalTokens ?? null, estimatedPromptTokens: history.reduce((sum, message) => sum + Math.ceil(message.content.length / 4), Math.ceil(trimmed.length / 4)), source: json.totalTokens ? 'provider' : 'estimate', recordedAt: new Date().toISOString() },
           });
         } else {
           const keyHint =
@@ -2543,6 +2560,21 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
   },
 
+  checkModelCapabilities: async () => {
+    const state = get();
+    const provider = state.freeProviders.find((item) => item.id === state.activeProviderId);
+    const localModel = state.localModels.find((item) => item.id === state.activeModelId);
+    const model = state.modelSource === 'runtime' && localModel ? localModel.filename : provider?.selectedModel;
+    if (!provider || !model) { set({ modelCapabilityStatus: 'error' }); return; }
+    set({ modelCapabilityStatus: 'checking' });
+    try {
+      const response = await fetch('/api/providers/capabilities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseUrl: provider.baseUrl, apiKey: provider.apiKey, model, providerId: provider.id, projectId: state.activeProjectId }) });
+      const data = (await response.json()) as { ok?: boolean; report?: ModelCapabilityReport };
+      if (!response.ok || !data.ok || !data.report) throw new Error('Capability probe failed');
+      set({ modelCapabilityReport: data.report, modelCapabilityStatus: 'ready' });
+    } catch { set({ modelCapabilityStatus: 'error' }); }
+  },
+
   setActiveProvider: (providerId) =>
     set((state) => {
       const provider = state.freeProviders.find((item) => item.id === providerId);
@@ -2550,6 +2582,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       const category = getProviderCategory(provider.kind);
       return {
         activeProviderId: providerId,
+        modelCapabilityReport: null,
+        modelCapabilityStatus: 'idle',
         modelCategory: category,
         modelSource: category,
         providerSelectionByCategory: {
