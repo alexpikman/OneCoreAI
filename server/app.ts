@@ -646,6 +646,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.put('/api/projects/:id/file', (req, res) => {
+    if (req.body?.approved !== true) {
+      res.status(403).json({ ok: false, error: 'Запись файла требует явного подтверждения пользователя' });
+      return;
+    }
     try {
       const filePath = typeof req.body?.path === 'string' ? req.body.path : '';
       const content = typeof req.body?.content === 'string' ? req.body.content : '';
@@ -712,6 +716,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/projects/:id/undo', (req, res) => {
+    if (req.body?.approved !== true) {
+      res.status(403).json({ ok: false, error: 'Откат требует явного подтверждения пользователя' });
+      return;
+    }
     try {
       const result = undoLastProjectAction(req.params.id);
       res.status(result.ok ? 200 : 400).json(result);
