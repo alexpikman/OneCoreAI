@@ -493,6 +493,26 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(createProj.data.ok, true);
     const projectId = createProj.data.project.id;
 
+    const restrictedProject = await jsonReq<{ ok: boolean; project: { id: string } }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Restricted Project',
+        folderSource: 'local',
+        folderPath: workdir,
+        allowedTools: ['read_file'],
+      }),
+    });
+    assert.equal(restrictedProject.status, 201);
+    const restrictedExec = await jsonReq<{ ok: boolean }>(
+      `/api/projects/${encodeURIComponent(restrictedProject.data.project.id)}/exec`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ command: 'node -e "process.exit(0)"', approved: true }),
+      },
+    );
+    assert.equal(restrictedExec.status, 403);
+    await jsonReq(`/api/projects/${encodeURIComponent(restrictedProject.data.project.id)}`, { method: 'DELETE' });
+
     const clearProject = await jsonReq<{ ok: boolean; activeProjectId: string }>(
       '/api/projects/activate',
       { method: 'POST', body: JSON.stringify({ projectId: '' }) },
