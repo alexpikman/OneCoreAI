@@ -288,6 +288,15 @@ export interface SubagentProviderSettings {
   providers: FreeProviderProfile[];
 }
 
+export interface SubagentRule {
+  id: string;
+  title: string;
+  instruction: string;
+  enabled: boolean;
+  locked: boolean;
+  bindToPlan: boolean;
+}
+
 export interface SubagentConfig {
   enabled: boolean;
   maxParallel: number;
@@ -299,6 +308,7 @@ export interface SubagentConfig {
   providers: FreeProviderProfile[];
   providerProfilesByRole: Record<string, SubagentProviderSettings>;
   autoSummarizeResult: boolean;
+  rules?: SubagentRule[];
 }
 
 export type ExecutionEnvKind = 'local' | 'ssh' | 'docker';

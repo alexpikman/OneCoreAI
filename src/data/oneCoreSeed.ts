@@ -292,6 +292,12 @@ export const INITIAL_SUBAGENT_CONFIG: SubagentConfig = {
     ]),
   ),
   autoSummarizeResult: true,
+  rules: [
+    { id: 'sub-rule-plan', title: 'Сверяться с планом проекта', instruction: 'Перед выполнением изучи план проекта и выполняй только относящиеся к порученной подзадаче пункты.', enabled: true, locked: true, bindToPlan: true },
+    { id: 'sub-rule-scope', title: 'Работать в пределах подзадачи', instruction: 'Не расширяй область работ без согласования. Не дублируй задачи других субагентов.', enabled: true, locked: true, bindToPlan: false },
+    { id: 'sub-rule-report', title: 'Возвращать проверяемый результат', instruction: 'В отчёте перечисли изученные файлы, сделанные изменения, запущенные проверки и нерешённые вопросы. Не утверждай о выполнении без подтверждения.', enabled: true, locked: false, bindToPlan: true },
+    { id: 'sub-rule-safe', title: 'Не выполнять опасные действия самостоятельно', instruction: 'Не удаляй данные, не меняй настройки доступа и не выполняй внешние побочные действия без отдельного разрешения.', enabled: true, locked: true, bindToPlan: false },
+  ],
 };
 
 export const INITIAL_EXECUTION_ENV: ExecutionEnvConfig = {

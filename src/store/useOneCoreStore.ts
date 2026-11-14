@@ -1413,7 +1413,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           model: provider.selectedModel,
           temperature: role.recommendedTemp,
           messages: [
-            { role: 'system', content: role.systemPrompt },
+            { role: 'system', content: subagentSystemPrompt },
             {
               role: 'user',
               content: `Проект: ${state.pipelineProjectName} (${state.pipelineStack}). Этап: ${stage.title}. Цель: ${stage.shortGoal}. Артефакт: ${stage.outputArtifact}.`,
@@ -2905,6 +2905,16 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       subagentProviderSettings.providers[0];
     const runId = `sub-${Date.now().toString(36)}`;
     const taskTitle = title?.trim() || prompt.trim().slice(0, 44) || 'Субагент';
+    const activeProject = state.projects.find((project) => project.id === state.activeProjectId);
+    const enabledRules = (state.subagentConfig.rules ?? []).filter((rule) => rule.enabled);
+    const planBoundRules = enabledRules.some((rule) => rule.bindToPlan);
+    const subagentSystemPrompt = [
+      role.systemPrompt,
+      enabledRules.length > 0 ? `## Правила делегирования OneCoreAI\n${enabledRules.map((rule) => `### ${rule.title}\n${rule.instruction}`).join('\n\n')}` : 'Работай по общей системной инструкции и строго в рамках порученной подзадачи.',
+      activeProject ? `## Активный проект\n${activeProject.name}\nРабочая папка: ${activeProject.folderPath}` : '',
+      planBoundRules && state.projectWorkspace.plan ? `## План проекта (источник контекста)\n${state.projectWorkspace.plan.content}` : '',
+    ].filter(Boolean).join('\n\n');
+
 
     const initialRun: SubagentRun = {
       id: runId,
