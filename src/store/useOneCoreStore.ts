@@ -977,7 +977,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/exec`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify({ command, approved: true }),
     });
     const data = (await res.json()) as {
       ok?: boolean;
@@ -1009,7 +1009,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/git`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action, message }),
+      body: JSON.stringify({ action, message, approved: true }),
     });
     const data = (await res.json()) as {
       ok?: boolean;
