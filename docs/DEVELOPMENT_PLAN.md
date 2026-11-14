@@ -27,8 +27,8 @@
 ## Phase 5 — Secret storage
 - [x] Use Windows Credential Manager through the native Windows Credential API.
 - [x] Use macOS Keychain where supported.
-- [ ] Implement Linux Secret Service storage and strengthen the encrypted fallback key derivation.
-- [ ] Define recovery and migration behavior without losing existing credentials.
+- [x] Implement Linux Secret Service storage.
+- [ ] Strengthen fallback vault key derivation and define recovery/migration behavior without losing existing credentials.
 
 ## Phase 6 — Quality gates and documentation
 - [x] Add CI for encoding checks, type-check, integration tests, and production build on Linux and Windows.
