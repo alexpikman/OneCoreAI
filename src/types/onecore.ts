@@ -1,4 +1,5 @@
 export type AppTab = 'workstation' | 'models' | 'projects' | 'settings';
+export type AiProviderCategory = 'local' | 'cloud' | 'runtime';
 export type UiStylePreset = 'cline-vscode' | 'mica-windows' | 'cyber-terminal';
 export type SettingsSectionId =
   | 'ui-chat'
@@ -76,7 +77,7 @@ export type ModelFitCategory = 'fits-vram' | 'fits-ram' | 'too-heavy';
 export interface ModelRecommendation {
   id: string;
   category: ModelFitCategory;
-  categoryLabel: 'Поместится в VRAM' | 'Поместится в RAM (CPU)' | 'Слишком тяжело';
+  categoryLabel: 'РџРѕРјРµСЃС‚РёС‚СЃСЏ РІ VRAM' | 'РџРѕРјРµСЃС‚РёС‚СЃСЏ РІ RAM (CPU)' | 'РЎР»РёС€РєРѕРј С‚СЏР¶РµР»Рѕ';
   requiredVramGb: number;
   requiredRamGb: number;
   remainingVramAfterGb: number;
@@ -227,7 +228,7 @@ export interface AgentSkill {
   id: string;
   slug: string;
   title: string;
-  category: 'Разработка' | 'DevOps' | 'Исследование' | 'Автоматизация';
+  category: 'Р Р°Р·СЂР°Р±РѕС‚РєР°' | 'DevOps' | 'РСЃСЃР»РµРґРѕРІР°РЅРёРµ' | 'РђРІС‚РѕРјР°С‚РёР·Р°С†РёСЏ';
   triggerHint: string;
   contentMarkdown: string;
   enabled: boolean;
@@ -370,7 +371,7 @@ export interface ModelRole {
 
 export interface PermissionRule {
   id: string;
-  category: 'Файловая система' | 'Терминал' | 'Сеть и модели' | 'Безопасность';
+  category: 'Р¤Р°Р№Р»РѕРІР°СЏ СЃРёСЃС‚РµРјР°' | 'РўРµСЂРјРёРЅР°Р»' | 'РЎРµС‚СЊ Рё РјРѕРґРµР»Рё' | 'Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ';
   title: string;
   description: string;
   policy: PermissionPolicy;
@@ -378,7 +379,7 @@ export interface PermissionRule {
 
 export interface ModelDirective {
   id: string;
-  category: 'Архитектура' | 'Качество кода' | 'Безопасность' | 'Стиль ответа';
+  category: 'РђСЂС…РёС‚РµРєС‚СѓСЂР°' | 'РљР°С‡РµСЃС‚РІРѕ РєРѕРґР°' | 'Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ' | 'РЎС‚РёР»СЊ РѕС‚РІРµС‚Р°';
   title: string;
   instruction: string;
   enabled: boolean;
@@ -558,6 +559,9 @@ export interface PersistedAppSettings {
   appSettings: AppSettings;
   roles: ModelRole[];
   activeRoleId: string;
+  modelCategory: AiProviderCategory;
+  modelSource: AiProviderCategory;
+  providerSelectionByCategory: Record<AiProviderCategory, string>;
   permissions: PermissionRule[];
   directives: ModelDirective[];
   pipelineStages: PipelineStage[];

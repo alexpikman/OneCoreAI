@@ -470,6 +470,20 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(createProj.data.ok, true);
     const projectId = createProj.data.project.id;
 
+    const clearProject = await jsonReq<{ ok: boolean; activeProjectId: string }>(
+      '/api/projects/activate',
+      { method: 'POST', body: JSON.stringify({ projectId: '' }) },
+    );
+    assert.equal(clearProject.status, 200);
+    assert.equal(clearProject.data.activeProjectId, '');
+    const projectsWithoutActive = await jsonReq<{ activeProjectId: string }>('/api/projects');
+    assert.equal(projectsWithoutActive.data.activeProjectId, '');
+    const reactivateProject = await jsonReq<{ activeProjectId: string }>(
+      `/api/projects/${encodeURIComponent(projectId)}/activate`,
+      { method: 'POST' },
+    );
+    assert.equal(reactivateProject.data.activeProjectId, projectId);
+
     const emptyWorkspace = await jsonReq<{
       ok: boolean;
       workspace: { tasks: unknown[]; plan: unknown };

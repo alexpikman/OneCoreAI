@@ -4,6 +4,7 @@ import { TopHeader } from './components/layout/TopHeader';
 import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 import { ProjectsView } from './components/projects/ProjectsView';
+import { AiSettingsModal } from './components/settings/AiSettingsModal';
 import { SettingsView } from './components/settings/SettingsView';
 import { WorkstationView } from './components/workstation/WorkstationView';
 import { useOneCoreStore } from './store/useOneCoreStore';
@@ -32,6 +33,16 @@ export default function App() {
   useEffect(() => {
     if (hydrated) void checkForUpdates();
   }, [hydrated, checkForUpdates]);
+
+  // Global listener: open project connect modal from any tab when agent needs a project
+  useEffect(() => {
+    const handler = () => {
+      // Switch to workstation tab so the user sees the project connection UI
+      setActiveTab('workstation');
+    };
+    window.addEventListener('onecore:open-project-modal', handler);
+    return () => window.removeEventListener('onecore:open-project-modal', handler);
+  }, [setActiveTab]);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -73,6 +84,7 @@ export default function App() {
         </main>
       </div>
       <OfflineIndicator />
+      <AiSettingsModal />
     </div>
   );
 }

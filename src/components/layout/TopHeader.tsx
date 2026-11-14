@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+﻿import React, { useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Bell,
@@ -22,6 +22,7 @@ export const TopHeader: React.FC = () => {
   const {
     activeTab,
     setActiveTab,
+    appNavigationWidth,
     openSettingsSection,
     theme,
     toggleTheme,
@@ -47,6 +48,11 @@ export const TopHeader: React.FC = () => {
     markAllNotificationsRead,
     togglePauseDownload,
     latestUpdate,
+    modelCategory,
+    setModelCategory,
+    modelSource,
+    setModelSource,
+    openAiSettingsModal,
   } = useOneCoreStore();
 
   const tokens = getUiTokens(uiStyle);
@@ -70,12 +76,15 @@ export const TopHeader: React.FC = () => {
   }, [trayOpen, setTrayOpen]);
 
   return (
-    <header className={cn('h-14 shrink-0 border-b px-2 md:px-5 flex items-center justify-between gap-2 md:gap-4 xl:gap-8 relative z-30', tokens.headerBg)}>
+    <header
+      className={cn('h-14 shrink-0 border-b flex items-center justify-between gap-0 relative z-30', tokens.headerBg)}
+      style={{ '--app-navigation-width': `${appNavigationWidth}px` } as React.CSSProperties}
+    >
       <button
         type="button"
         onClick={() => setActiveTab('workstation')}
         aria-label="ONE CORE AI — рабочая станция"
-        className="inline-flex items-center gap-2 font-display text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+        className="w-14 lg:w-[var(--app-navigation-width)] h-full shrink-0 pl-2 lg:pl-3 pr-2 inline-flex items-center gap-2 font-display text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100 whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
       >
         <img src="/onecore-ai-logo.png" alt="" className="h-8 w-8 rounded-lg object-cover" />
         <span className="hidden md:inline">ONE CORE AI</span>
@@ -94,12 +103,12 @@ export const TopHeader: React.FC = () => {
                 roleName={activeRole.name}
                 modelName={activeModel?.name || activeProvider?.selectedModel || ''}
                 tokensPerSec={tokensPerSec}
-                onClick={() => openSettingsSection('roles-pipeline')}
+                onClick={() => openAiSettingsModal(modelCategory)}
               />
             </div>
             <button
               type="button"
-              onClick={() => openSettingsSection('roles-pipeline')}
+              onClick={() => openAiSettingsModal(modelCategory)}
               aria-label={`Аватар агента, роль ${activeRole.name}`}
               title={`ONE CORE AI · ${activeRole.name}`}
               className="md:hidden w-9 h-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200"
@@ -109,47 +118,34 @@ export const TopHeader: React.FC = () => {
             </>
           )}
 
-          {activeProvider && (
-            <>
-              <select
-                aria-label="Провайдер модели"
-                title="Выбрать провайдера"
-                value={activeProviderId}
-                onChange={(event) => setActiveProvider(event.target.value)}
-                className="h-8 max-w-36 shrink-0 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] text-zinc-700 dark:text-zinc-200 rounded-md"
-              >
-                {providers.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.isLocal ? 'Локально' : 'Облако'} · {provider.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                aria-label="Модель провайдера"
-                title={activeProvider.selectedModel}
-                value={activeProvider.selectedModel}
-                onChange={(event) =>
-                  updateFreeProvider(activeProvider.id, { selectedModel: event.target.value })
-                }
-                className="h-8 max-w-40 shrink-0 px-2 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-[11px] font-mono text-zinc-700 dark:text-zinc-200 rounded-md"
-              >
-                {Array.from(new Set([activeProvider.selectedModel, ...activeProvider.availableModels])).map((model) => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </select>
-              {activeProvider.requiresKey && !activeProvider.apiKey.trim() && (
-                <button
-                  type="button"
-                  onClick={() => openSettingsSection('providers')}
-                  title="У облачного API-провайдера нужен ключ"
-                  className="h-8 px-2 shrink-0 border border-amber-500/40 bg-amber-500/10 text-[11px] text-amber-700 dark:text-amber-300 rounded-md"
-                >
-                  Нужен ключ
-                </button>
+                    <div className="flex items-center gap-1.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => setModelSource('local')}
+              aria-pressed={modelSource === 'local'}
+              className={cn(
+                'h-8 px-2 shrink-0 rounded-md text-[10px] font-medium transition-colors',
+                modelSource === 'local'
+                  ? 'bg-blue-600 text-white'
+                  : 'border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
               )}
-            </>
-          )}
-
+            >
+              Локально
+            </button>
+            <button
+              type="button"
+              onClick={() => setModelSource('cloud')}
+              aria-pressed={modelSource === 'cloud'}
+              className={cn(
+                'h-8 px-2 shrink-0 rounded-md text-[10px] font-medium transition-colors',
+                modelSource === 'cloud'
+                  ? 'bg-blue-600 text-white'
+                  : 'border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              )}
+            >
+              Облако
+            </button>
+          </div>
           {chatVisibility.showRoleSwitcher && (
             <div className="flex items-center gap-1 overflow-x-auto min-w-0">
               {roles.map((role) => (
@@ -175,7 +171,7 @@ export const TopHeader: React.FC = () => {
       )}
 
       {/* Install, Theme, Windows Tray & Primary Action */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 pr-2 md:pr-5">
         {latestUpdate?.isNewer && (
           <button
             type="button"

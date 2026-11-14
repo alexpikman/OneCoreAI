@@ -27,7 +27,6 @@ import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type {
   ChatVisibilitySettings,
   GpuBackend,
-  SettingsSectionId,
   UiStylePreset,
 } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -48,9 +47,7 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
     items: [
       { key: 'showLeftSidebar', label: 'Подменю рабочего стола', hint: 'Скрывает контекстные пункты рабочего стола, сохраняя основное меню разделов' },
       { key: 'showProjectTree', label: 'Файлы проекта', hint: 'Показывает кнопку файлового проводника в левом меню' },
-      { key: 'showLocalModels', label: 'Список локальных моделей GGUF', hint: 'Быстрое переключение активной модели' },
       { key: 'showSessionHistory', label: 'История чат-сессий', hint: 'Сохранённые задачи, поиск и кнопка нового чата' },
-      { key: 'showSkillsMemoryTab', label: 'Вкладка «Навыки и память» (OneCore)', hint: 'Переключатель SKILL.md и файлов SOUL/MEMORY/USER' },
     ],
   },
   {
@@ -89,28 +86,9 @@ const VISIBILITY_GROUPS: VisibilityToggleGroup[] = [
   },
 ];
 
-const SETTINGS_TABS: {
-  id: SettingsSectionId;
-  label: string;
-  group: string;
-  icon: React.ComponentType<{ className?: string }>;
-}[] = [
-  { id: 'providers', label: 'Провайдеры и API-модели', group: 'Настройка моделей', icon: Sparkles },
-  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'Настройка моделей', icon: Cpu },
-  { id: 'ui-chat', label: 'Интерфейс и области чата', group: 'Все настройки', icon: LayoutGrid },
-  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'Все настройки', icon: UserCheck },
-  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'Все настройки', icon: Brain },
-  { id: 'execution-env', label: 'Среды: Local / SSH / Docker', group: 'Все настройки', icon: Server },
-  { id: 'gateway', label: 'Шлюз мессенджеров', group: 'Все настройки', icon: MessageCircle },
-  { id: 'ssh-github', label: 'Доступ SSH и GitHub', group: 'Все настройки', icon: KeyRound },
-  { id: 'github-download', label: 'Скачивание с GitHub', group: 'Все настройки', icon: Download },
-  { id: 'updates', label: 'Обновления приложения', group: 'Все настройки', icon: RefreshCw },
-];
-
 export const SettingsView: React.FC = () => {
   const {
     settingsSection,
-    setSettingsSection,
     appNavigationWidth,
     setAppNavigationWidth,
     uiStyle,
@@ -128,7 +106,6 @@ export const SettingsView: React.FC = () => {
     updateCheckStatus,
     updateCheckError,
     checkForUpdates,
-    setActiveTab,
     saveSettings,
     settingsSaveStatus,
     settingsSavedAt,
@@ -137,9 +114,11 @@ export const SettingsView: React.FC = () => {
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const tokens = getUiTokens(uiStyle);
-
-  const visibleCount = Object.values(chatVisibility).filter(Boolean).length;
-  const totalCount = Object.keys(chatVisibility).length;
+  const totalCount = VISIBILITY_GROUPS.reduce((count, group) => count + group.items.length, 0);
+  const visibleCount = VISIBILITY_GROUPS.reduce(
+    (count, group) => count + group.items.filter(({ key }) => chatVisibility[key]).length,
+    0,
+  );
 
   const cleanRepo =
     githubAccess.repoOwnerSlashName.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '') ||
@@ -154,72 +133,7 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col lg:flex-row overflow-hidden">
-      {/* Left Settings Category Navigation */}
-      <aside className={cn('w-full lg:w-[270px] shrink-0 border-b lg:border-b-0 lg:border-r p-4 flex flex-col gap-4', tokens.sidebarBg)}>
-        <div>
-          <h1 className="font-display text-base font-bold text-zinc-900 dark:text-zinc-100">
-            Все настройки
-          </h1>
-          <p className="text-[11.5px] text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-            Единый центр конфигурации интерфейса, движка llama.cpp, SSH и GitHub.
-          </p>
-        </div>
-
-        <nav className="flex lg:flex-col gap-1.5 overflow-x-auto" aria-label="Разделы настроек">
-          {SETTINGS_TABS.map((tab) => {
-            const Icon = tab.icon;
-            const active = settingsSection === tab.id;
-            const groupStart =
-              SETTINGS_TABS.findIndex((entry) => entry.id === tab.id) === 0 ||
-              SETTINGS_TABS[SETTINGS_TABS.findIndex((entry) => entry.id === tab.id) - 1]?.group !== tab.group;
-            return (
-              <React.Fragment key={tab.id}>
-                {groupStart && (
-                  <div className="hidden lg:block pt-2 first:pt-0 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-                    {tab.group}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setSettingsSection(tab.id)}
-                  className={cn(
-                    'px-3 py-2.5 text-left text-xs font-medium flex items-center gap-2.5 border transition-colors whitespace-nowrap shrink-0',
-                    tokens.cardRadius,
-                    active
-                      ? tokens.activeHighlight
-                      : 'border-transparent text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-zinc-200',
-                  )}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{tab.label}</span>
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </nav>
-
-        <div className={cn('mt-auto hidden lg:block p-3 border text-xs space-y-2', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
-          <div className="flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
-            <span>Видимых областей чата</span>
-            <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
-              {visibleCount} / {totalCount}
-            </span>
-          </div>
-          <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
-            Стиль: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{tokens.label}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('workstation')}
-            className={cn('w-full h-8 text-xs font-medium transition-colors', tokens.cardRadius, tokens.accentButton)}
-          >
-            Открыть чат агента
-          </button>
-        </div>
-      </aside>
-
-      {/* Right Settings Content */}
+    <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="sticky top-0 z-10 px-6 py-2 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/95 dark:bg-[#09090B]/95 backdrop-blur flex items-center justify-between gap-3">
           <div className="min-w-0 text-[11px] text-zinc-500">

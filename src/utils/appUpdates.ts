@@ -1,6 +1,6 @@
 import type { AppUpdateRelease } from '../types/onecore';
 
-export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.2.0';
+export const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.2.1';
 
 function parseVersion(value: string): { parts: number[]; prerelease: boolean } | null {
   const normalized = value.trim().replace(/^v/i, '');

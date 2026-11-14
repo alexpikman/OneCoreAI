@@ -32,7 +32,7 @@ const TOOL_OPTIONS = [
 ];
 
 export const ProjectModal: React.FC<ProjectModalProps> = ({ open, editingProject, onClose }) => {
-  const { localModels, freeProviders, saveProject, deleteProject } = useOneCoreStore();
+  const { localModels, freeProviders, saveProject, deleteProject, connectProject, projects } = useOneCoreStore();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -77,6 +77,14 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ open, editingProject
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Show existing projects to connect to when creating a new modal (no editingProject)
+  const existingProjects = projects.filter((p) => p.id !== editingProject?.id);
+
+  const handleConnectExisting = async (pid: string) => {
+    await connectProject(pid);
+    onClose();
+  };
 
   const browseTo = useCallback(async (targetPath?: string) => {
     setBrowseLoading(true);
@@ -354,6 +362,40 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({ open, editingProject
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {!editingProject && existingProjects.length > 0 && (
+          <div className="p-5 space-y-3 max-h-[82vh] overflow-y-auto border-b border-zinc-200 dark:border-zinc-800 pb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
+                Подключить существующий проект
+              </span>
+            </div>
+            <div className="space-y-1">
+              {existingProjects.map((proj) => (
+                <button
+                  key={proj.id}
+                  type="button"
+                  onClick={() => void handleConnectExisting(proj.id)}
+                  className="w-full text-left px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-500 dark:hover:border-blue-500/30 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{proj.name}</span>
+                    <span className="text-[10px] text-zinc-500">{proj.folderSource}</span>
+                  </div>
+                  <div className="text-[10px] text-zinc-400 mt-0.5 truncate">
+                    {proj.folderPath}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
+              <span className="text-[10px] text-zinc-500 italic">
+                Или создайте новый проект ниже
+              </span>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[82vh] overflow-y-auto">
           {errorMsg && (
