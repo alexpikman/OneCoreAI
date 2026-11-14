@@ -12,6 +12,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/integration.test.ts",
+    "check:encoding": "node scripts/check-encoding.mjs",
     "tauri:prepare": "node scripts/prepare-tauri.mjs",
     "tauri:dev": "npx @tauri-apps/cli@2 dev",
     "tauri:build": "npx @tauri-apps/cli@2 build"
