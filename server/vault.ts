@@ -27,7 +27,7 @@ async function runSecretTool(args: string[], input?: string): Promise<string> {
     child.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
-        resolve(stdout.replace(/\\r?\\n$/, ''));
+        resolve(stdout.replace(/\r?\n$/, ''));
       } else {
         reject(new Error(stderr.trim() || `secret-tool exited with code ${code}`));
       }
@@ -238,7 +238,7 @@ async function tryOsKeychainGet(account: string): Promise<string | null> {
         SERVICE_NAME,
         '-w',
       ]);
-      return stdout.replace(/\\r?\\n$/, '');
+      return stdout.replace(/\r?\n$/, '');
     }
     if (platform === 'linux' && process.env.DBUS_SESSION_BUS_ADDRESS) {
       await execFileAsync('which', ['secret-tool']);
