@@ -650,7 +650,7 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
       {
         method: 'POST',
         body: JSON.stringify({
-          prompt: '/run node -e "require(\\'fs\\').writeFileSync(\\'direct-run-ran.txt\\',\\'ran\\')"',
+          prompt: `/run node -e "require('fs').writeFileSync('direct-run-ran.txt','ran')"`,
           mode: 'act',
         }),
       },
