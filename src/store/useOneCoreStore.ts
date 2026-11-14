@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   GENERAL_AGENT_SYSTEM_PROMPT,
   INITIAL_DIRECTIVES,
+  INITIAL_GENERAL_AGENT_CONFIG,
   INITIAL_PERMISSIONS,
   INITIAL_PIPELINE_STAGES,
   INITIAL_ROLES,
@@ -53,6 +54,7 @@ import type {
   ModelTokenUsage,
   ModelDirective,
   ModelRole,
+  GeneralAgentConfig,
   PermissionPolicy,
   PermissionRule,
   PipelineStage,
@@ -161,6 +163,8 @@ interface OneCoreStore {
   centerPaneMode: 'chat' | 'file';
 
   roles: ModelRole[];
+  generalAgentConfig: GeneralAgentConfig;
+  updateGeneralAgentConfig: (patch: Partial<GeneralAgentConfig>) => void;
   activeRoleId: string;
   enabledRoleIds: string[];
   permissions: PermissionRule[];
@@ -461,6 +465,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   centerPaneMode: 'chat',
 
   roles: INITIAL_ROLES,
+  generalAgentConfig: INITIAL_GENERAL_AGENT_CONFIG,
   activeRoleId: INITIAL_ROLES[0].id,
   enabledRoleIds: ['role-developer'],
   permissions: INITIAL_PERMISSIONS,
@@ -1108,8 +1113,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         inferenceSettings: { ...state.inferenceSettings, ...saved.inferenceSettings },
         appSettings: saved.appSettings,
         roles: saved.roles,
+        generalAgentConfig: saved.generalAgentConfig ?? INITIAL_GENERAL_AGENT_CONFIG,
         activeRoleId: saved.activeRoleId,
-        enabledRoleIds: saved.enabledRoleIds ?? [saved.activeRoleId],
+        enabledRoleIds: (saved.enabledRoleIds ?? [saved.activeRoleId]).slice(0, 1),
         permissions: saved.permissions,
         directives: saved.directives?.some((directive) => directive.id === 'dir-general-agent')
           ? saved.directives
@@ -1184,6 +1190,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       },
       appSettings: state.appSettings,
       roles: state.roles,
+      generalAgentConfig: state.generalAgentConfig,
       activeRoleId: state.activeRoleId,
       enabledRoleIds: state.enabledRoleIds,
       permissions: state.permissions,
@@ -1314,9 +1321,14 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     })),
 
   toggleAgentRole: (roleId) => {
-    set((state) => ({ enabledRoleIds: state.enabledRoleIds.includes(roleId) ? state.enabledRoleIds.filter((id) => id !== roleId) : [...state.enabledRoleIds, roleId] }));
+    set((state) => ({
+      enabledRoleIds: state.enabledRoleIds.includes(roleId) ? [] : [roleId],
+    }));
     void get().saveSettings();
   },
+
+  updateGeneralAgentConfig: (patch) =>
+    set((state) => ({ generalAgentConfig: { ...state.generalAgentConfig, ...patch } })),
 
   setActiveRole: (roleId, syncTemp = true) => {
     const role = get().roles.find((r) => r.id === roleId);
@@ -1812,8 +1824,16 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const estimatedContextTokens = state.files.filter((file) => file.inContext).reduce((sum, file) => sum + file.tokensEstimate, 0) + (state.includeProjectTree ? 180 : 0) + (state.includeTerminalOutput ? 120 : 0) + Math.ceil(trimmed.length / 4);
 
     const systemContext = [
-      GENERAL_AGENT_SYSTEM_PROMPT,
-      enabledRoles.length > 0 ? `## Активные инженерные роли\n${enabledRoles.map((role) => `### ${role.name}\n${role.systemPrompt}`).join('\n\n')}` : '## Режим общего агента\nВсе специализированные роли отключены. Работай как единый универсальный агент и руководствуйся общими правилами ONE CORE AI.',
+      enabledRoles.length > 0
+        ? [GENERAL_AGENT_SYSTEM_PROMPT, `## Активные инженерные роли\n${enabledRoles.map((role) => `### ${role.name}\n${role.systemPrompt}`).join('\n\n')}`].join('\n\n')
+        : [
+            '## Режим общего агента',
+            state.generalAgentConfig.systemPrompt,
+            '## Инструкции общего агента',
+            state.generalAgentConfig.instructions,
+            '## Схема поведения общего агента',
+            state.generalAgentConfig.behaviorSchema,
+          ].join('\n\n'),
       state.directives.filter((directive) => directive.enabled).map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
       activeProj
         ? [
