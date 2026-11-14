@@ -14,7 +14,7 @@ const mojibakePatterns = [
   /С[‚„…†‡€‰Љ‹ЊЌЋЏђљ›њќћџ]/u,
   /С[а-яё][РС][а-яё]/u,
   /вЂ[™”¦]/u,
-  /В·/u,
+  new RegExp(String.fromCharCode(0x412, 0xB7), 'u'),
 ];
 const failures = [];
 
