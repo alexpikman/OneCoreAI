@@ -8,6 +8,7 @@
 ## Phase 2 — Local API security
 - [x] Validate loopback Host, Origin, and Fetch Metadata headers.
 - [ ] Add an authenticated session/token model for all API calls; origin validation is not authentication against other local processes.
+- [ ] Keep provider/API secrets server-side and return only presence/masked metadata from `/api/settings`.
 - [ ] Verify all browser-to-local API request paths in Tauri and browser development modes.
 - [ ] Ensure secrets are never exposed in logs or plain manifests.
 
