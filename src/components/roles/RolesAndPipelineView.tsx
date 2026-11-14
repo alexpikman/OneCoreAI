@@ -21,6 +21,8 @@ type SubSection = 'roles' | 'permissions' | 'pipeline';
 export const RolesAndPipelineView: React.FC = () => {
   const {
     roles,
+    generalAgentConfig,
+    updateGeneralAgentConfig,
     activeRoleId,
     setActiveRole,
     addCustomRole,
@@ -45,9 +47,11 @@ export const RolesAndPipelineView: React.FC = () => {
     tokensPerSec,
     setActiveTab,
     sendPrompt,
+    saveSettings,
   } = useOneCoreStore();
 
   const [section, setSection] = useState<SubSection>('roles');
+  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);
 
   // Custom role builder state
   const [roleName, setRoleName] = useState('');
@@ -84,6 +88,11 @@ export const RolesAndPipelineView: React.FC = () => {
     setRoleName('');
     setRoleTagline('');
     setRolePrompt('');
+  };
+
+  const handleSaveGeneralAgentConfig = async () => {
+    const result = await saveSettings();
+    setGeneralAgentSaveStatus(result.ok ? 'Настройки общего агента сохранены.' : result.error || 'Не удалось сохранить настройки.');
   };
 
   const handleAddDirective = (e: React.FormEvent) => {
@@ -151,6 +160,36 @@ export const RolesAndPipelineView: React.FC = () => {
         </div>
 
         {/* SECTION 1: Multi-Role Switching + Custom Role Constructor */}
+        {section === 'roles' && (
+          <div className="rounded-xl border border-violet-500/25 bg-white dark:bg-[#111114] p-5 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">Общий агент</h2>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Отдельная конфигурация, используемая, когда все инженерные роли отключены.</p>
+              </div>
+              <span className="rounded-md border border-violet-500/30 bg-violet-500/5 px-2 py-1 text-[10px] font-medium text-violet-700 dark:text-violet-300">Универсальный режим</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <label className="block min-w-0">
+                <span className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">Инструкции</span>
+                <textarea rows={8} value={generalAgentConfig.instructions} onChange={(event) => { updateGeneralAgentConfig({ instructions: event.target.value }); setGeneralAgentSaveStatus(null); }} className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-3 text-xs leading-relaxed text-zinc-900 dark:text-zinc-100 resize-y" />
+              </label>
+              <label className="block min-w-0">
+                <span className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">Схема поведения: этапы, правила и ограничения</span>
+                <textarea rows={8} value={generalAgentConfig.behaviorSchema} onChange={(event) => { updateGeneralAgentConfig({ behaviorSchema: event.target.value }); setGeneralAgentSaveStatus(null); }} className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-3 text-xs leading-relaxed text-zinc-900 dark:text-zinc-100 resize-y" />
+              </label>
+              <label className="block min-w-0">
+                <span className="mb-1.5 block text-xs font-medium text-zinc-700 dark:text-zinc-300">Системный промпт</span>
+                <textarea rows={8} value={generalAgentConfig.systemPrompt} onChange={(event) => { updateGeneralAgentConfig({ systemPrompt: event.target.value }); setGeneralAgentSaveStatus(null); }} className="w-full rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-3 text-xs leading-relaxed text-zinc-900 dark:text-zinc-100 resize-y" />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">{generalAgentSaveStatus ?? 'Изменения применяются к контексту общего агента; нажмите «Сохранить», чтобы записать их в настройки.'}</span>
+              <button type="button" onClick={() => void handleSaveGeneralAgentConfig()} className="h-9 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 text-xs font-medium text-white transition-colors">Сохранить общий агент</button>
+            </div>
+          </div>
+        )}
+
         {section === 'roles' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-7 space-y-3">
