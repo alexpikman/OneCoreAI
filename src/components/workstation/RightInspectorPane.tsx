@@ -47,6 +47,8 @@ export const RightInspectorPane: React.FC = () => {
     modelCapabilityStatus,
     checkModelCapabilities,
     lastTokenUsage,
+    sessions,
+    activeSessionId,
   } = useOneCoreStore();
 
   const [quickSubagentPrompt, setQuickSubagentPrompt] = useState('');
@@ -54,6 +56,9 @@ export const RightInspectorPane: React.FC = () => {
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? null;
   const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId);
+  const activeSession = sessions.find((session) => session.id === activeSessionId);
+  const sessionUsageMessages = activeSession?.messages.filter((message) => typeof message.tokenUsage?.totalTokens === 'number') ?? [];
+  const sessionTokenTotal = sessionUsageMessages.reduce((total, message) => total + (message.tokenUsage?.totalTokens ?? 0), 0);
   const runtimeProvider = freeProviders.find(
     (provider) => provider.id === providerSelectionByCategory.runtime,
   );
@@ -245,8 +250,8 @@ export const RightInspectorPane: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 gap-1.5 text-[11px]">
           <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
-            <div className="text-zinc-500">Вход</div>
-            <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{lastTokenUsage?.promptTokens?.toLocaleString('ru-RU') ?? '—'}</div>
+            <div className="text-zinc-500">{lastTokenUsage?.promptTokens === null ? 'Вход (оценка)' : 'Вход'}</div>
+            <div className="font-mono text-sm tabular-nums text-zinc-900 dark:text-zinc-100">{lastTokenUsage ? (lastTokenUsage.promptTokens?.toLocaleString('ru-RU') ?? `~${lastTokenUsage.estimatedPromptTokens.toLocaleString('ru-RU')}`) : '—'}</div>
           </div>
           <div className={cn('p-2 border', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
             <div className="text-zinc-500">Выход</div>
@@ -256,6 +261,10 @@ export const RightInspectorPane: React.FC = () => {
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-zinc-500">Последний запрос</span>
           <span className="font-mono tabular-nums">{lastTokenUsage?.totalTokens?.toLocaleString('ru-RU') ?? 'нет данных'} tok</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px]">
+          <span className="text-zinc-500">За текущую сессию</span>
+          <span className="font-mono tabular-nums">{sessionUsageMessages.length ? sessionTokenTotal.toLocaleString('ru-RU') : 'нет данных'} tok</span>
         </div>
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-zinc-500">Оценка файлового контекста</span>
