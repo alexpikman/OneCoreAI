@@ -4,11 +4,9 @@ import {
   Bot,
   Brain,
   Check,
-  CheckCircle2,
   Container,
   Copy,
   Download,
-  ExternalLink,
   Laptop,
   Loader2,
   MessageCircle,
@@ -16,9 +14,7 @@ import {
   Plus,
   RefreshCw,
   Server,
-  Sparkles,
   Trash2,
-  XCircle,
 } from 'lucide-react';
 import { buildGatewayStartScript } from '../../data/oneCoreSeed';
 import { AiSettingsModal } from './AiSettingsModal';
@@ -29,7 +25,6 @@ import type {
   ExecutionEnvKind,
   GatewayPlatform,
   AiProviderCategory,
-  FreeProviderKind,
   FreeProviderProfile,
   SettingsSectionId,
 } from '../../types/onecore';
@@ -39,41 +34,6 @@ import { getUiTokens } from '../../utils/uiStyle';
 interface Props {
   section: SettingsSectionId;
 }
-
-const PROVIDER_LINKS: Partial<Record<FreeProviderKind, { label: string; url: string }>> = {
-  'deepseek-api': {
-    label: 'Войти и получить API-ключ',
-    url: 'https://platform.deepseek.com/api_keys',
-  },
-  'qwen-api': {
-    label: 'Войти и получить API-ключ',
-    url: 'https://bailian.console.aliyun.com/?tab=model#/api-key',
-  },
-  'openai-api': {
-    label: 'Войти и получить API-ключ',
-    url: 'https://platform.openai.com/api-keys',
-  },
-  'openrouter-free': {
-    label: 'Войти и получить API-ключ',
-    url: 'https://openrouter.ai/keys',
-  },
-  'groq-free': {
-    label: 'Войти и получить API-ключ',
-    url: 'https://console.groq.com/keys',
-  },
-  'llama-cpp': {
-    label: 'Открыть страницу проекта',
-    url: 'https://github.com/ggml-org/llama.cpp/releases',
-  },
-  ollama: {
-    label: 'Открыть сайт Ollama',
-    url: 'https://ollama.com/download',
-  },
-  lmstudio: {
-    label: 'Открыть сайт LM Studio',
-    url: 'https://lmstudio.ai/',
-  },
-};
 
 export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
   const {
