@@ -18,6 +18,7 @@
 - Added Windows Credential Manager access through the native Windows Credential API, macOS Keychain support, and Linux Secret Service integration; application settings now use OS credential storage where available.
 - Added CI on Linux and Windows for encoding checks, type-checking, integration tests, and production builds.
 - Restricted Windows installer release workflow to version tags or manual dispatch.
+- Changed the first-run UI default to the light Mica preset and aligned the browser/PWA startup colors; existing saved theme preferences remain intact.
 - Added project governance and continuation documents.
 
 ## Verification status
