@@ -753,6 +753,11 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.post('/api/projects/:id/task', async (req, res) => {
+    const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
+    if (prompt === '/undo' && !hasExplicitApproval(req.body?.approved)) {
+      res.status(403).json({ ok: false, error: 'Откат требует явного подтверждения пользователя' });
+      return;
+    }
     try {
       const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt : '';
       const mode = req.body?.mode === 'plan' ? 'plan' : 'act';
