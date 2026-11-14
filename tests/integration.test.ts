@@ -565,7 +565,18 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
       recordProjectMemory(projectId, `Recorded project action ${i}`);
     }
 
-    // Write hello.py via API
+    // File writes must be rejected until the UI explicitly approves them.
+    const deniedWrite = await jsonReq<{ ok: boolean }>(
+      `/api/projects/${encodeURIComponent(projectId)}/file`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ path: 'denied.txt', content: 'no approval' }),
+      },
+    );
+    assert.equal(deniedWrite.status, 403);
+    assert.equal(fs.existsSync(path.join(workdir, 'denied.txt')), false);
+
+    // Write hello.py via an explicitly approved API action.
     const writeRes = await jsonReq<{ ok: boolean }>(
       `/api/projects/${encodeURIComponent(projectId)}/file`,
       {
@@ -581,6 +592,12 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(writeRes.status, 200);
     assert.equal(writeRes.data.ok, true);
     assert.equal(fs.existsSync(path.join(workdir, 'hello.py')), true);
+
+    const deniedUndo = await jsonReq<{ ok: boolean }>(
+      `/api/projects/${encodeURIComponent(projectId)}/undo`,
+      { method: 'POST' },
+    );
+    assert.equal(deniedUndo.status, 403);
 
     // Execute Node.js, which is already required to run ONE CORE AI.
     const deniedExec = await jsonReq<{ ok: boolean }>(
@@ -600,21 +617,57 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(execRes.data.exitCode, 0);
     assert.match(execRes.data.stdout, /Hello from OneCore/);
 
+    const directRunPrompt = await jsonReq<{ ok: boolean; proposedCommand?: string; commandResult?: unknown }>(
+      `/api/projects/${encodeURIComponent(projectId)}/task`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: '/run node -e "require(\\'fs\\').writeFileSync(\\'direct-run-ran.txt\\',\\'ran\\')"',
+          mode: 'act',
+        }),
+      },
+    );
+    assert.equal(directRunPrompt.status, 200);
+    assert.ok(directRunPrompt.data.proposedCommand);
+    assert.equal(directRunPrompt.data.commandResult, undefined);
+    assert.equal(fs.existsSync(path.join(workdir, 'direct-run-ran.txt')), false);
+
     const proposedCommand = `node -e "require('fs').writeFileSync('agent-command-ran.txt','ran')"`;
     const modelServer = http.createServer((_req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          choices: [{ message: { content: JSON.stringify({ reply: 'Нужна команда.', runCommand: proposedCommand }) } }],
+          choices: [{ message: { content: JSON.stringify({
+            reply: 'Нужна команда.',
+            runCommand: proposedCommand,
+            writeFile: {
+              path: 'agent-created.txt',
+              content: 'pending agent edit',
+              summary: 'Test pending agent edit',
+            },
+          }) } }],
         }),
       );
     });
     await new Promise<void>((resolve) => modelServer.listen(0, '127.0.0.1', resolve));
     const modelAddress = modelServer.address();
     assert.ok(modelAddress && typeof modelAddress === 'object');
-    let taskRes: { status: number; data: { ok: boolean; proposedCommand?: string; commandResult?: unknown } };
+    let taskRes: {
+      status: number;
+      data: {
+        ok: boolean;
+        proposedCommand?: string;
+        commandResult?: unknown;
+        diff?: { filePath: string; oldContent: string; newContent: string; summary: string };
+      };
+    };
     try {
-      taskRes = await jsonReq<{ ok: boolean; proposedCommand?: string; commandResult?: unknown }>(
+      taskRes = await jsonReq<{
+        ok: boolean;
+        proposedCommand?: string;
+        commandResult?: unknown;
+        diff?: { filePath: string; oldContent: string; newContent: string; summary: string };
+      }>(
         `/api/projects/${encodeURIComponent(projectId)}/task`,
         {
         method: 'POST',
@@ -634,6 +687,9 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     assert.equal(taskRes.status, 200);
     assert.equal(taskRes.data.proposedCommand, proposedCommand);
     assert.equal(taskRes.data.commandResult, undefined);
+    assert.equal(taskRes.data.diff?.filePath, 'agent-created.txt');
+    assert.equal(taskRes.data.diff?.newContent, 'pending agent edit');
+    assert.equal(fs.existsSync(path.join(workdir, 'agent-created.txt')), false);
     assert.equal(fs.existsSync(path.join(workdir, 'agent-command-ran.txt')), false);
 
     const approvedCommand = await jsonReq<{ ok: boolean; exitCode: number }>(
