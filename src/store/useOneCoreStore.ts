@@ -6,6 +6,7 @@ import {
   INITIAL_ROLES,
 } from '../data/rolesAndRules';
 import { INITIAL_SESSIONS } from '../data/workspaceSeed';
+import { PROJECT_AGENT_INSTRUCTIONS } from '../data/projectAgentInstructions';
 import { apiFetch as fetch } from '../utils/apiFetch';
 import { inferAgentMode, routeAgentPrompt } from '../utils/agentRouter';
 import {
@@ -1776,6 +1777,21 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
     const systemContext = [
       activeRole.systemPrompt,
+      activeProj
+        ? [
+            PROJECT_AGENT_INSTRUCTIONS,
+            `## Активный проект: ${activeProj.name}`,
+            `Описание: ${activeProj.description || 'не задано'}`,
+            `Рабочая папка: ${activeProj.folderPath}`,
+            `Источник проекта: ${activeProj.folderSource}`,
+            `Разрешённые инструменты: ${activeProj.allowedTools?.join(', ') || 'read_file, write_file, run_command, git, search_code (наследуемые разрешения)'}`,
+            `План: ${state.projectWorkspace.plan?.content ?? 'не создан'}`,
+            `Прогресс плана: ${state.projectWorkspace.plan?.progress ?? 0}%`,
+            `Задачи: ${state.projectWorkspace.tasks.slice(0, 30).map((task) => `- [${task.status}] ${task.id}: ${task.title} — ${task.description}`).join('\n') || 'нет задач'}`,
+            `Файлы проекта: ${state.files.map((file) => file.path).slice(0, 100).join(', ') || 'список файлов ещё не загружен'}`,
+            'Если вопрос относится к этому проекту, опирайся на эти метаданные. Для анализа содержимого или изменений файлов направляй запрос через проектный маршрут и не утверждай, что читал файлы, пока их содержимое не получено.',
+          ].join('\n')
+        : '',
       state.memoryDocs.map((m) => `### ${m.filename}\n${m.content}`).join('\n\n'),
       activeSkills.length > 0
         ? `### Активные навыки\n${activeSkills.map((s) => `#### ${s.title}\n${s.contentMarkdown}`).join('\n\n')}`

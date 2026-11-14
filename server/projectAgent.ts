@@ -5,7 +5,7 @@ import path from 'path';
 import { promisify } from 'util';
 import { ensureOneCoreDirs } from './paths';
 import { getProjectById, getProjectWorkspaceData, saveProjectTask, type ProjectRecord } from './projectsManager';
-import { PROJECT_AGENT_INSTRUCTIONS } from './projectAgentInstructions';
+import { PROJECT_AGENT_INSTRUCTIONS } from '../src/data/projectAgentInstructions';
 import { assertProjectToolAllowed, isProjectToolAllowed } from './permissionManager';
 
 const execFileAsync = promisify(execFile);
