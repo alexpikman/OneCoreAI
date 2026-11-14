@@ -35,16 +35,24 @@ const SETTINGS_ITEMS: {
   group: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: 'providers', label: 'Провайдеры и API-модели', group: 'МОДЕЛИ', icon: Sparkles },
-  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'МОДЕЛИ', icon: Cpu },
-  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'МОДЕЛИ', icon: UserCheck },
-  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'МОДЕЛИ', icon: Brain },
   { id: 'ui-chat', label: 'Интерфейс и области чата', group: 'Все настройки', icon: LayoutGrid },
   { id: 'execution-env', label: 'Среды: Local / SSH / Docker', group: 'Все настройки', icon: Server },
   { id: 'gateway', label: 'Шлюз мессенджеров', group: 'Все настройки', icon: MessageCircle },
   { id: 'ssh-github', label: 'Доступ SSH и GitHub', group: 'Все настройки', icon: KeyRound },
   { id: 'github-download', label: 'Скачивание с GitHub', group: 'Все настройки', icon: Download },
   { id: 'updates', label: 'Обновления приложения', group: 'Все настройки', icon: RefreshCw },
+];
+
+const MODEL_SETTINGS_ITEMS: {
+  id: SettingsSectionId;
+  label: string;
+  group: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: 'providers', label: 'Провайдеры и API-модели', group: 'НАСТРОЙКИ', icon: Sparkles },
+  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'НАСТРОЙКИ', icon: Cpu },
+  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'НАСТРОЙКИ', icon: UserCheck },
+  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'НАСТРОЙКИ', icon: Brain },
 ];
 
 export const AppNavigation: React.FC = () => {
@@ -83,6 +91,9 @@ export const AppNavigation: React.FC = () => {
               key={item.id}
               type="button"
               onClick={() => {
+                if (item.id === 'settings' && ['providers', 'engine-paths', 'roles-pipeline', 'skills-memory'].includes(settingsSection)) {
+                  setSettingsSection('ui-chat');
+                }
                 setActiveTab(item.id);
                 if (window.innerWidth < 1024) setMobileExpanded(false);
               }}
@@ -115,11 +126,11 @@ export const AppNavigation: React.FC = () => {
 
       <div className={cn('flex-1 min-h-0 flex flex-col overflow-hidden', !mobileExpanded && 'hidden lg:flex')}>
         {activeTab === 'workstation' && chatVisibility.showLeftSidebar && <LeftSidebar />}
-        {activeTab === 'settings' && (
-          <nav aria-label="Подразделы настроек" className="flex-1 min-h-0 overflow-y-auto py-2">
-            {SETTINGS_ITEMS.map((item, index) => {
+        {(activeTab === 'settings' || activeTab === 'models') && (
+          <nav aria-label={activeTab === 'models' ? 'Настройки моделей' : 'Подразделы настроек'} className="flex-1 min-h-0 overflow-y-auto py-2">
+            {(activeTab === 'models' ? MODEL_SETTINGS_ITEMS : SETTINGS_ITEMS).map((item, index, items) => {
               const Icon = item.icon;
-              const groupStart = index === 0 || SETTINGS_ITEMS[index - 1]?.group !== item.group;
+              const groupStart = index === 0 || items[index - 1]?.group !== item.group;
               const isActive = settingsSection === item.id;
               return (
                 <React.Fragment key={item.id}>
