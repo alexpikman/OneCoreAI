@@ -62,3 +62,15 @@
 - [x] Display provider and session token usage, estimated file context, configured and model-reported context windows, and accurately labelled local memory estimates.
 - [ ] Verify capability probes against representative Ollama, LM Studio, cloud, and llama.cpp-compatible providers; unknown responses must remain unknown.
 - [ ] Implement file deletion, SSH, and direct GitHub project tools before advertising them as available.
+
+
+## Chat workspace and agent controls
+- [x] Move ACT/PLAN to the global header beside an animated model-state indicator.
+- [x] Move Browser and Terminal into the composer as SVG icon-only controls with tooltips; remove the separate toolbar and Areas & Style action.
+- [x] Move Checkpoints above the Subagents section in the right inspector.
+- [x] Move specialist role toggles into Global AI Settings and support the general-agent mode when all roles are disabled.
+- [x] Add the common primary-agent rule to the roles/rules library and inject enabled directives into the system context.
+- [x] Add editable, lockable, disableable subagent rules and project-plan binding.
+- [x] Stream standard provider chat responses and render user/assistant placeholders immediately.
+- [ ] Add incremental streaming to project-agent task execution and subagent responses.
+- [ ] Finish Cline-inspired file/terminal/browser panels, resizing, and task timeline behavior.

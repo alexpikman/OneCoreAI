@@ -52,3 +52,14 @@
 - Complete UI route, navigation, responsive, typography, and accessibility audit.
 
 Do not mark the project production-ready until the remaining security work and Windows packaging checks are complete.
+
+
+## Chat workspace and agent controls
+- Relocated ACT/PLAN to the global header with a compact SVG status indicator; removed the standalone toolbar to increase visible chat height.
+- Moved Browser and Terminal into the composer as SVG icon-only controls with hover tooltips. Removed the Areas & Style toolbar shortcut.
+- Moved Checkpoints above the Subagents panel in the right inspector; the Subagents launcher is available there.
+- Moved specialist role toggles into Global AI Settings. Roles are independently enabled/disabled; zero enabled roles selects the universal general-agent behavior.
+- Added the common agent instruction to the Roles and Rules library and inject enabled library directives into the primary agent context.
+- Added editable subagent delegation rules with enable/disable, lock/unlock, and project-plan binding. Active rules and the project plan are injected into each subagent request.
+- Added compact SVG connection indicators. SSH is highlighted only when the active project's configured host has a successful connection status; a configured SSH client/host remains neutral until connected.
+- Standard provider chat now streams assistant deltas and inserts the user message plus an empty assistant response immediately. Project task execution currently returns a completed payload rather than token deltas, but its user message and response placeholder are inserted immediately.
