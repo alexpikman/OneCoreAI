@@ -12,7 +12,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     id: 'prov-deepseek-api',
     kind: 'deepseek-api',
     name: 'DeepSeek API',
-    badgeText: 'РћР±Р»Р°РєРѕ В· API-РєР»СЋС‡',
+    badgeText: 'Облако · API-ключ',
     baseUrl: 'https://api.deepseek.com/v1',
     apiKey: '',
     requiresKey: true,
@@ -27,7 +27,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     id: 'prov-qwen-api',
     kind: 'qwen-api',
     name: 'Qwen API (DashScope)',
-    badgeText: 'РћР±Р»Р°РєРѕ В· API-РєР»СЋС‡',
+    badgeText: 'Облако · API-ключ',
     baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
     apiKey: '',
     requiresKey: true,
@@ -42,7 +42,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     id: 'prov-openai-api',
     kind: 'openai-api',
     name: 'OpenAI API',
-    badgeText: 'РћР±Р»Р°РєРѕ В· API-РєР»СЋС‡',
+    badgeText: 'Облако · API-ключ',
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
     requiresKey: true,
@@ -56,7 +56,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
   {
     id: 'prov-llama-cpp',
     kind: 'llama-cpp',
-    name: 'Р›РѕРєР°Р»СЊРЅС‹Р№ llama-server.exe',
+    name: 'Локальный llama-server.exe',
     badgeText: '100% локально · Без лимитов',
     baseUrl: 'http://127.0.0.1:8080/v1',
     apiKey: '',
@@ -71,7 +71,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     description:
       'Встроенный sidecar llama.cpp на вашем ПК. Полностью бесплатный офлайн-инференс на CUDA, Vulkan или CPU без отправки кода.',
     status: 'connected',
-    lastCheckMessage: 'Sidecar РіРѕС‚РѕРІ Рє Р·Р°РїСѓСЃРєСѓ РЅР° 127.0.0.1:8080',
+    lastCheckMessage: 'Sidecar готов к запуску на 127.0.0.1:8080',
   },
   {
     id: 'prov-openrouter-free',
@@ -98,8 +98,8 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
   {
     id: 'prov-ollama',
     kind: 'ollama',
-    name: 'Ollama (Р»РѕРєР°Р»СЊРЅС‹Р№ СЃРµСЂРІРµСЂ)',
-    badgeText: 'Р›РѕРєР°Р»СЊРЅРѕ В· OpenAI API',
+    name: 'Ollama (локальный сервер)',
+    badgeText: 'Локально · OpenAI API',
     baseUrl: 'http://127.0.0.1:11434/v1',
     apiKey: '',
     requiresKey: false,
@@ -113,8 +113,8 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
   {
     id: 'prov-lmstudio',
     kind: 'lmstudio',
-    name: 'LM Studio (Р»РѕРєР°Р»СЊРЅС‹Р№ СЃРµСЂРІРµСЂ)',
-    badgeText: 'Р›РѕРєР°Р»СЊРЅРѕ В· Port 1234',
+    name: 'LM Studio (локальный сервер)',
+    badgeText: 'Локально · Port 1234',
     baseUrl: 'http://127.0.0.1:1234/v1',
     apiKey: '',
     requiresKey: false,
@@ -122,14 +122,14 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     selectedModel: 'qwen2.5-coder-7b-instruct',
     availableModels: ['qwen2.5-coder-7b-instruct', 'codestral-22b-v0.1'],
     description:
-      'Р›РѕРєР°Р»СЊРЅС‹Р№ OpenAI-compatible СЃРµСЂРІРµСЂ LM Studio РЅР° РїРѕСЂС‚Сѓ 1234.',
+      'Локальный OpenAI-compatible сервер LM Studio на порту 1234.',
     status: 'idle',
   },
   {
     id: 'prov-groq-free',
     kind: 'groq-free',
     name: 'Groq Free Tier',
-    badgeText: 'Р‘РµСЃРїР»Р°С‚РЅС‹Р№ LPU-РєР»Р°СЃС‚РµСЂ',
+    badgeText: 'Бесплатный LPU-кластер',
     baseUrl: 'https://api.groq.com/openai/v1',
     apiKey: '',
     requiresKey: true,
@@ -144,7 +144,7 @@ export const INITIAL_FREE_PROVIDERS: FreeProviderProfile[] = [
     id: 'prov-custom',
     kind: 'custom',
     name: 'Свой OpenAI-compatible сервер',
-    badgeText: 'Р›СЋР±РѕР№ URL / vLLM / LocalAI',
+    badgeText: 'Любой URL / vLLM / LocalAI',
     baseUrl: 'http://127.0.0.1:8000/v1',
     apiKey: '',
     requiresKey: true,
@@ -161,7 +161,7 @@ export const INITIAL_SKILLS: AgentSkill[] = [
   {
     id: 'skill-http-range-gguf',
     slug: 'gguf-http-range-resume',
-    title: 'Р”РѕРєР°С‡РєР° GGUF РїРѕ HTTP 206 + SHA256',
+    title: 'Докачка GGUF по HTTP 206 + SHA256',
     category: 'Разработка',
     triggerHint: 'При работе с загрузкой весов, .part файлами или LFS-хэшами',
     contentMarkdown: `---
@@ -191,29 +191,29 @@ description: Безопасный выбор бэкенда GPU без зави�
     enabled: true,
     usageCount: 9,
     source: 'learned',
-    updatedAt: 'Р’С‡РµСЂР°',
+    updatedAt: 'Вчера',
   },
   {
     id: 'skill-tauri-cloud-ci',
     slug: 'tauri-windows-cloud-release',
-    title: 'РћР±Р»Р°С‡РЅР°СЏ СЃР±РѕСЂРєР° Tauri 2.0 Р±РµР· Р»РѕРєР°Р»СЊРЅРѕРіРѕ MSVC',
+    title: 'Облачная сборка Tauri 2.0 без локального MSVC',
     category: 'DevOps',
     triggerHint: 'При ошибке MSVC 8012 или обновлении GitHub Actions',
     contentMarkdown: `---
 name: tauri-windows-cloud-release
 description: Сборка .exe и .msi в GitHub Actions и установка на Windows без Build Tools
 ---
-1. РСЃРїРѕР»СЊР·РѕРІР°С‚СЊ \`npm install --legacy-peer-deps\` РЅР° \`windows-latest\` Р±РµР· РѕР±СЏР·Р°С‚РµР»СЊРЅРѕРіРѕ \`package-lock.json\`.
+1. Использовать \`npm install --legacy-peer-deps\` на \`windows-latest\` без обязательного \`package-lock.json\`.
 2. Скачивать sidecar \`llama-server.exe\` и публиковать артефакты через \`tauri-apps/tauri-action\`.`,
     enabled: true,
     usageCount: 6,
     source: 'learned',
-    updatedAt: 'Р’С‡РµСЂР°',
+    updatedAt: 'Вчера',
   },
   {
     id: 'skill-sqlite-checkpoint',
     slug: 'atomic-sqlite-checkpoint',
-    title: 'РђС‚РѕРјР°СЂРЅС‹Рµ Checkpoints РїРµСЂРµРґ РїСЂР°РІРєРѕР№ С„Р°Р№Р»РѕРІ',
+    title: 'Атомарные Checkpoints перед правкой файлов',
     category: 'Автоматизация',
     triggerHint: 'Перед любым replace_in_file или записью в режиме Act',
     contentMarkdown: `---
@@ -244,7 +244,7 @@ export const INITIAL_MEMORY_DOCS: AgentMemoryDoc[] = [
   {
     key: 'memory',
     filename: 'MEMORY.md',
-    title: 'РќР°РєРѕРїР»РµРЅРЅР°СЏ РїР°РјСЏС‚СЊ РїСЂРѕРµРєС‚Р°',
+    title: 'Накопленная память проекта',
     description: 'Устойчивые факты о репозитории, архитектуре и решениях, доступные во всех сессиях.',
     content: `- Репозиторий: alexpikman/OneCoreAI (Windows 10/11, Tauri 2.0, React 19, Vite, Express, llama.cpp).
 - На ПК пользователя избегать локальной установки MSVC Build Tools (ошибка 8012) — сборка .exe/.msi идёт через GitHub Actions.
@@ -338,7 +338,7 @@ export const ONECORE_SLASH_COMMANDS: SlashCommandDef[] = [
   },
   {
     command: '/browse',
-    syntax: '/browse <HTTPS-Р°РґСЂРµСЃ>',
+    syntax: '/browse <HTTPS-адрес>',
     description: 'Прочитать текст публичной HTTPS-страницы',
   },
   {
@@ -353,7 +353,7 @@ export const ONECORE_SLASH_COMMANDS: SlashCommandDef[] = [
   },
   {
     command: '/search',
-    syntax: '/search <СЃС‚СЂРѕРєР°>',
+    syntax: '/search <строка>',
     description: 'Поиск по исходному коду в папке активного проекта',
   },
   {
@@ -373,7 +373,7 @@ export const ONECORE_SLASH_COMMANDS: SlashCommandDef[] = [
   },
   {
     command: '/subagent',
-    syntax: '/subagent <Р·Р°РґР°С‡Р° РІРѕСЂРєРµСЂСѓ>',
+    syntax: '/subagent <задача воркеру>',
     description: 'Запустить параллельного субагента через реальный API провайдера',
   },
   {
