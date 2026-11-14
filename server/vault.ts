@@ -25,6 +25,7 @@ async function runSecretTool(args: string[], input?: string): Promise<string> {
       stderr += chunk;
     });
     child.on('error', reject);
+    child.stdin.on('error', reject);
     child.on('close', (code) => {
       if (code === 0) {
         resolve(stdout.replace(/\r?\n$/, ''));
