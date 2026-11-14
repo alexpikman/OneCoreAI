@@ -1851,7 +1851,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             '## Схема поведения общего агента',
             state.generalAgentConfig.behaviorSchema,
           ].join('\n\n'),
-      state.directives.filter((directive) => directive.enabled && directive.id !== 'dir-general-agent').map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
+      state.directives.filter((directive) => directive.enabled).map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
       activeProj
         ? [
             PROJECT_AGENT_INSTRUCTIONS,
