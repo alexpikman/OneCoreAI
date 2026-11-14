@@ -1812,6 +1812,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const systemContext = [
       GENERAL_AGENT_SYSTEM_PROMPT,
       enabledRoles.length > 0 ? `## Активные инженерные роли\n${enabledRoles.map((role) => `### ${role.name}\n${role.systemPrompt}`).join('\n\n')}` : '## Режим общего агента\nВсе специализированные роли отключены. Работай как единый универсальный агент и руководствуйся общими правилами ONE CORE AI.',
+      state.directives.filter((directive) => directive.enabled).map((directive) => `## Правило: ${directive.title}\n${directive.instruction}`).join('\n\n'),
       activeProj
         ? [
             PROJECT_AGENT_INSTRUCTIONS,
