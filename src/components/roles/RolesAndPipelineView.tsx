@@ -159,7 +159,7 @@ export const RolesAndPipelineView: React.FC = () => {
                   Доступные роли для модели {activeModel?.name}
                 </h2>
                 <span className="text-xs text-zinc-500 font-mono tabular-nums">
-                  {roles.length} СЂРѕР»РµР№
+                  {roles.length} ролей
                 </span>
               </div>
 
@@ -352,9 +352,9 @@ export const RolesAndPipelineView: React.FC = () => {
                     <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-200/80 dark:bg-zinc-800 shrink-0">
                       {(
                         [
-                          { val: 'allow', label: 'РђРІС‚Рѕ' },
-                          { val: 'ask', label: 'Р—Р°РїСЂРѕСЃ' },
-                          { val: 'deny', label: 'Р—Р°РїСЂРµС‚' },
+                          { val: 'allow', label: 'Авто' },
+                          { val: 'ask', label: 'Запрос' },
+                          { val: 'deny', label: 'Запрет' },
                         ] as { val: PermissionPolicy; label: string }[]
                       ).map((opt) => (
                         <button
@@ -443,7 +443,7 @@ export const RolesAndPipelineView: React.FC = () => {
                   >
                     <option value="Качество кода">Качество кода</option>
                     <option value="Архитектура">Архитектура</option>
-                    <option value="Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ">Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ</option>
+                    <option value="Безопасность">Безопасность</option>
                     <option value="Стиль ответа">Стиль ответа</option>
                   </select>
                 </div>
@@ -476,7 +476,7 @@ export const RolesAndPipelineView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                 <div>
                   <label className="block text-[11px] text-zinc-500 mb-1">
-                    Р¦РµР»РµРІРѕР№ РїСЂРѕРµРєС‚
+                    Целевой проект
                   </label>
                   <input
                     type="text"
@@ -559,7 +559,7 @@ export const RolesAndPipelineView: React.FC = () => {
                                 : stage.status === 'error'
                                   ? 'Ошибка'
                                   : stage.status === 'running'
-                                    ? 'Р’ СЂР°Р±РѕС‚Рµ...'
+                                    ? 'В работе...'
                                     : 'Ожидание'}
                             </span>
                           </div>
@@ -596,11 +596,11 @@ export const RolesAndPipelineView: React.FC = () => {
             <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
               <div className="lg:col-span-7 space-y-2">
                 <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
-                  <span>Р­С‚Р°Рї 0{selectedStage.stepNumber}</span>
+                  <span>Этап 0{selectedStage.stepNumber}</span>
                   <span>В·</span>
                   <span>Режим {selectedStage.mode.toUpperCase()}</span>
                   <span>В·</span>
-                  <span>РђСЂС‚РµС„Р°РєС‚: {selectedStage.outputArtifact}</span>
+                  <span>Артефакт: {selectedStage.outputArtifact}</span>
                 </div>
                 <h3 className="font-display text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                   {selectedStage.title}
@@ -662,7 +662,7 @@ export const RolesAndPipelineView: React.FC = () => {
                     }}
                     className="h-9 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 text-xs font-medium text-zinc-700 dark:text-zinc-200"
                   >
-                    РћС‚РєСЂС‹С‚СЊ РІ С‡Р°С‚Рµ Р°РіРµРЅС‚Р°
+                    Открыть в чате агента
                   </button>
                 </div>
               </div>
