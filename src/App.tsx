@@ -4,6 +4,7 @@ import { TopHeader } from './components/layout/TopHeader';
 import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 import { ProjectsView } from './components/projects/ProjectsView';
+import { AiSettingsModal } from './components/settings/AiSettingsModal';
 import { SettingsView } from './components/settings/SettingsView';
 import { WorkstationView } from './components/workstation/WorkstationView';
 import { useOneCoreStore } from './store/useOneCoreStore';
@@ -83,6 +84,7 @@ export default function App() {
         </main>
       </div>
       <OfflineIndicator />
+      <AiSettingsModal />
     </div>
   );
 }
