@@ -1413,7 +1413,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           model: provider.selectedModel,
           temperature: role.recommendedTemp,
           messages: [
-            { role: 'system', content: subagentSystemPrompt },
+            { role: 'system', content: role.systemPrompt },
             {
               role: 'user',
               content: `Проект: ${state.pipelineProjectName} (${state.pipelineStack}). Этап: ${stage.title}. Цель: ${stage.shortGoal}. Артефакт: ${stage.outputArtifact}.`,
@@ -2966,7 +2966,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           model: provider.selectedModel,
           temperature: role.recommendedTemp,
           messages: [
-            { role: 'system', content: role.systemPrompt },
+            { role: 'system', content: subagentSystemPrompt },
             { role: 'user', content: prompt.trim() },
           ],
         }),
