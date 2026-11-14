@@ -130,9 +130,9 @@ export const AiSettingsModal: React.FC = () => {
   const activeProviderStatus = !activeProvider
     ? 'Не выбран'
     : activeProvider.kind === 'llama-cpp'
-      ? serverStatus === 'ready'
+      ? serverStatus === 'ready' || serverStatus === 'generating'
         ? 'Подключено'
-        : serverStatus === 'loading' || serverStatus === 'generating'
+        : serverStatus === 'loading'
           ? 'Подключение…'
           : serverStatus === 'error'
             ? 'Ошибка'
