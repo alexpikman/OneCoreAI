@@ -406,6 +406,12 @@ export interface ModelRole {
   isCustom?: boolean;
 }
 
+export interface GeneralAgentConfig {
+  instructions: string;
+  behaviorSchema: string;
+  systemPrompt: string;
+}
+
 export interface PermissionRule {
   id: string;
   category: 'Файловая система' | 'Терминал' | 'Сеть и модели' | 'Безопасность';
@@ -596,6 +602,7 @@ export interface PersistedAppSettings {
   >;
   appSettings: AppSettings;
   roles: ModelRole[];
+  generalAgentConfig?: GeneralAgentConfig;
   activeRoleId: string;
   enabledRoleIds?: string[];
   modelCategory: AiProviderCategory;
