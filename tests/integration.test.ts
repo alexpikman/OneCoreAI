@@ -621,6 +621,12 @@ test('4. Mandatory folder validation, real command execution, action log, /undo,
     );
     assert.equal(deniedUndo.status, 403);
 
+    const deniedTaskUndo = await jsonReq<{ ok: boolean }>(
+      `/api/projects/${encodeURIComponent(projectId)}/task`,
+      { method: 'POST', body: JSON.stringify({ prompt: '/undo', mode: 'act' }) },
+    );
+    assert.equal(deniedTaskUndo.status, 403);
+
     // Execute Node.js, which is already required to run ONE CORE AI.
     const deniedExec = await jsonReq<{ ok: boolean }>(
       `/api/projects/${encodeURIComponent(projectId)}/exec`,
