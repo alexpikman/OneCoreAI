@@ -4,6 +4,7 @@ export type UiStylePreset = 'cline-vscode' | 'mica-windows' | 'cyber-terminal';
 export type SettingsSectionId =
   | 'ui-chat'
   | 'providers'
+  | 'model-manager'
   | 'roles-pipeline'
   | 'skills-memory'
   | 'execution-env'
