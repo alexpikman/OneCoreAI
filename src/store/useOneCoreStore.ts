@@ -37,6 +37,7 @@ import type {
   Checkpoint,
   ExecutionEnvConfig,
   ExecutionEnvKind,
+  FreeProviderKind,
   FreeProviderProfile,
   GatewayChannelConfig,
   GatewayPlatform,
@@ -353,6 +354,20 @@ function nowTime(): string {
   return new Date().toTimeString().slice(0, 8);
 }
 
+function getProviderCategory(kind: FreeProviderKind): AiProviderCategory {
+  if (kind === 'ollama' || kind === 'lmstudio') return 'local';
+  if (
+    kind === 'deepseek-api' ||
+    kind === 'qwen-api' ||
+    kind === 'openai-api' ||
+    kind === 'openrouter-free' ||
+    kind === 'groq-free'
+  ) {
+    return 'cloud';
+  }
+  return 'runtime';
+}
+
 const FULL_CHAT_VISIBILITY: ChatVisibilitySettings = {
   showLeftSidebar: true,
   showProjectTree: true,
@@ -496,7 +511,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   githubAccess: INITIAL_GITHUB_SETTINGS,
 
   freeProviders: INITIAL_FREE_PROVIDERS,
-  activeProviderId: 'prov-llama-cpp',
+  activeProviderId: 'prov-deepseek-api',
   modelSource: 'cloud',
   skills: INITIAL_SKILLS,
   memoryDocs: INITIAL_MEMORY_DOCS,
@@ -1093,7 +1108,10 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         sshSettings: saved.sshSettings,
         githubAccess: saved.githubAccess,
         freeProviders: saved.freeProviders,
-        activeProviderId: saved.activeProviderId,
+        activeProviderId:
+          saved.providerSelectionByCategory?.[saved.modelCategory ?? saved.modelSource ?? 'cloud'] ??
+          saved.activeProviderId ??
+          'prov-deepseek-api',
         modelCategory: saved.modelCategory ?? saved.modelSource ?? 'cloud',
         modelSource: saved.modelSource ?? saved.modelCategory ?? 'cloud',
         providerSelectionByCategory: saved.providerSelectionByCategory ?? {
@@ -1103,7 +1121,19 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         },
         skills: saved.skills,
         memoryDocs: saved.memoryDocs,
-        subagentConfig: saved.subagentConfig,
+        subagentConfig: saved.subagentConfig
+          ? {
+              ...INITIAL_SUBAGENT_CONFIG,
+              ...saved.subagentConfig,
+              providerSelectionByCategory: {
+                ...INITIAL_SUBAGENT_CONFIG.providerSelectionByCategory,
+                ...saved.subagentConfig.providerSelectionByCategory,
+              },
+              providers: saved.subagentConfig.providers?.length
+                ? saved.subagentConfig.providers
+                : INITIAL_SUBAGENT_CONFIG.providers,
+            }
+          : INITIAL_SUBAGENT_CONFIG,
         executionEnv: saved.executionEnv,
         gateways: saved.gateways,
         settingsSavedAt: data.savedAt ?? null,
@@ -1721,10 +1751,11 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const activeRole = state.roles.find((r) => r.id === state.activeRoleId) ?? state.roles[0];
     const localModel = state.localModels.find((m) => m.id === state.activeModelId);
     const activeProvider =
-      state.modelSource === 'local' && localModel
-        ? state.freeProviders.find((p) => p.id === 'prov-llama-cpp') ?? state.freeProviders[0]
-        : state.freeProviders.find((p) => p.id === state.activeProviderId) ?? state.freeProviders[0];
-    const providerModel = state.modelSource === 'local' && localModel ? localModel.filename : activeProvider.selectedModel;
+      state.freeProviders.find((provider) => provider.id === state.activeProviderId) ??
+      state.freeProviders.find((provider) => getProviderCategory(provider.kind) === state.modelSource) ??
+      state.freeProviders[0];
+    const providerModel =
+      state.modelSource === 'runtime' && localModel ? localModel.filename : activeProvider.selectedModel;
     const activeSkills = state.skills.filter((sk) => sk.enabled);
     const activeProj = state.projects.find((p) => p.id === state.activeProjectId);
 
@@ -2509,9 +2540,24 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     }
   },
 
-  setActiveProvider: (providerId) => set({ activeProviderId: providerId }),
+  setActiveProvider: (providerId) =>
+    set((state) => {
+      const provider = state.freeProviders.find((item) => item.id === providerId);
+      if (!provider) return {};
+      const category = getProviderCategory(provider.kind);
+      return {
+        activeProviderId: providerId,
+        modelCategory: category,
+        modelSource: category,
+        providerSelectionByCategory: {
+          ...state.providerSelectionByCategory,
+          [category]: providerId,
+        },
+      };
+    }),
   setProviderSelectionForCategory: (category, providerId) =>
     set((state) => ({
+      activeProviderId: state.modelCategory === category ? providerId : state.activeProviderId,
       providerSelectionByCategory: {
         ...state.providerSelectionByCategory,
         [category]: providerId,
@@ -2522,25 +2568,23 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   closeAiSettingsModal: () => set({ aiSettingsModalOpen: false }),
   setAiSettingsCategory: (category) => set({ aiSettingsCategory: category }),
   setModelCategory: (category: 'local' | 'cloud' | 'runtime') =>
-    set((state) => ({
-      modelCategory: category,
-      modelSource: category,
-      aiSettingsCategory: category,
-      providerSelectionByCategory: {
-        ...state.providerSelectionByCategory,
-        [category]: state.providerSelectionByCategory[category] || state.activeProviderId || 'prov-deepseek-api',
-      },
-    })),
-  setModelSource: (source: 'local' | 'cloud' | 'runtime') =>
-    set((state) => ({
-      modelSource: source,
-      modelCategory: source,
-      aiSettingsCategory: source,
-      providerSelectionByCategory: {
-        ...state.providerSelectionByCategory,
-        [source]: state.providerSelectionByCategory[source] || state.activeProviderId || 'prov-deepseek-api',
-      },
-    })),
+    set((state) => {
+      const providerId =
+        state.providerSelectionByCategory[category] ||
+        state.freeProviders.find((provider) => getProviderCategory(provider.kind) === category)?.id ||
+        state.activeProviderId;
+      return {
+        activeProviderId: providerId,
+        modelCategory: category,
+        modelSource: category,
+        aiSettingsCategory: category,
+        providerSelectionByCategory: {
+          ...state.providerSelectionByCategory,
+          [category]: providerId,
+        },
+      };
+    }),
+  setModelSource: (source: 'local' | 'cloud' | 'runtime') => get().setModelCategory(source),
 
   updateFreeProvider: (providerId, patch) =>
     set((s) => ({
@@ -2713,8 +2757,14 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     })),
 
   updateSubagentConfig: (patch) =>
-    set((s) => ({
-      subagentConfig: { ...s.subagentConfig, ...patch },
+    set((state) => ({
+      subagentConfig: {
+        ...state.subagentConfig,
+        ...patch,
+        providerSelectionByCategory: patch.providerSelectionByCategory
+          ? { ...state.subagentConfig.providerSelectionByCategory, ...patch.providerSelectionByCategory }
+          : state.subagentConfig.providerSelectionByCategory,
+      },
     })),
 
   launchSubagent: async ({ title, prompt, roleId, providerId }) => {
@@ -2722,9 +2772,14 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     const role =
       state.roles.find((r) => r.id === (roleId ?? state.subagentConfig.defaultRoleId)) ??
       state.roles[0];
+    const subagentProviderId =
+      providerId ??
+      state.subagentConfig.providerSelectionByCategory[state.subagentConfig.providerCategory] ??
+      state.subagentConfig.defaultProviderId;
     const provider =
-      state.freeProviders.find((p) => p.id === (providerId ?? state.subagentConfig.defaultProviderId)) ??
-      state.freeProviders[0];
+      state.subagentConfig.providers.find((item) => item.id === subagentProviderId) ??
+      state.subagentConfig.providers.find((item) => getProviderCategory(item.kind) === state.subagentConfig.providerCategory) ??
+      state.subagentConfig.providers[0];
     const runId = `sub-${Date.now().toString(36)}`;
     const taskTitle = title?.trim() || prompt.trim().slice(0, 44) || 'Субагент';
 

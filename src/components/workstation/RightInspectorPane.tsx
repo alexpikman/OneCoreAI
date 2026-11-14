@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Activity, Bot, Cpu, Layers, Play, Power, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { Activity, Bot, Cpu, Layers, Play, Power, SlidersHorizontal } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GpuBackend } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -24,7 +24,6 @@ export const RightInspectorPane: React.FC = () => {
     updateInferenceSettings,
     localModels,
     activeModelId,
-    openSettingsSection,
     serverStatus,
     toggleServerPower,
     tokensPerSec,
@@ -33,9 +32,8 @@ export const RightInspectorPane: React.FC = () => {
     chatVisibility,
     uiStyle,
     freeProviders,
-    activeProviderId,
-    setActiveProvider,
-    updateFreeProvider,
+    modelCategory,
+    providerSelectionByCategory,
     subagentRuns,
     launchSubagent,
     clearCompletedSubagents,
@@ -45,8 +43,10 @@ export const RightInspectorPane: React.FC = () => {
   const [quickSubagentPrompt, setQuickSubagentPrompt] = useState('');
   const tokens = getUiTokens(uiStyle);
   const activeModel = localModels.find((m) => m.id === activeModelId);
-  const activeProvider =
-    freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
+  const runtimeProvider = freeProviders.find(
+    (provider) => provider.id === providerSelectionByCategory.runtime,
+  );
+  const runtimeConnected = modelCategory === 'runtime' && runtimeProvider?.status === 'connected';
 
   const includedTokens =
     files.filter((f) => f.inContext).reduce((acc, f) => acc + f.tokensEstimate, 0) +
@@ -83,7 +83,7 @@ export const RightInspectorPane: React.FC = () => {
   return (
     <aside className={cn('w-full lg:w-[288px] xl:w-[312px] shrink-0 border-t lg:border-t-0 lg:border-l flex flex-col overflow-y-auto', tokens.sidebarBg)}>
       {/* Local runtime telemetry */}
-      {chatVisibility.showTelemetry && (
+      {chatVisibility.showTelemetry && runtimeConnected && (
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
           <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
@@ -171,61 +171,8 @@ export const RightInspectorPane: React.FC = () => {
         </div>
       )}
 
-      {/* Section 1.5: OneCore Free Provider Selector */}
-      {chatVisibility.showFreeProviderCard && (
-        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 inline-flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Провайдер модели</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => openSettingsSection('providers')}
-              className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
-            >
-              Настроить
-            </button>
-          </div>
-
-          <select
-            value={activeProvider.id}
-            onChange={(e) => setActiveProvider(e.target.value)}
-            className={cn(
-              'w-full h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
-              tokens.inputRadius,
-            )}
-          >
-            {freeProviders.map((prov) => (
-              <option key={prov.id} value={prov.id}>
-                {prov.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={activeProvider.selectedModel}
-            onChange={(e) => updateFreeProvider(activeProvider.id, { selectedModel: e.target.value })}
-            className={cn(
-              'w-full h-8 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 font-mono text-[11px] text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-500',
-              tokens.inputRadius,
-            )}
-          >
-            {activeProvider.availableModels.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-
-          <div className="text-[10.5px] text-emerald-600 dark:text-emerald-400 font-mono truncate">
-            {activeProvider.badgeText}
-          </div>
-        </div>
-      )}
-
       {/* Section 2: Quick Inference Settings */}
-      {chatVisibility.showInferenceControls && (
+      {chatVisibility.showInferenceControls && runtimeConnected && (
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-800/90 space-y-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">
             <SlidersHorizontal className="w-3.5 h-3.5 text-zinc-500" />

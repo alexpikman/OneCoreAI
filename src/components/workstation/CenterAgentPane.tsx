@@ -5,13 +5,11 @@ import {
   Bot,
   Check,
   ChevronDown,
-  Code2,
   Eye,
   FileText,
   FolderOpen,
   Globe,
   History,
-  MessageSquare,
   RotateCcw,
   Save,
   ShieldCheck,
@@ -39,13 +37,12 @@ export const CenterAgentPane: React.FC = () => {
   const {
     projects,
     activeProjectId,
-    projectLogs,
-    undoLastProjectAction,
     createOrWriteProjectFile,
     sessions,
     activeSessionId,
     centerPaneMode,
-    setCenterPaneMode,
+    agentMode,
+    setAgentMode,
     files,
     selectedFilePath,
     checkpoints,
@@ -92,9 +89,7 @@ export const CenterAgentPane: React.FC = () => {
   const activeProvider =
     freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
   const latestCheckpoint = checkpoints[0];
-  const hasUndoableAction = projectLogs.some((l) => !l.undone && l.kind === 'file_write');
-
-  const includedTokens =
+   const includedTokens =
     files.filter((f) => f.inContext).reduce((acc, f) => acc + f.tokensEstimate, 0) +
     (includeProjectTree ? 180 : 0) +
     (includeTerminalOutput ? 120 : 0);
@@ -192,53 +187,35 @@ export const CenterAgentPane: React.FC = () => {
         <div className={cn('min-h-12 shrink-0 px-4 py-1.5 border-b flex flex-wrap items-center justify-between gap-2.5', tokens.headerBg)}>
           <div className="flex flex-wrap items-center gap-2.5 min-w-0">
             <div className={cn('inline-flex items-center p-0.5 bg-zinc-200/75 dark:bg-zinc-800/90', tokens.inputRadius)}>
-              <button
-                type="button"
-                onClick={() => setCenterPaneMode('chat')}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0',
-                  tokens.inputRadius,
-                  centerPaneMode === 'chat'
-                    ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                )}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>Чат агента</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCenterPaneMode('file')}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-medium inline-flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0',
-                  tokens.inputRadius,
-                  centerPaneMode === 'file'
-                    ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
-                )}
-              >
-                <Code2 className="w-3.5 h-3.5" />
-                <span className="truncate max-w-[140px]">{selectedFile?.name ?? 'Код'}</span>
-              </button>
+              {(['act', 'plan'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setAgentMode(mode)}
+                  aria-pressed={agentMode === mode}
+                  className={cn(
+                    'min-w-14 px-3 py-1 text-xs font-semibold tracking-wide transition-colors',
+                    tokens.inputRadius,
+                    agentMode === mode
+                      ? 'bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 shadow-sm'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200',
+                  )}
+                >
+                  {mode.toUpperCase()}
+                </button>
+              ))}
             </div>
+            {activeProject && (
+              <div
+                title={activeProject.folderPath}
+                className="min-w-0 max-w-[34vw] truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400"
+              >
+                {activeProject.folderPath}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {hasUndoableAction && (
-              <button
-                type="button"
-                onClick={() => void undoLastProjectAction()}
-                title="Откатить последнее изменение файла на диске"
-                className={cn(
-                  'h-8 px-2.5 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-medium text-amber-700 dark:text-amber-300 inline-flex items-center gap-1.5 transition-colors whitespace-nowrap',
-                  tokens.inputRadius,
-                )}
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Undo</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => setInput('/web ')}

@@ -271,6 +271,9 @@ export interface SubagentConfig {
   maxIterations: number;
   defaultRoleId: string;
   defaultProviderId: string;
+  providerCategory: AiProviderCategory;
+  providerSelectionByCategory: Record<AiProviderCategory, string>;
+  providers: FreeProviderProfile[];
   autoSummarizeResult: boolean;
 }
 

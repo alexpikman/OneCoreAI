@@ -22,6 +22,8 @@ export const TopHeader: React.FC = () => {
   const {
     activeTab,
     setActiveTab,
+    agentMode,
+    centerPaneMode,
     appNavigationWidth,
     openSettingsSection,
     theme,
@@ -41,17 +43,12 @@ export const TopHeader: React.FC = () => {
     chatVisibility,
     freeProviders,
     activeProviderId,
-    setActiveProvider,
-    updateFreeProvider,
     inferenceSettings,
     notifications,
     markAllNotificationsRead,
     togglePauseDownload,
     latestUpdate,
     modelCategory,
-    setModelCategory,
-    modelSource,
-    setModelSource,
     openAiSettingsModal,
   } = useOneCoreStore();
 
@@ -60,8 +57,9 @@ export const TopHeader: React.FC = () => {
   const trayRef = useRef<HTMLDivElement>(null);
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeRole = roles.find((role) => role.id === activeRoleId) ?? roles[0];
-  const providers = [...freeProviders].sort((a, b) => a.name.localeCompare(b.name));
   const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId) ?? freeProviders[0];
+  const activeProviderModel =
+    modelCategory === 'runtime' && activeModel ? activeModel.name : activeProvider?.selectedModel ?? '';
   const unreadCount = notifications.filter((n) => !n.read).length;
   const activeDownloads = localModels.filter((m) => m.status === 'downloading');
 
@@ -90,18 +88,17 @@ export const TopHeader: React.FC = () => {
         <span className="hidden md:inline">ONE CORE AI</span>
       </button>
 
-      {activeTab === 'workstation' && chatVisibility.showToolbar && (
-        <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto py-1">
-          {chatVisibility.showMascot && activeRole && (
-            <>
-            <div className="hidden md:block w-40 shrink-0">
+      <div className="flex-1 min-w-0 flex items-center gap-3 overflow-hidden px-3 py-1">
+        {activeRole && (
+          <>
+            <div className="hidden md:block w-64 xl:w-72 shrink-0">
               <ModelMascot
                 compact
                 status={serverStatus}
                 activity={agentActivity}
                 persona={activeRole.persona}
                 roleName={activeRole.name}
-                modelName={activeModel?.name || activeProvider?.selectedModel || ''}
+                modelName={activeModel?.name || activeProviderModel}
                 tokensPerSec={tokensPerSec}
                 onClick={() => openAiSettingsModal(modelCategory)}
               />
@@ -115,60 +112,44 @@ export const TopHeader: React.FC = () => {
             >
               <Bot className="w-5 h-5" />
             </button>
-            </>
-          )}
-
-                    <div className="flex items-center gap-1.5 min-w-0">
-            <button
-              type="button"
-              onClick={() => setModelSource('local')}
-              aria-pressed={modelSource === 'local'}
-              className={cn(
-                'h-8 px-2 shrink-0 rounded-md text-[10px] font-medium transition-colors',
-                modelSource === 'local'
-                  ? 'bg-blue-600 text-white'
-                  : 'border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              )}
-            >
-              Локально
-            </button>
-            <button
-              type="button"
-              onClick={() => setModelSource('cloud')}
-              aria-pressed={modelSource === 'cloud'}
-              className={cn(
-                'h-8 px-2 shrink-0 rounded-md text-[10px] font-medium transition-colors',
-                modelSource === 'cloud'
-                  ? 'bg-blue-600 text-white'
-                  : 'border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              )}
-            >
-              Облако
-            </button>
+          </>
+        )}
+        {activeTab === 'workstation' && centerPaneMode === 'chat' && chatVisibility.showRoleSwitcher && (
+          <div className="flex items-center gap-1 overflow-x-auto min-w-0">
+            {roles.map((role) => (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => setActiveRole(role.id)}
+                aria-pressed={role.id === activeRoleId}
+                title={role.name}
+                className={cn(
+                  'h-7 px-2.5 shrink-0 border text-[10px] font-medium rounded-md transition-colors',
+                  role.id === activeRoleId
+                    ? 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300'
+                    : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
+                )}
+              >
+                {role.name}
+              </button>
+            ))}
           </div>
-          {chatVisibility.showRoleSwitcher && (
-            <div className="flex items-center gap-1 overflow-x-auto min-w-0">
-              {roles.map((role) => (
-                <button
-                  key={role.id}
-                  type="button"
-                  onClick={() => setActiveRole(role.id)}
-                  aria-pressed={role.id === activeRoleId}
-                  title={role.name}
-                  className={cn(
-                    'h-7 px-2 shrink-0 border text-[10px] font-medium rounded-md transition-colors',
-                    role.id === activeRoleId
-                      ? 'border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300'
-                      : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
-                  )}
-                >
-                  {role.name}
-                </button>
-              ))}
-            </div>
-          )}
+        )}
+      </div>
+
+      <div className="hidden sm:flex items-center gap-2 shrink-0 pr-2 text-[10px] min-w-0 max-w-[32vw]">
+        <div className="min-w-0 text-right">
+          <div className="truncate font-semibold text-zinc-800 dark:text-zinc-100">
+            {activeProvider?.name ?? 'Нет подключения'}
+          </div>
+          <div className="truncate font-mono text-zinc-500 dark:text-zinc-400">
+            {activeProviderModel || 'Модель не выбрана'}
+          </div>
         </div>
-      )}
+        <span className="px-2 py-1 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 font-mono font-semibold">
+          {agentMode.toUpperCase()}
+        </span>
+      </div>
 
       {/* Install, Theme, Windows Tray & Primary Action */}
       <div className="flex items-center gap-2 shrink-0 pr-2 md:pr-5">

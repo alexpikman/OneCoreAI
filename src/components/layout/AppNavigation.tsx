@@ -35,11 +35,11 @@ const SETTINGS_ITEMS: {
   group: string;
   icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { id: 'providers', label: 'Провайдеры и API-модели', group: 'Настройка моделей', icon: Sparkles },
-  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'Настройка моделей', icon: Cpu },
+  { id: 'providers', label: 'Провайдеры и API-модели', group: 'МОДЕЛИ', icon: Sparkles },
+  { id: 'engine-paths', label: 'Локальные модели и вычисления', group: 'МОДЕЛИ', icon: Cpu },
+  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'МОДЕЛИ', icon: UserCheck },
+  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'МОДЕЛИ', icon: Brain },
   { id: 'ui-chat', label: 'Интерфейс и области чата', group: 'Все настройки', icon: LayoutGrid },
-  { id: 'roles-pipeline', label: 'Роли и пайплайн', group: 'Все настройки', icon: UserCheck },
-  { id: 'skills-memory', label: 'Навыки, память и субагенты', group: 'Все настройки', icon: Brain },
   { id: 'execution-env', label: 'Среды: Local / SSH / Docker', group: 'Все настройки', icon: Server },
   { id: 'gateway', label: 'Шлюз мессенджеров', group: 'Все настройки', icon: MessageCircle },
   { id: 'ssh-github', label: 'Доступ SSH и GitHub', group: 'Все настройки', icon: KeyRound },

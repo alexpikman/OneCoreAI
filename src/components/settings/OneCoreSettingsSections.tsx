@@ -27,7 +27,9 @@ import type {
   AgentSkill,
   ExecutionEnvKind,
   GatewayPlatform,
+  AiProviderCategory,
   FreeProviderKind,
+  FreeProviderProfile,
   SettingsSectionId,
 } from '../../types/onecore';
 import { cn } from '../../utils/cn';
@@ -104,6 +106,27 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
 
   const tokens = getUiTokens(uiStyle);
   const activeProvider = freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
+  const subagentProvider = subagentConfig.providers.find(
+    (provider) => provider.id === subagentConfig.providerSelectionByCategory[subagentConfig.providerCategory],
+  ) ?? subagentConfig.providers[0];
+  const updateSubagentProvider = (providerId: string, patch: Partial<FreeProviderProfile>) =>
+    updateSubagentConfig({
+      providers: subagentConfig.providers.map((provider) =>
+        provider.id === providerId ? { ...provider, ...patch } : provider,
+      ),
+    });
+  const selectSubagentCategory = (category: AiProviderCategory) => {
+    updateSubagentConfig({
+      providerCategory: category,
+      defaultProviderId: subagentConfig.providerSelectionByCategory[category],
+    });
+  };
+  const providersForSubagentCategory = (category: AiProviderCategory) =>
+    subagentConfig.providers.filter((provider) => {
+      if (category === 'local') return provider.kind === 'ollama' || provider.kind === 'lmstudio';
+      if (category === 'cloud') return ['deepseek-api', 'qwen-api', 'openai-api', 'openrouter-free', 'groq-free'].includes(provider.kind);
+      return provider.kind === 'llama-cpp' || provider.kind === 'custom';
+    });
 
   // Local UI states for editors
   const [newSkillOpen, setNewSkillOpen] = useState(false);
@@ -577,19 +600,79 @@ export const OneCoreSettingsSections: React.FC<Props> = ({ section }) => {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-[11px] text-zinc-500 mb-1">Бесплатный провайдер</label>
+            <div className="sm:col-span-2 space-y-2.5">
+              <label className="block text-[11px] text-zinc-500">Независимое подключение субагентов</label>
+              <div className="flex flex-wrap gap-1.5">
+                {(['local', 'cloud', 'runtime'] as const).map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => selectSubagentCategory(category)}
+                    aria-pressed={subagentConfig.providerCategory === category}
+                    className={cn(
+                      'h-8 px-3 border text-[11px] font-semibold tracking-wide',
+                      tokens.inputRadius,
+                      subagentConfig.providerCategory === category
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300',
+                    )}
+                  >
+                    {category.toUpperCase()}
+                  </button>
+                ))}
+              </div>
               <select
-                value={subagentConfig.defaultProviderId}
-                onChange={(e) => updateSubagentConfig({ defaultProviderId: e.target.value })}
+                value={subagentProvider?.id ?? ''}
+                onChange={(event) => {
+                  const providerId = event.target.value;
+                  updateSubagentConfig({
+                    defaultProviderId: providerId,
+                    providerSelectionByCategory: {
+                      ...subagentConfig.providerSelectionByCategory,
+                      [subagentConfig.providerCategory]: providerId,
+                    },
+                  });
+                }}
                 className={cn('w-full h-9 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs', tokens.inputRadius)}
               >
-                {freeProviders.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
+                {providersForSubagentCategory(subagentConfig.providerCategory).map((provider) => (
+                  <option key={provider.id} value={provider.id}>{provider.name}</option>
                 ))}
               </select>
+              {subagentProvider && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] text-zinc-500">Base URL субагента</span>
+                    <input
+                      value={subagentProvider.baseUrl}
+                      onChange={(event) => updateSubagentProvider(subagentProvider.id, { baseUrl: event.target.value })}
+                      className={cn('h-9 w-full px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs font-mono', tokens.inputRadius)}
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] text-zinc-500">API Key субагента</span>
+                    <input
+                      type="password"
+                      value={subagentProvider.apiKey}
+                      onChange={(event) => updateSubagentProvider(subagentProvider.id, { apiKey: event.target.value })}
+                      className={cn('h-9 w-full px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs', tokens.inputRadius)}
+                      placeholder="Ключ хранится отдельно от основного агента"
+                    />
+                  </label>
+                  <label className="block sm:col-span-2">
+                    <span className="mb-1 block text-[10px] text-zinc-500">Модель субагента</span>
+                    <select
+                      value={subagentProvider.selectedModel}
+                      onChange={(event) => updateSubagentProvider(subagentProvider.id, { selectedModel: event.target.value })}
+                      className={cn('h-9 w-full px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs font-mono', tokens.inputRadius)}
+                    >
+                      {subagentProvider.availableModels.map((model) => (
+                        <option key={model} value={model}>{model}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 

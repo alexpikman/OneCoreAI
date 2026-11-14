@@ -270,6 +270,16 @@ export const INITIAL_SUBAGENT_CONFIG: SubagentConfig = {
   maxIterations: 12,
   defaultRoleId: 'role-reviewer',
   defaultProviderId: 'prov-llama-cpp',
+  providerCategory: 'runtime',
+  providerSelectionByCategory: {
+    local: 'prov-ollama',
+    cloud: 'prov-deepseek-api',
+    runtime: 'prov-llama-cpp',
+  },
+  providers: INITIAL_FREE_PROVIDERS.map((provider) => ({
+    ...provider,
+    availableModels: [...provider.availableModels],
+  })),
   autoSummarizeResult: true,
 };
 
