@@ -122,6 +122,12 @@ export const AiSettingsModal: React.FC<AiSettingsModalProps> = ({ embedded = fal
     if (embedded || aiSettingsModalOpen) setPendingProviderId(activeProviderId);
   }, [embedded, aiSettingsModalOpen, activeProviderId]);
 
+  useEffect(() => {
+    if (!embedded) return;
+    const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId);
+    if (activeProvider) setAiSettingsCategory(categoryForProvider(activeProvider.kind));
+  }, [embedded, activeProviderId, freeProviders, setAiSettingsCategory]);
+
   const visibleProviders = useMemo(
     () => categoryProviders(freeProviders, aiSettingsCategory),
     [freeProviders, aiSettingsCategory],
