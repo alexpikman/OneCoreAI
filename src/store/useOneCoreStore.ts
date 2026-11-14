@@ -2141,6 +2141,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           ...s.notifications,
         ],
       }));
+      get().setModelCategory('runtime');
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Ошибка активации' };
