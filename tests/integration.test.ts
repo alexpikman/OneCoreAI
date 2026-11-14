@@ -151,6 +151,7 @@ test('OpenAI-compatible cloud chat forwards conversation history and auth to the
       res.end(JSON.stringify({
         model: 'cloud-test-model',
         choices: [{ message: { content: 'cloud reply' } }],
+        usage: { prompt_tokens: 42, completion_tokens: 13, total_tokens: 55 },
       }));
     });
   });
@@ -179,13 +180,73 @@ test('OpenAI-compatible cloud chat forwards conversation history and auth to the
     });
 
     assert.equal(status, 200);
-    assert.deepEqual(data, { ok: true, content: 'cloud reply', model: 'cloud-test-model', promptTokens: null, completionTokens: null, totalTokens: null });
+    assert.deepEqual(data, { ok: true, content: 'cloud reply', model: 'cloud-test-model', promptTokens: 42, completionTokens: 13, totalTokens: 55 });
     assert.equal(authorization, 'Bearer test-provider-key');
     assert.deepEqual(JSON.parse(receivedBody).messages, [
       { role: 'user', content: 'Earlier question' },
       { role: 'assistant', content: 'Earlier answer' },
       { role: 'user', content: 'Current question' },
     ]);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      providerServer.close((error) => (error ? reject(error) : resolve())),
+    );
+  }
+});
+
+test('model capability probe separates self-reported abilities from application tools', async () => {
+  const providerServer = http.createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            contextWindowTokens: 8192,
+            capabilities: {
+              readFiles: true,
+              writeFiles: false,
+              deleteFiles: false,
+              runCommands: false,
+              git: false,
+              ssh: false,
+              github: false,
+              web: true,
+              functionCalling: false,
+              vision: null,
+            },
+            notes: 'Self-reported model features',
+          }),
+        },
+      }],
+    }));
+  });
+  await new Promise<void>((resolve) => providerServer.listen(0, '127.0.0.1', resolve));
+  const address = providerServer.address();
+  if (!address || typeof address === 'string') throw new Error('Mock provider did not bind a TCP port');
+  try {
+    const result = await jsonReq<{
+      ok: boolean;
+      report: {
+        contextWindowTokens: number | null;
+        selfReported: Record<string, boolean | null>;
+        application: Record<string, { available: boolean; reason: string }>;
+      };
+    }>('/api/providers/capabilities', {
+      method: 'POST',
+      body: JSON.stringify({
+        baseUrl: `http://127.0.0.1:${address.port}/v1`,
+        model: 'capability-test-model',
+        providerId: 'test-provider',
+      }),
+    });
+    assert.equal(result.status, 200);
+    assert.equal(result.data.ok, true);
+    assert.equal(result.data.report.contextWindowTokens, 8192);
+    assert.equal(result.data.report.selfReported.readFiles, true);
+    assert.equal(result.data.report.selfReported.vision, null);
+    assert.equal(result.data.report.application.readFiles.available, false);
+    assert.equal(result.data.report.application.deleteFiles.available, false);
+    assert.equal(result.data.report.application.web.available, true);
   } finally {
     await new Promise<void>((resolve, reject) =>
       providerServer.close((error) => (error ? reject(error) : resolve())),
