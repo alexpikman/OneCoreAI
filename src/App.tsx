@@ -162,7 +162,9 @@ export default function App() {
       case 'engine-paths':
         return <LlamaServerSettingsPage />;
       case 'roles-pipeline':
-        return <AgentTeamPage />;
+        return <AgentTeamPage initialSection="roles" />;
+      case 'subagents-delegation':
+        return <AgentTeamPage initialSection="pipeline" />;
       case 'skills-memory':
         return <SkillsDirectoryPage />;
       case 'providers':
