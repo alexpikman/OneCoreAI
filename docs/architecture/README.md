@@ -27,6 +27,7 @@ The documents are deliberately technology-aligned with the current application. 
 - [Knowledge base index](../knowledge/README.md) — roles, approved procedures, handoff protocols, schemas, proposals, and reviewed lessons.
 - [Multi-agent runtime architecture](../knowledge/architecture/multi-agent-runtime.md) — coordinator, routing, execution, context, knowledge, and infrastructure layers. This is a target contract; consult `IMPLEMENTATION_STATUS.md` and source before assuming a capability exists.
 - [Agent registry and context architecture](AGENT_REGISTRY_AND_CONTEXT.md) — how the management registry relates to repository-backed knowledge and how effective context is assembled for every model turn.
+- [Intelligence Library](../intelligence-architecture/README.md) — General Agent ontology, Playbook Schema, Execution Model, Capability Contract, Decision Trace and first read-only Playbook.
 
 ## Status vocabulary
 
