@@ -134,13 +134,16 @@ export function getActiveNavigationGroup(activeTab: AppTab, settingsSection: Set
   ) {
     return 'AI Инструменты';
   }
+  if (activeTab === 'models' && ['roles-pipeline', 'subagents-delegation'].includes(settingsSection)) {
+    return 'Агенты';
+  }
   if (
     activeTab === 'skills' ||
     activeTab === 'instructions' ||
     activeTab === 'directories' ||
-    (activeTab === 'models' && ['roles-pipeline', 'skills-memory'].includes(settingsSection))
+    (activeTab === 'models' && settingsSection === 'skills-memory')
   ) {
-    return 'Агенты и знания';
+    return 'Библиотека знаний';
   }
   if (
     activeTab === 'projects' ||
