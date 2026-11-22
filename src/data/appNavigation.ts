@@ -73,7 +73,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
     id: 'knowledge',
     label: 'Библиотека знаний',
     icon: 'brain',
-    description: 'Навыки, регламенты, схемы, справочники и архитектурные контракты.'
+    description: 'Навыки, регламенты, схемы, справочники и архитектурные контракты.',
     items: [
       { id: 'skills', label: 'Библиотека навыков', icon: 'brain', tab: 'skills' },
       { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions', section: 'knowledge' },
