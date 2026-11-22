@@ -10,7 +10,8 @@
 - [x] Зафиксировать Execution Model v2 с открытыми вопросами.
 - [x] Создать каркас Capability Contract и Decision Trace.
 - [x] Описать read-only Code Audit и последовательность реализации.
-- [x] Добавить модели Delegation, Skill Registry и Task Context Package.\n- [ ] Провести архитектурное ревью и закрыть открытые вопросы.
+- [x] Добавить модели Delegation, Skill Registry и Task Context Package.
+- [ ] Провести архитектурное ревью и закрыть открытые вопросы.
 - [ ] Утвердить версии контрактов и правила совместимости.
 
 ## Этап 1. Аудит текущей реализации
@@ -33,7 +34,11 @@
 
 ## Этап 3. Registry и каталог
 
-- [ ] Типизированный Registry с версиями и ссылками.\n- [ ] Skill ingestion pipeline: provenance, quarantine, review, deduplication, approval и revocation.\n- [ ] Context Builder: подбор Skills/Instructions/Schemas и сборка Task Context Package с token budget.\n- [ ] Delegation adapter к существующему Agent Orchestrator; без второго оркестратора.\n- [ ] Валидация handoff/result на границах worker без изменения v1 контрактов до тестов.
+- [ ] Типизированный Registry с версиями и ссылками.
+- [ ] Skill ingestion pipeline: provenance, quarantine, review, deduplication, approval и revocation.
+- [ ] Context Builder: подбор Skills/Instructions/Schemas и сборка Task Context Package с token budget.
+- [ ] Delegation adapter к существующему Agent Orchestrator; без второго оркестратора.
+- [ ] Валидация handoff/result на границах worker без изменения v1 контрактов до тестов.
 - [ ] Проверка связей, дубликатов ID и совместимости.
 - [ ] Intelligence Library UI как представление канонических документов.
 - [ ] Поиск, фильтры, статусы, граф связей и просмотр истории.
@@ -50,7 +55,9 @@
 
 ## Этап 5. Расширение библиотеки
 
-- [ ] Добавлять Playbooks по одному, только после end-to-end теста.\n- [ ] Подключать Skills по SkillRef/version/hash; не загружать всю библиотеку в контекст.\n- [ ] Передавать workers только scoped Task Context Package и проверять результаты через Manager.
+- [ ] Добавлять Playbooks по одному, только после end-to-end теста.
+- [ ] Подключать Skills по SkillRef/version/hash; не загружать всю библиотеку в контекст.
+- [ ] Передавать workers только scoped Task Context Package и проверять результаты через Manager.
 - [ ] Подключать новые Specializations и Competencies через Registry.
 - [ ] Вводить версии и миграции без нарушения активных запусков.
 - [ ] Проверять трассируемость от Intent до фактических эффектов Tool.
