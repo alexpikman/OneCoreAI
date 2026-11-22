@@ -7,58 +7,46 @@ const DOCUMENTS = [
   {
     group: 'Фундамент',
     items: [
-      {
-        title: 'Ontology v2',
-        description: 'Сущности General Agent, специализации, компетенции, роли, связи и архитектурные инварианты.',
-        path: 'ontology-v2.md',
-        icon: GitBranch,
-      },
-      {
-        title: 'Playbook Schema v1.1',
-        description: 'Структура сценария, фаз, условий, переходов, outputs, бюджетов и правил выбора специализации.',
-        path: 'playbook-schema-v1.1.md',
-        icon: FileCode2,
-      },
+      { title: 'Ontology v2', description: 'Сущности General Agent, специализации, компетенции, роли, связи и архитектурные инварианты.', path: 'ontology-v2.md', icon: GitBranch, status: 'Draft' },
+      { title: 'Playbook Schema v1.1', description: 'Структура сценария, фаз, условий, переходов, outputs и бюджетов.', path: 'playbook-schema-v1.1.md', icon: FileCode2, status: 'Draft' },
     ],
   },
   {
     group: 'Механизмы исполнения',
     items: [
-      {
-        title: 'Execution Model v2',
-        description: 'Preflight, Runtime Resolver, Execution Snapshot, Playbook Engine и Control Layer.',
-        path: 'execution-model-v2.md',
-        icon: Workflow,
-      },
-      {
-        title: 'Capability Contract v1',
-        description: 'Операции Tool, аргументы, эффекты, Authorization, Guardrails, Confirmation и enforcement.',
-        path: 'capability-contract-v1.md',
-        icon: ShieldCheck,
-      },
-      {
-        title: 'Decision Trace v1',
-        description: 'Формат аудита решений, альтернатив, проверок политик, операций и фактических результатов.',
-        path: 'decision-trace-v1.md',
-        icon: ClipboardCheck,
-      },
+      { title: 'Execution Model v2', description: 'Preflight, Runtime Resolver, Execution Snapshot, Playbook Engine и Control Layer.', path: 'execution-model-v2.md', icon: Workflow, status: 'Draft' },
+      { title: 'Capability Contract v1', description: 'Операции Tool, эффекты, Authorization, Guardrails, Confirmation и enforcement.', path: 'capability-contract-v1.md', icon: ShieldCheck, status: 'Draft' },
+      { title: 'Decision Trace v1', description: 'Аудит решений, проверок политик, операций и фактических результатов.', path: 'decision-trace-v1.md', icon: ClipboardCheck, status: 'Draft' },
+    ],
+  },
+  {
+    group: 'Субагенты и делегирование',
+    items: [
+      { title: 'Delegation Model v1', description: 'Manager, Dispatcher и workers; handoff, изоляция контекста и приёмка результатов.', path: 'delegation-model-v1.md', icon: Network, status: 'Draft' },
+    ],
+  },
+  {
+    group: 'Контекст и каталог навыков',
+    items: [
+      { title: 'Skill Registry v1', description: 'Происхождение, версии, доверие, проверка и безопасное подключение внешних SKILL.md.', path: 'skill-registry-v1.md', icon: BookOpen, status: 'Draft' },
+      { title: 'Task Context Package v1', description: 'Сборка минимального контекста задачи из Skills, инструкций, ограничений и evidence.', path: 'task-context-package-v1.md', icon: Layers3, status: 'Draft' },
+    ],
+  },
+  {
+    group: 'Действующие контракты runtime',
+    items: [
+      { title: 'Multi-agent Runtime', description: 'Утверждённая архитектура текущего оркестратора, Manager/Dispatcher и workers.', path: '', url: 'https://github.com/alexpikman/OneCoreAI/blob/main/docs/knowledge/architecture/multi-agent-runtime.md', icon: Network, status: 'Approved' },
+      { title: 'Agent Handoff v1', description: 'Действующий контракт передачи поручения субагенту.', path: '', url: 'https://github.com/alexpikman/OneCoreAI/blob/main/docs/knowledge/protocols/task-handoff.md', icon: FileCode2, status: 'Approved' },
+      { title: 'Worker Result v1', description: 'Действующий протокол возврата результата и evidence от worker.', path: '', url: 'https://github.com/alexpikman/OneCoreAI/blob/main/docs/knowledge/protocols/worker-result.md', icon: ClipboardCheck, status: 'Approved' },
+      { title: 'agent-handoff.v1.schema.json', description: 'Рабочая JSON Schema входящего handoff. В этой ветке не меняется.', path: '', url: 'https://github.com/alexpikman/OneCoreAI/blob/main/docs/knowledge/schemas/agent-handoff.v1.schema.json', icon: ShieldCheck, status: 'Approved' },
+      { title: 'worker-result.v1.schema.json', description: 'Рабочая JSON Schema результата worker. В этой ветке не меняется.', path: '', url: 'https://github.com/alexpikman/OneCoreAI/blob/main/docs/knowledge/schemas/worker-result.v1.schema.json', icon: ShieldCheck, status: 'Approved' },
     ],
   },
   {
     group: 'Сценарии и реализация',
     items: [
-      {
-        title: 'Code Audit v1',
-        description: 'Первый вертикальный сценарий: анализ, тестирование и ревью в режиме read-only.',
-        path: 'code-audit-v1.md',
-        icon: BookOpen,
-      },
-      {
-        title: 'Implementation Roadmap',
-        description: 'Последовательность аудита текущего кода, read-only прототипа, Registry и контролируемого исполнения.',
-        path: 'implementation-roadmap.md',
-        icon: Workflow,
-      },
+      { title: 'Code Audit v1', description: 'Первый вертикальный сценарий: анализ, тестирование и ревью в режиме read-only.', path: 'code-audit-v1.md', icon: BookOpen, status: 'Draft' },
+      { title: 'Implementation Roadmap', description: 'Аудит текущего кода, read-only прототип, Registry и контролируемое исполнение.', path: 'implementation-roadmap.md', icon: Workflow, status: 'Draft' },
     ],
   },
 ] as const;
@@ -98,8 +86,8 @@ export const IntelligenceLibraryPage = () => (
               const Icon = document.icon;
               return (
                 <a
-                  key={document.path}
-                  href={`${DOCUMENT_BASE_URL}${document.path}`}
+                  key={document.title}
+                  href={document.url || DOCUMENT_BASE_URL + document.path}
                   target="_blank"
                   rel="noreferrer"
                   className="group flex min-w-0 items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 transition-colors hover:border-blue-400 hover:bg-blue-50/40 dark:border-zinc-800 dark:bg-zinc-950/50 dark:hover:border-blue-700 dark:hover:bg-blue-950/20"
@@ -110,7 +98,7 @@ export const IntelligenceLibraryPage = () => (
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{document.title}</span>
-                      <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">Draft</span>
+                      <span className={document.status === 'Approved' ? 'rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-medium text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'}>{document.status}</span>
                     </span>
                     <span className="mt-1 block text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{document.description}</span>
                   </span>
