@@ -323,7 +323,7 @@ export async function getLlamaCppInstallationStatus(configuredPath: string): Pro
   const downloadsDir = path.join(runtimeRoot, 'downloads');
   const versionsDir = path.join(runtimeRoot, 'versions');
   const downloaded = fs.existsSync(downloadsDir) &&
-    fs.readdirSync(downloadsDir).some((name) => /\\.(zip|tar\\.gz)$/i.test(name));
+    fs.readdirSync(downloadsDir).some((name) => /\.(zip|tar\.gz)$/i.test(name));
   const configured = configuredPath.trim();
   const binaryName = process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
   const pathCandidates = (process.env.PATH || '')
