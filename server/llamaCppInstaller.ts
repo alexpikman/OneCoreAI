@@ -284,6 +284,9 @@ async function extractZipSafely(archivePath: string, destination: string): Promi
 
 function findExecutable(root: string): string | null {
   const pending = [root];
+  const executableNames = process.platform === 'win32'
+    ? new Set(['llama-server.exe'])
+    : new Set(['llama-server']);
   let inspected = 0;
   while (pending.length > 0) {
     const current = pending.pop()!;
@@ -299,7 +302,7 @@ function findExecutable(root: string): string | null {
       const candidate = path.join(current, entry.name);
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) pending.push(candidate);
-      else if (entry.isFile() && entry.name.toLowerCase() === 'llama-server.exe') return candidate;
+      else if (entry.isFile() && executableNames.has(entry.name.toLowerCase())) return candidate;
     }
   }
   return null;
@@ -319,30 +322,52 @@ export async function getLlamaCppInstallationStatus(configuredPath: string): Pro
   const runtimeRoot = getRuntimeRoot();
   const downloadsDir = path.join(runtimeRoot, 'downloads');
   const versionsDir = path.join(runtimeRoot, 'versions');
-  const downloaded = fs.existsSync(path.join(downloadsDir, 'release.json')) &&
-    fs.existsSync(downloadsDir) && fs.readdirSync(downloadsDir).some((name) => name.toLowerCase().endsWith('.zip'));
+  const downloaded = fs.existsSync(downloadsDir) &&
+    fs.readdirSync(downloadsDir).some((name) => /\\.(zip|tar\\.gz)$/i.test(name));
   const configured = configuredPath.trim();
-  const bundledExecutable = findExecutable(versionsDir);
-  const candidate = configured && configured.toLowerCase() !== 'llama-server'
-    ? configured
-    : bundledExecutable || (configured ? 'llama-server' : null);
+  const binaryName = process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+  const pathCandidates = (process.env.PATH || '')
+    .split(path.delimiter)
+    .filter(Boolean)
+    .map((directory) => path.join(directory, binaryName));
+  const appDirectories = [
+    path.join(process.cwd(), 'bin', binaryName),
+    path.join(process.cwd(), binaryName),
+    path.join(path.dirname(process.execPath), binaryName),
+  ];
+  const systemDirectories = process.platform === 'win32'
+    ? []
+    : ['/usr/local/bin', '/usr/bin', '/opt/homebrew/bin'].map((directory) => path.join(directory, binaryName));
+  const candidates = [
+    ...(configured ? [configured] : []),
+    findExecutable(versionsDir),
+    ...appDirectories,
+    ...systemDirectories,
+    ...pathCandidates,
+    ...(configured && !configured.includes('/') && !configured.includes('\\') ? [configured] : []),
+  ].filter((candidate, index, all): candidate is string => Boolean(candidate) && all.indexOf(candidate) === index);
 
-  if (!candidate) return { installed: false, downloaded, executablePath: null, version: null };
-  try {
-    const result = await execFileAsync(candidate, ['--version'], {
-      windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024, encoding: 'utf8',
-    });
-    const version = (result.stdout || result.stderr || '').trim().slice(0, 240);
-    const installedInRuntime = isInside(versionsDir, path.resolve(candidate));
-    return {
-      installed: Boolean(version) && (installedInRuntime || !isInside(runtimeRoot, path.resolve(candidate))),
-      downloaded,
-      executablePath: candidate,
-      version: version || null,
-    };
-  } catch {
-    return { installed: false, downloaded, executablePath: candidate, version: null };
+  for (const candidate of candidates) {
+    try {
+      const result = await execFileAsync(candidate, ['--version'], {
+        windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024, encoding: 'utf8',
+      });
+      const version = (result.stdout || result.stderr || '').trim().slice(0, 240);
+      if (!version) continue;
+      const resolved = path.isAbsolute(candidate) ? path.resolve(candidate) : candidate;
+      const installedInRuntime = path.isAbsolute(resolved) && isInside(versionsDir, resolved);
+      return {
+        installed: installedInRuntime || !path.isAbsolute(resolved) || !isInside(runtimeRoot, resolved),
+        downloaded,
+        executablePath: candidate,
+        version,
+      };
+    } catch {
+      // Continue through PATH, system and application candidates.
+    }
   }
+
+  return { installed: false, downloaded, executablePath: candidates[0] || null, version: null };
 }
 
 function readDownloadedRelease(runtimeRoot: string): SelectedRelease {
