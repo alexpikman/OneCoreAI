@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   ArrowRight,
@@ -37,7 +37,7 @@ const SPECIALIST_ROLES = [
   { id: 'role-qa', label: 'QA' },
 ];
 
-export const AgentTeamPage: React.FC = () => {
+export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initialSection = 'roles' }) => {
   const {
     roles,
     enabledRoleIds,
@@ -75,8 +75,8 @@ export const AgentTeamPage: React.FC = () => {
     saveSettings,
   } = useOneCoreStore();
 
-  const [section, setSection] = useState<SubSection>('roles');
-  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);
+  const [section, setSection] = useState<SubSection>(initialSection);
+  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);\n\n  useEffect(() => {\n    setSection(initialSection);\n  }, [initialSection]);
 
   // Custom role builder state
   const [roleName, setRoleName] = useState('');
