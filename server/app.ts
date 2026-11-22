@@ -1089,6 +1089,48 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
   });
 
+  app.get('/api/models/llama-cpp/diagnostics', async (_req, res) => {
+    try {
+      const manifest = await readAppSettings();
+      const settings = manifest?.settings;
+      const configuredPath = settings?.appSettings?.llamaServerPath || 'llama-server';
+      const [installation, hardware] = await Promise.all([
+        getLlamaCppInstallationStatus(configuredPath),
+        detectHardware(),
+      ]);
+      const runtime = getLlamaCppStatus();
+      const report = {
+        generatedAt: new Date().toISOString(),
+        application: {
+          platform: process.platform,
+          arch: process.arch,
+          nodeVersion: process.version,
+        },
+        llamaServer: installation,
+        runtime: {
+          status: runtime.status,
+          pid: runtime.pid,
+          modelId: runtime.modelId,
+          modelPath: runtime.modelPath,
+          baseUrl: runtime.baseUrl,
+          error: runtime.error,
+          output: runtime.output,
+        },
+        hardware,
+        operation: getLlamaCppOperationProgress(),
+        operationHistory: getLlamaCppOperationHistory(),
+      };
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Content-Disposition', 'attachment; filename="onecoreai-llama-server-diagnostics.json"');
+      res.type('application/json').send(JSON.stringify(report, null, 2));
+    } catch (error) {
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Не удалось собрать диагностику llama-server.',
+      });
+    }
+  });
+
   app.post('/api/models/llama-cpp/start', async (req, res) => {
     if (!requireSideEffectApproval(req, res, 'model.manage', 'llama-cpp-server')) return;
     updateLlamaCppOperationProgress({ active: true, action: 'start', phase: 'starting', message: 'Запускаю llama-server…', sourcePath: null, targetPath: null, percent: null });
