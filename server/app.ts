@@ -56,7 +56,7 @@ import { getModelMetrics, recordModelRequest } from './modelMetrics';
 import { listLlamaRequestHistory, recordLlamaRequest as appendLlamaRequestRecord } from './llamaRequestHistory';
 import { warmOllamaModel } from './ollamaRuntime';
 import { getLlamaCppStatus, startLlamaCppServer, stopLlamaCppServer } from './llamaCppRuntime';
-import { downloadLlamaCppRuntime, getLlamaCppInstallationStatus, getLlamaCppOperationHistory, getLlamaCppOperationProgress, installLlamaCppRuntime, removeDownloadedLlamaCppRuntime, uninstallLlamaCppRuntime, updateLlamaCppOperationProgress } from './llamaCppInstaller';
+import { downloadLlamaCppRuntime, getLlamaCppInstallationStatus, getLlamaCppOperationHistory, getLlamaCppOperationProgress, installLlamaCppArchive, installLlamaCppRuntime, removeDownloadedLlamaCppRuntime, uninstallLlamaCppRuntime, updateLlamaCppOperationProgress } from './llamaCppInstaller';
 import { deleteExternalReference, listExternalReferences, saveExternalReference } from './externalReferences';
 import { listKnowledgeDocuments, readApprovedKnowledgeDocument } from './knowledgeManager';
 import { loadKnowledgeSchemas } from './orchestration/contractValidator';
@@ -1128,6 +1128,61 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         ok: false,
         error: error instanceof Error ? error.message : 'Не удалось собрать диагностику llama-server.',
       });
+    }
+  });
+
+  app.post('/api/models/llama-cpp/archive', async (req, res) => {
+    if (!requireSideEffectApproval(req, res, 'model.manage', 'llama-cpp-runtime-archive-install')) return;
+    if (['ready', 'loading'].includes(getLlamaCppStatus().status)) {
+      res.status(409).json({ ok: false, error: 'Остановите llama-server перед установкой архива.' });
+      return;
+    }
+
+    const rawName = req.header('X-Archive-Name') || '';
+    const fileName = path.basename(rawName);
+    if (!/\\.(zip|tar\\.gz)$/i.test(fileName) || fileName !== rawName) {
+      res.status(400).json({ ok: false, error: 'Передайте имя архива с расширением .zip или .tar.gz в заголовке X-Archive-Name.' });
+      return;
+    }
+    const contentLength = Number(req.header('Content-Length') || 0);
+    if (contentLength > 2 * 1024 * 1024 * 1024) {
+      res.status(413).json({ ok: false, error: 'Размер архива превышает 2 GB.' });
+      return;
+    }
+
+    const tempBase = process.env.TMPDIR || process.env.TEMP || process.cwd();
+    const uploadDir = fs.mkdtempSync(path.join(tempBase, 'onecore-llama-archive-'));
+    const archivePath = path.join(uploadDir, fileName);
+    const output = fs.createWriteStream(archivePath, { flags: 'wx' });
+    let receivedBytes = 0;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const onData = (chunk: Buffer) => {
+          receivedBytes += chunk.length;
+          if (receivedBytes > 2 * 1024 * 1024 * 1024) {
+            req.pause();
+            req.unpipe(output);
+            output.destroy();
+            reject(new Error('Размер архива превышает 2 GB.'));
+          }
+        };
+        req.on('data', onData);
+        req.once('error', reject);
+        output.once('error', reject);
+        output.once('finish', resolve);
+        req.pipe(output);
+      });
+      if (receivedBytes === 0) throw new Error('Получен пустой архив.');
+      const result = await installLlamaCppArchive(archivePath);
+      res.json({ ok: true, ...result });
+    } catch (error) {
+      res.status(400).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Не удалось загрузить или установить архив llama-server.',
+      });
+    } finally {
+      output.destroy();
+      fs.rmSync(uploadDir, { recursive: true, force: true });
     }
   });
 
