@@ -4,6 +4,7 @@ import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { scanLocalModels } from './modelsManager';
 import { readAppSettings } from './settingsManager';
+import { getLlamaCppInstallationStatus } from './llamaCppInstaller';
 
 export type LlamaCppRuntimeStatus = 'stopped' | 'loading' | 'ready' | 'error';
 
@@ -201,7 +202,11 @@ async function startInternal(signal: AbortSignal): Promise<LlamaCppRuntimeSnapsh
   }
   const endpoint = resolveEndpoint(provider?.baseUrl?.trim() || DEFAULT_BASE_URL);
   const configuredExecutable = settings?.appSettings?.llamaServerPath?.trim() || 'llama-server';
-  const executable = resolveExecutable(configuredExecutable);
+  const installation = await getLlamaCppInstallationStatus(configuredExecutable);
+  if (!installation.installed || !installation.executablePath) {
+    throw new Error('llama-server не найден. Укажите путь к бинарнику, установите runtime или загрузите архив в настройках LlamaServer.');
+  }
+  const executable = resolveExecutable(installation.executablePath);
   if (signal.aborted) throw new Error('Запуск llama-server отменён.');
   const inference = settings?.inferenceSettings;
   const gpuLayers = inference?.gpuBackend === 'cpu'
