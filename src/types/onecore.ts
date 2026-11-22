@@ -25,9 +25,7 @@ export type AppTab =
   | 'hooks'
   | 'tools-hooks'
   | 'permissions'
-  | 'security'
-  | 'knowledge'
-  | 'intelligence-library';
+  | 'security';
 
 export type AgentJournalCategory =
   | 'agent'
@@ -86,6 +84,8 @@ export type SettingsSectionId =
   | 'model-search'
   | 'roles-pipeline'
   | 'subagents-delegation'
+  | 'knowledge'
+  | 'intelligence-library'
   | 'skills-memory'
   | 'execution-env'
   | 'gateway'
