@@ -582,7 +582,7 @@ function validateArchiveEntries(entries: string[]): void {
     throw new Error('Архив пуст или содержит слишком много файлов.');
   }
   for (const entry of entries) {
-    const normalized = entry.replace(/\\\\/g, '/');
+    const normalized = entry.replace(/\\/g, '/');
     if (
       normalized.startsWith('/') ||
       /^[a-z]:/i.test(normalized) ||
@@ -631,7 +631,7 @@ export async function installLlamaCppArchive(archivePath: string): Promise<Llama
       const listing = await execFileAsync('unzip', ['-Z1', archivePath], {
         timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
       });
-      validateArchiveEntries(listing.stdout.split(/\\r?\\n/).filter(Boolean));
+      validateArchiveEntries(listing.stdout.split(/\r?\n/).filter(Boolean));
       await execFileAsync('unzip', ['-q', archivePath, '-d', extractedDir], {
         timeout: 120_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
       });
@@ -639,11 +639,11 @@ export async function installLlamaCppArchive(archivePath: string): Promise<Llama
       const listing = await execFileAsync('tar', ['-tzf', archivePath], {
         timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
       });
-      validateArchiveEntries(listing.stdout.split(/\\r?\\n/).filter(Boolean));
+      validateArchiveEntries(listing.stdout.split(/\r?\n/).filter(Boolean));
       const verbose = await execFileAsync('tar', ['-tvzf', archivePath], {
         timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
       });
-      if (verbose.stdout.split(/\\r?\\n/).some((line) => /^[lh]/.test(line))) {
+      if (verbose.stdout.split(/\r?\n/).some((line) => /^[lh]/.test(line))) {
         throw new Error('Архив с символическими или жёсткими ссылками не поддерживается.');
       }
       await execFileAsync('tar', [
