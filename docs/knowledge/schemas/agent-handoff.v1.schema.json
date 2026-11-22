@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://onecore.ai/schemas/agent-handoff.v1.schema.json",
+  "title": "ONE CORE AI Agent Handoff v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "operationId",
+    "fromRole",
+    "toRole",
+    "objective",
+    "acceptanceCriteria",
+    "procedureRefs",
+    "project",
+    "files",
+    "findings",
+    "completedSteps",
+    "unresolvedQuestions",
+    "allowedCapabilities",
+    "outputFormat",
+    "status"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "taskId": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "operationId": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "parentOperationId": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "fromRole": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "toRole": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "objective": { "type": "string", "minLength": 1, "maxLength": 4000 },
+    "acceptanceCriteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1, "maxLength": 1000 },
+      "maxItems": 40
+    },
+    "procedureRefs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "version"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 120 },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+        }
+      },
+      "maxItems": 20
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["projectId", "constraints"],
+      "properties": {
+        "projectId": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "rootLabel": { "type": "string", "maxLength": 240 },
+        "constraints": {
+          "type": "array",
+          "items": { "type": "string", "maxLength": 1000 },
+          "maxItems": 40
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "purpose", "evidence"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1, "maxLength": 1024 },
+          "purpose": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "evidence": { "enum": ["listed", "searched", "read"] },
+          "excerpts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["content"],
+              "properties": {
+                "startLine": { "type": "integer", "minimum": 1 },
+                "endLine": { "type": "integer", "minimum": 1 },
+                "content": { "type": "string", "maxLength": 24000 }
+              }
+            },
+            "maxItems": 30
+          }
+        }
+      },
+      "maxItems": 100
+    },
+    "findings": { "type": "array", "items": { "type": "string", "maxLength": 2000 }, "maxItems": 100 },
+    "completedSteps": { "type": "array", "items": { "type": "string", "maxLength": 1000 }, "maxItems": 100 },
+    "unresolvedQuestions": { "type": "array", "items": { "type": "string", "maxLength": 1000 }, "maxItems": 50 },
+    "allowedCapabilities": { "type": "array", "items": { "type": "string", "maxLength": 100 }, "maxItems": 30 },
+    "outputFormat": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "status": { "enum": ["ready", "completed", "blocked", "needs_more_context", "failed", "cancelled"] }
+  }
+}

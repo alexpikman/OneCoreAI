@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title">
+  <title id="title">ONE CORE AI</title>
+  <defs>
+    <linearGradient id="orbit" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#20c5f5"><animate attributeName="stop-color" values="#20c5f5;#0879e8;#7b45ff;#20c5f5" dur="18s" repeatCount="indefinite"/></stop>
+      <stop offset="55%" stop-color="#0879e8"><animate attributeName="stop-color" values="#0879e8;#20c5f5;#ed3f9b;#0879e8" dur="18s" repeatCount="indefinite"/></stop>
+      <stop offset="100%" stop-color="#20c5f5"><animate attributeName="stop-color" values="#20c5f5;#27d5b0;#ff9b24;#20c5f5" dur="18s" repeatCount="indefinite"/></stop>
+    </linearGradient>
+  </defs>
+  <path d="M116 22 C76 -2 22 24 15 73 C7 124 49 151 101 133" fill="none" stroke="url(#orbit)" stroke-width="7" stroke-linecap="round"/>
+  <path d="M112 23 C135 44 140 62 134 83 M101 134 C122 127 139 111 145 94" fill="none" stroke="url(#orbit)" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="17" cy="74" r="11" fill="#0879e8"/><circle cx="127" cy="30" r="11" fill="#20c5f5"/><circle cx="136" cy="95" r="11" fill="#0879e8"/>
+  <path d="M109 55 A39 39 0 1 0 109 110" fill="none" stroke="#10274b" stroke-width="25" stroke-linecap="butt"/>
+</svg>

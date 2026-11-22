@@ -1,0 +1,6 @@
+{
+  "name": "ONE CORE AI",
+  "description": "Локальный ИИ-агент для работы с проектами, моделями GGUF, файлами, Git и терминалом.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

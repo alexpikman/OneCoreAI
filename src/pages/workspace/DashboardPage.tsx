@@ -1,0 +1,328 @@
+import React from 'react';
+import {
+  Activity,
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Cloud,
+  Cpu,
+  FolderKanban,
+  HardDrive,
+  MemoryStick,
+  Monitor,
+  Server,
+  Workflow,
+} from 'lucide-react';
+import { useOneCoreStore } from '../../store/useOneCoreStore';
+import { PageContent } from '../../components/layout/PageContent';
+import { PageHeader } from '../../components/layout/PageHeader';
+import { PageLayout } from '../../components/layout/StandardPageLayout';
+
+const formatGb = (value?: number) =>
+  typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} ГБ` : '—';
+
+interface DashboardCardProps {
+  title: string;
+  value: string;
+  detail: string;
+  icon: React.ComponentType<{ className?: string }>;
+  onClick: () => void;
+  status?: 'good' | 'warning' | 'neutral';
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({
+  title,
+  value,
+  detail,
+  icon: Icon,
+  onClick,
+  status = 'neutral',
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="group min-w-0 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-blue-700"
+  >
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{title}</span>
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+        <Icon className="h-4 w-4" />
+      </span>
+    </div>
+    <div className="mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-100">
+      {value}
+    </div>
+    <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+      <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400">{detail}</span>
+      <span
+        className={`h-2 w-2 shrink-0 rounded-full ${
+          status === 'good' ? 'bg-emerald-500' : status === 'warning' ? 'bg-amber-500' : 'bg-zinc-300 dark:bg-zinc-600'
+        }`}
+        aria-hidden="true"
+      />
+    </div>
+  </button>
+);
+
+export const DashboardPage: React.FC = () => {
+  const hardware = useOneCoreStore((state) => state.hardwareProfile);
+  const hardwareError = useOneCoreStore((state) => state.hardwareError);
+  const hardwareLoading = useOneCoreStore((state) => state.hardwareLoading);
+  const localModels = useOneCoreStore((state) => state.localModels);
+  const localModelsError = useOneCoreStore((state) => state.localModelsError);
+  const activeModelId = useOneCoreStore((state) => state.activeModelId);
+  const serverStatus = useOneCoreStore((state) => state.serverStatus);
+  const freeProviders = useOneCoreStore((state) => state.freeProviders);
+  const activeProviderId = useOneCoreStore((state) => state.activeProviderId);
+  const projects = useOneCoreStore((state) => state.projects);
+  const projectWorkspace = useOneCoreStore((state) => state.projectWorkspace);
+  const subagentRuns = useOneCoreStore((state) => state.subagentRuns);
+  const agentActivity = useOneCoreStore((state) => state.agentActivity);
+  const sshHosts = useOneCoreStore((state) => state.sshHosts);
+  const gateways = useOneCoreStore((state) => state.gateways);
+  const githubAccess = useOneCoreStore((state) => state.githubAccess);
+  const setActiveTab = useOneCoreStore((state) => state.setActiveTab);
+  const setSettingsSection = useOneCoreStore((state) => state.setSettingsSection);
+  const setSshGithubSection = useOneCoreStore((state) => state.setSshGithubSection);
+
+  const readyModels = localModels.filter((model) => model.status === 'ready').length;
+  const activeModel = localModels.find((model) => model.id === activeModelId);
+  const connectedProviders = freeProviders.filter((provider) => provider.status === 'connected').length;
+  const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId);
+  const activeAgents =
+    subagentRuns.filter((run) => run.status === 'running' || run.status === 'queued').length +
+    Number(agentActivity !== 'idle');
+  const failedAgents = subagentRuns.filter((run) => run.status === 'failed').length;
+  const tasks = projectWorkspace.tasks;
+  const activeTasks = tasks.filter((task) => task.status === 'in-progress').length;
+  const pendingTasks = tasks.filter((task) => task.status === 'todo').length;
+  const connectedSsh = sshHosts.filter((host) => host.status === 'connected').length;
+  const connectedGateways = gateways.filter((gateway) => gateway.enabled && gateway.status === 'connected').length;
+  const connectedGithub = githubAccess.lastVerifyStatus === 'ok' ? 1 : 0;
+  const connectedIntegrations = connectedProviders + connectedSsh + connectedGateways + connectedGithub;
+  const providerErrors = freeProviders.filter((provider) => provider.status === 'error').length;
+  const issueCount =
+    Number(Boolean(hardwareError)) + Number(Boolean(localModelsError)) + providerErrors + failedAgents;
+  const systemReady = !hardwareError && !localModelsError && serverStatus !== 'error';
+
+  const openSystem = () => setActiveTab('system');
+  const openModels = () => {
+    setSettingsSection('providers');
+    setActiveTab('models');
+  };
+  const openRoles = () => {
+    setSettingsSection('roles-pipeline');
+    setActiveTab('models');
+  };
+  const openProjects = () => setActiveTab('projects');
+  const openTasks = () => setActiveTab('tasks');
+  const openProcesses = () => setActiveTab('processes');
+  const openOperations = () => setActiveTab('operations-log');
+  const openIntegrations = () => {
+    setSettingsSection('ssh-github');
+    setSshGithubSection('github');
+    setActiveTab('settings');
+  };
+
+  return (
+    <PageLayout>
+      <PageHeader
+        showSave={false}
+        status={{ label: systemReady ? 'Система доступна' : 'Есть проблемы', variant: systemReady ? 'success' : 'warning' }}
+      >
+        <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+          <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+          <h1 className="text-xl font-semibold">Дашборд</h1>
+        </div>
+      </PageHeader>
+
+      <PageContent>
+        <div className="flex flex-col gap-6 py-5">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Состояние системы</h2>
+              <button
+                type="button"
+                onClick={openSystem}
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Подробнее
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DashboardCard
+                title="Процессор"
+                value={hardwareLoading && !hardware ? 'Загрузка…' : hardware ? `${hardware.cpu.cores} ядер` : 'Нет данных'}
+                detail={hardware?.cpu.model || hardwareError || 'Аппаратный профиль не получен'}
+                icon={Cpu}
+                onClick={openSystem}
+                status={hardware ? 'good' : 'warning'}
+              />
+              <DashboardCard
+                title="Оперативная память"
+                value={hardware ? formatGb(hardware.ram.totalGb - hardware.ram.freeGb) : 'Нет данных'}
+                detail={
+                  hardware
+                    ? `из ${formatGb(hardware.ram.totalGb)} · свободно ${formatGb(hardware.ram.freeGb)}`
+                    : hardwareError || 'Нет данных'
+                }
+                icon={MemoryStick}
+                onClick={openSystem}
+                status={hardware ? 'good' : 'warning'}
+              />
+              <DashboardCard
+                title="Графический процессор"
+                value={
+                  hardware?.gpuDetected
+                    ? formatGb(hardware.totalVramGb - hardware.freeVramGb)
+                    : hardware
+                      ? 'Не обнаружен'
+                      : 'Нет данных'
+                }
+                detail={
+                  hardware?.gpuDetected
+                    ? `VRAM из ${formatGb(hardware.totalVramGb)} · свободно ${formatGb(hardware.freeVramGb)}`
+                    : hardware?.cpu.model || hardwareError || 'Нет данных'
+                }
+                icon={Monitor}
+                onClick={openSystem}
+                status={hardware?.gpuDetected ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Диск"
+                value={hardware ? formatGb(hardware.disk.freeGb) : 'Нет данных'}
+                detail={hardware ? `свободно из ${formatGb(hardware.disk.totalGb)}` : hardwareError || 'Нет данных'}
+                icon={HardDrive}
+                onClick={openSystem}
+                status={hardware ? 'good' : 'warning'}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">AI-инфраструктура</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DashboardCard
+                title="Локальные модели"
+                value={String(readyModels)}
+                detail={activeModel ? `Активна: ${activeModel.name}` : `${localModels.length} моделей · активная не выбрана`}
+                icon={Server}
+                onClick={openModels}
+                status={localModelsError ? 'warning' : readyModels > 0 ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Провайдеры"
+                value={String(connectedProviders)}
+                detail={activeProvider ? `Выбран: ${activeProvider.name}` : `${freeProviders.length} настроено`}
+                icon={Cloud}
+                onClick={openModels}
+                status={providerErrors > 0 ? 'warning' : connectedProviders > 0 ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Агенты"
+                value={String(activeAgents)}
+                detail={agentActivity === 'idle' ? 'Основной агент не выполняет задачу' : 'Основной агент занят'}
+                icon={Bot}
+                onClick={openRoles}
+                status={activeAgents > 0 || agentActivity !== 'idle' ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Среда моделей"
+                value={
+                  serverStatus === 'ready'
+                    ? 'Готова'
+                    : serverStatus === 'generating'
+                      ? 'Генерация'
+                      : serverStatus === 'loading'
+                        ? 'Загрузка'
+                        : serverStatus === 'error'
+                          ? 'Ошибка'
+                          : 'Остановлена'
+                }
+                detail="Состояние локального inference-сервера"
+                icon={Activity}
+                onClick={openModels}
+                status={
+                  serverStatus === 'error'
+                    ? 'warning'
+                    : serverStatus === 'ready' || serverStatus === 'generating'
+                      ? 'good'
+                      : 'neutral'
+                }
+              />
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Рабочая активность</h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <DashboardCard
+                title="Проекты"
+                value={String(projects.length)}
+                detail="Созданные рабочие проекты"
+                icon={FolderKanban}
+                onClick={openProjects}
+                status={projects.length > 0 ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Задачи в работе"
+                value={String(activeTasks)}
+                detail={`${pendingTasks} ожидают выполнения в активном проекте`}
+                icon={CheckCircle2}
+                onClick={openTasks}
+                status={activeTasks > 0 ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Процессы"
+                value={String(activeAgents + activeTasks)}
+                detail="Активные агенты и задачи проекта"
+                icon={Workflow}
+                onClick={openProcesses}
+                status={activeAgents + activeTasks > 0 ? 'good' : 'neutral'}
+              />
+              <DashboardCard
+                title="Подключения"
+                value={String(connectedIntegrations)}
+                detail="Провайдеры, SSH, шлюзы и GitHub"
+                icon={Cloud}
+                onClick={openIntegrations}
+                status={connectedIntegrations > 0 ? 'good' : 'neutral'}
+              />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-zinc-200/80 bg-white/70 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={`h-4 w-4 ${issueCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
+                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Требует внимания</h2>
+              </div>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                {issueCount > 0 ? `${issueCount} проблем` : 'Активных проблем не обнаружено'}
+              </span>
+            </div>
+            {issueCount > 0 ? (
+              <div className="mt-3 space-y-2 text-xs text-zinc-600 dark:text-zinc-300">
+                {hardwareError && <p>• Ошибка получения аппаратного профиля: {hardwareError}</p>}
+                {localModelsError && <p>• Ошибка получения списка моделей: {localModelsError}</p>}
+                {providerErrors > 0 && <p>• Провайдеров с ошибкой подключения: {providerErrors}</p>}
+                {failedAgents > 0 && <p>• Неуспешных запусков субагентов: {failedAgents}</p>}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                Ошибок в доступных источниках состояния нет. Это не заменяет проверку полного журнала операций.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={openOperations}
+              className="mt-3 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Открыть журнал операций
+            </button>
+          </section>
+        </div>
+      </PageContent>
+    </PageLayout>
+  );
+};
