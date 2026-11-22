@@ -38,9 +38,12 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
       { id: 'item.llama-settings', label: 'LlamaServer' },
       { id: 'item.llama-gguf', label: 'Центр GGUF' },
     ]},
-    { id: 'group.ai-agents', label: 'Агенты и знания', children: [
-      { id: 'item.agent-roles', label: 'Агенты и роли' },
-      { id: 'item.skills', label: 'Навыки SKILL.md' },
+    { id: 'group.ai-agents', label: 'Агенты', children: [
+      { id: 'item.agent-roles', label: 'General Agent и роли' },
+      { id: 'item.subagents-delegation', label: 'Субагенты и делегирование' },
+    ]},
+    { id: 'group.knowledge', label: 'Библиотека знаний', children: [
+      { id: 'item.skills', label: 'Библиотека навыков' },
       { id: 'item.instructions', label: 'Регламенты и схемы' },
       { id: 'item.intelligence-library', label: 'Intelligence Library' },
       { id: 'item.directories', label: 'Справочники' },
