@@ -30,6 +30,7 @@ If implementation diverges from an architecture contract, record and investigate
 | Project | Current state, future work, completed milestone history | [Project records](project/README.md) |
 | Architecture | Technical structure, lifecycle, security, implementation evidence, tests | [Architecture index](architecture/README.md) |
 | Knowledge | Approved roles, procedures, protocols, schemas, proposals, lessons | [Knowledge index](knowledge/README.md) |
+| Intelligence architecture | General Agent ontology, Playbook contracts, execution model and traceability | [Intelligence Library](intelligence-architecture/README.md) |
 | Archive | Superseded snapshots; not active instructions | [Legacy archive](archive/legacy/) |
 
 ## Reading paths
