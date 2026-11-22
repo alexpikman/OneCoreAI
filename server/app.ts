@@ -1140,7 +1140,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
     const rawName = req.header('X-Archive-Name') || '';
     const fileName = path.basename(rawName);
-    if (!/\\.(zip|tar\\.gz)$/i.test(fileName) || fileName !== rawName) {
+    if (!/\.(zip|tar\.gz)$/i.test(fileName) || fileName !== rawName) {
       res.status(400).json({ ok: false, error: 'Передайте имя архива с расширением .zip или .tar.gz в заголовке X-Archive-Name.' });
       return;
     }
