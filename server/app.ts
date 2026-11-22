@@ -751,9 +751,9 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         { kind: 'cloud-fallback', id: 'default', label: 'Cloud fallback API key', configured: Boolean((settings as typeof settings & { security?: { cloudFallbackConfigured?: boolean } })?.security?.cloudFallbackConfigured) },
         ...(settings?.gateways ?? []).map((g) => ({ kind: 'gateway', id: g.id, label: `${g.name} bot token`, configured: Boolean((g as typeof g & { secretConfigured?: boolean }).secretConfigured) })),
       ], providers: [
-        ...(settings?.freeProviders ?? []).map((p) => ({ id: p.id, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'primary' })),
-        ...(settings?.subagentConfig?.providers ?? []).map((p) => ({ id: p.id, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'subagent' })),
-        ...Object.entries(settings?.subagentConfig?.providerProfilesByRole ?? {}).flatMap(([roleId, profile]) => profile.providers.map((p) => ({ id: p.id, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'subagent', roleId }))),
+        ...(settings?.freeProviders ?? []).map((p) => ({ id: p.id, kind: p.kind, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'primary' })),
+        ...(settings?.subagentConfig?.providers ?? []).map((p) => ({ id: p.id, kind: p.kind, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'subagent' })),
+        ...Object.entries(settings?.subagentConfig?.providerProfilesByRole ?? {}).flatMap(([roleId, profile]) => profile.providers.map((p) => ({ id: p.id, kind: p.kind, name: p.name, requiresKey: p.requiresKey, configured: Boolean((p as typeof p & { secretConfigured?: boolean }).secretConfigured), scope: 'subagent', roleId }))),
       ] });
     } catch (err) { res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось прочитать статус секретов' }); }
   });

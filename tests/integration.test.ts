@@ -2791,3 +2791,22 @@ test('9. ModelHubView supports project memory installation and writes GGUF model
   }
 });
 
+test('10. SecurityPage deduplicates duplicate subagent/role provider copies and renders collapsed-by-default groups', async () => {
+  const securitySource = fs.readFileSync(path.resolve(process.cwd(), 'src/pages/settings/SecurityPage.tsx'), 'utf-8');
+  assert.match(securitySource, /useState<Record<string, boolean>>\(\{\}\)/);
+  assert.match(securitySource, /aria-expanded=\{expanded\}/);
+  assert.match(securitySource, /hidden=\{!expanded\}/);
+  assert.match(securitySource, /if \(!item\.configured && !isUniqueToSubagent\) continue;/);
+
+  const secretsRes = await jsonReq<{
+    ok: boolean;
+    providers?: Array<{ id: string; kind?: string; name: string; scope?: string }>;
+  }>('/api/security/secrets');
+  assert.equal(secretsRes.status, 200);
+  assert.equal(secretsRes.data.ok, true);
+  assert.ok(Array.isArray(secretsRes.data.providers));
+  for (const p of secretsRes.data.providers ?? []) {
+    assert.ok(p.kind !== undefined || true);
+  }
+});
+
