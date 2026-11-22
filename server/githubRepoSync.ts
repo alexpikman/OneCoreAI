@@ -1057,7 +1057,13 @@ export async function checkRepoSyncDiff(
   const inSync = aheadCommits === 0 && behindCommits === 0 && allDiffFiles.length === 0;
 
   const patchLines = diffPatchRes.stdout.split(/\r?\n/).slice(0, 220).join('\n');
-  const diffPreview = [diffStatRes.stdout.trim(), patchLines.trim()].filter(Boolean).join('\n\n').slice(0, 14000);
+  const localFileLines = mergeDiffFiles(localDirtyFiles, [], untrackedFiles)
+    .map((file) => `[Локально] ${file.label}: ${file.path}`);
+  const diffPreview = [
+    diffStatRes.stdout.trim(),
+    patchLines.trim(),
+    localFileLines.length > 0 ? `Локальные изменения (не отправлены на GitHub):\n${localFileLines.join('\n')}` : '',
+  ].filter(Boolean).join('\n\n').slice(0, 14000);
 
   let summary = `Локальная копия и ${cleanRepo} (${branch}) полностью синхронизированы.`;
   if (!inSync) {
