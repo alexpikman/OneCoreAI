@@ -60,13 +60,21 @@ export const NAV_GROUPS: NavigationGroup[] = [
   },
   {
     id: 'ai-agents',
-    label: 'Агенты и знания',
+    label: 'Агенты',
     icon: 'robot',
     items: [
-      { id: 'agent-roles', label: 'Агенты и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
-      { id: 'skills', label: 'Навыки SKILL.md', icon: 'brain', tab: 'skills' },
+      { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
+      { id: 'subagents-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
+    ],
+  },
+  {
+    id: 'knowledge',
+    label: 'Библиотека знаний',
+    icon: 'brain',
+    items: [
+      { id: 'skills', label: 'Библиотека навыков', icon: 'brain', tab: 'skills' },
       { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions', section: 'knowledge' },
-      { id: 'intelligence-library', label: 'Intelligence Library', icon: 'brain', tab: 'instructions', section: 'intelligence-library' },
+      { id: 'intelligence-library', label: 'Intelligence Library', icon: 'workflow', tab: 'instructions', section: 'intelligence-library' },
       { id: 'directories', label: 'Справочники', icon: 'clipboard', tab: 'directories' },
     ],
   },
