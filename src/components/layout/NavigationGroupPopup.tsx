@@ -69,9 +69,7 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
           <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
             Раздел навигации
           </div>
-          <div className="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-            {group.label}
-          </div>
+          <div className="truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">\n            {group.label}\n          </div>\n          {group.description && (\n            <p className="mt-1 max-w-60 text-[10px] leading-relaxed text-zinc-500 dark:text-zinc-400">\n              {group.description}\n            </p>\n          )}
         </div>
         <button
           type="button"
