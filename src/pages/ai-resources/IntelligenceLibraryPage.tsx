@@ -1,4 +1,4 @@
-import { BookOpen, FileCode2, GitBranch, ShieldCheck, Workflow, ClipboardCheck, ArrowUpRight } from 'lucide-react';
+import { BookOpen, FileCode2, GitBranch, ShieldCheck, Workflow, ClipboardCheck, ArrowUpRight, Layers3, Network } from 'lucide-react';
 import { AIResourcePageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -64,7 +64,7 @@ const DOCUMENTS = [
 ] as const;
 
 const DOCUMENT_BASE_URL =
-  'https://github.com/alexpikman/OneCoreAI/blob/main/docs/intelligence-architecture/';
+  'https://github.com/alexpikman/OneCoreAI/blob/feat/agents-knowledge-reorganization/docs/intelligence-architecture/';
 
 export const IntelligenceLibraryPage = () => (
   <AIResourcePageLayout>
