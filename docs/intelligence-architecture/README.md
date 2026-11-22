@@ -14,7 +14,7 @@ Intelligence Library — каталог канонических архитек�
 | [Playbook Schema v1.1](playbook-schema-v1.1.md) | Структура исполняемого сценария | Draft |
 | [Execution Model v2](execution-model-v2.md) | Resolver, Engine, Control Layer и выполнение | Draft |
 | [Capability Contract v1](capability-contract-v1.md) | Контракт возможностей Tool и фактических эффектов | Draft |
-| [Decision Trace v1](decision-trace-v1.md) | Аудит решений и операций | Draft |
+| [Decision Trace v1](decision-trace-v1.md) | Аудит решений и операций | Draft |\n| [Delegation Model v1](delegation-model-v1.md) | Субагенты, Manager/Dispatcher, handoff, изоляция контекста и приёмка | Draft |\n| [Skill Registry v1](skill-registry-v1.md) | Импорт, происхождение, версии, доверие и подбор Skills | Draft |\n| [Task Context Package v1](task-context-package-v1.md) | Контекст конкретной задачи и его безопасная передача workers | Draft |
 | [Code Audit v1](code-audit-v1.md) | Первый сквозной сценарий проверки кода | Draft |
 | [Implementation Roadmap](implementation-roadmap.md) | Этапы проектирования, реализации и проверки | Draft |
 
@@ -22,7 +22,7 @@ Intelligence Library — каталог канонических архитек�
 
 - docs/intelligence-architecture — архитектурные контракты General Agent и Intelligence Library.
 - docs/knowledge — утверждённые runtime-роли, процедуры и протоколы в рамках текущего Knowledge Manager.
-- docs/knowledge/schemas — JSON-схемы конкретных runtime-контрактов.
+- docs/knowledge/schemas — действующие JSON-схемы конкретных runtime-контрактов.\n- docs/intelligence-architecture — проектные схемы будущих механизмов; они не заменяют текущие handoff/result schemas.
 - Исходный код, тесты и runtime-проверки определяют, что действительно реализовано.
 - UI Intelligence Library — представление канонических документов, а не отдельное хранилище правил.
 
@@ -36,4 +36,4 @@ Intelligence Library — каталог канонических архитек�
 
 ## Открытые вопросы
 
-Перед фиксацией Schema v1.1 и Execution Model v2 необходимо закрыть вопросы покрытия компетенций каждым кандидатом, формализации Authorization, риск-ориентированного подтверждения, компенсационных операций и enforcement фактических эффектов Tool.
+Перед фиксацией Schema v1.1 и Execution Model v2 необходимо закрыть вопросы покрытия компетенций каждым кандидатом, формализации Authorization, риск-ориентированного подтверждения, компенсационных операций и enforcement фактических эффектов Tool. Для Delegation Model, Skill Registry и Task Context Package требуется аудит текущих runtime-путей и проверка обратной совместимости.
