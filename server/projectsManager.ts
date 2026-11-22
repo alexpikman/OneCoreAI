@@ -217,6 +217,25 @@ export function setActiveProjectId(id: string): { activeProjectId: string } {
   return { activeProjectId: id };
 }
 
+export function updateProjectGithubConfig(
+  projectId: string,
+  githubConfig: ProjectGithubConfig,
+): ProjectRecord {
+  const manifest = readProjectsManifest();
+  const idx = manifest.projects.findIndex((p) => p.id === projectId);
+  if (idx < 0) {
+    throw new Error(`Проект с ID ${projectId} не найден`);
+  }
+  const updated: ProjectRecord = {
+    ...manifest.projects[idx],
+    githubConfig,
+    updatedAt: new Date().toISOString(),
+  };
+  manifest.projects[idx] = updated;
+  writeProjectsManifest(manifest);
+  return updated;
+}
+
 export function validateLocalFolder(folderPath: string): { resolvedPath: string } {
   const raw = folderPath?.trim();
   if (!raw) {

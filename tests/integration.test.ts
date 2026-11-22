@@ -4,7 +4,9 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
 import { after, before, test } from 'node:test';
+import { promisify } from 'node:util';
 
 // Isolate ONECORE_HOME in a temporary directory so tests never pollute the real user profile
 const tempOneCoreHome = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-test-home-'));
@@ -29,6 +31,16 @@ import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
 import { getActiveNavigationGroup, isNavigationItemActive, NAV_GROUPS } from '../src/data/appNavigation';
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
+import {
+  checkRepoSyncDiff,
+  normalizeGitHubRepo,
+  pullFromGitHub,
+  pushToGitHub,
+  saveRepoSyncConfig,
+  validateGitBranch,
+} from '../server/githubRepoSync';
+
+const execFileAsync = promisify(execFile);
 
 
 test('external research library validates URLs and remains isolated from approved runtime knowledge', () => {
@@ -2809,4 +2821,203 @@ test('10. SecurityPage deduplicates duplicate subagent/role provider copies and 
     assert.ok(p.kind !== undefined || true);
   }
 });
+
+test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, and enforces approval & validation', async () => {
+  assert.throws(() => normalizeGitHubRepo('https://evil.example.com/owner/repo'));
+  assert.throws(() => normalizeGitHubRepo('../bad'));
+  assert.throws(() => validateGitBranch('--upload-pack=evil'));
+  assert.throws(() => validateGitBranch('main..other'));
+  assert.equal(normalizeGitHubRepo('https://github.com/alexpikman/OneCoreAI.git').cleanRepo, 'alexpikman/OneCoreAI');
+  assert.equal(validateGitBranch('feature/sync-v2'), 'feature/sync-v2');
+
+  // Protected mutation/check routes must require explicit side-effect approval
+  for (const endpoint of ['/api/repo-sync/check', '/api/repo-sync/pull', '/api/repo-sync/push']) {
+    const unapproved = await jsonReq<{ ok: boolean }>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify({ targetType: 'app', repo: 'alexpikman/OneCoreAI', branch: 'main' }),
+    });
+    assert.equal(unapproved.status, 403);
+    assert.equal(unapproved.data.ok, false);
+  }
+
+  const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-repo-sync-'));
+  const bareRemote = path.join(sandbox, 'remote.git');
+  const dirA = path.join(sandbox, 'project-a');
+  const dirB = path.join(sandbox, 'project-b');
+  fs.mkdirSync(bareRemote, { recursive: true });
+  fs.mkdirSync(dirA, { recursive: true });
+  fs.mkdirSync(dirB, { recursive: true });
+
+  let projAId = '';
+  let projBId = '';
+
+  try {
+    await execFileAsync('git', ['init', '--bare', bareRemote]);
+
+    fs.writeFileSync(path.join(dirA, 'README.md'), '# Project A v1\n', 'utf-8');
+    fs.writeFileSync(path.join(dirA, 'app.txt'), 'line 1\n', 'utf-8');
+
+    const createARes = await jsonReq<{ ok: boolean; project: { id: string } }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Sync Project A',
+        folderSource: 'local',
+        folderPath: dirA,
+        approved: true,
+      }),
+    });
+    assert.equal(createARes.status, 201);
+    projAId = createARes.data.project.id;
+
+    const createBRes = await jsonReq<{ ok: boolean; project: { id: string } }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Sync Project B',
+        folderSource: 'local',
+        folderPath: dirB,
+        approved: true,
+      }),
+    });
+    assert.equal(createBRes.status, 201);
+    projBId = createBRes.data.project.id;
+
+    // Save config via API and verify PAT secret is never echoed back
+    const saveCfgRes = await jsonReq<{
+      ok: boolean;
+      config: { repo: string; branch: string; authMethod: string; tokenConfigured: boolean; token?: string };
+    }>('/api/repo-sync/config', {
+      method: 'PUT',
+      body: JSON.stringify({
+        targetType: 'project',
+        projectId: projAId,
+        repo: 'alexpikman/sync-demo',
+        branch: 'main',
+        authMethod: 'pat',
+        gitUserName: 'Sync Tester',
+        gitUserEmail: 'tester@onecore.local',
+        token: 'ghp_testSecretTokenValue123456',
+      }),
+    });
+    assert.equal(saveCfgRes.status, 200);
+    assert.equal(saveCfgRes.data.ok, true);
+    assert.equal(saveCfgRes.data.config.repo, 'alexpikman/sync-demo');
+    assert.equal(saveCfgRes.data.config.branch, 'main');
+    assert.equal(saveCfgRes.data.config.tokenConfigured, true);
+    assert.equal('token' in saveCfgRes.data.config, false);
+
+    // Check Project A without .git against empty remote branch
+    const prePushDiff = await checkRepoSyncDiff(
+      process.cwd(),
+      { targetType: 'project', projectId: projAId },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(prePushDiff.hasGitRepo, false);
+    assert.equal(prePushDiff.remoteBranchExists, false);
+    assert.equal(prePushDiff.allDiffFiles.length, 2);
+
+    // Push Project A to remote
+    const pushARes = await pushToGitHub(
+      process.cwd(),
+      {
+        targetType: 'project',
+        projectId: projAId,
+        commitMessage: 'Initial sync commit',
+      },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(pushARes.ok, true);
+    assert.equal(pushARes.initializedGitRepo, true);
+    assert.ok(pushARes.commitHash);
+    assert.equal(pushARes.diff?.inSync, true);
+
+    // Configure Project B & inspect diffs BEFORE .git is initialized in Project B
+    await saveRepoSyncConfig(process.cwd(), {
+      targetType: 'project',
+      projectId: projBId,
+      repo: 'alexpikman/sync-demo',
+      branch: 'main',
+      authMethod: 'pat',
+      gitUserName: 'Sync Receiver',
+      gitUserEmail: 'receiver@onecore.local',
+    });
+
+    const prePullDiffB = await checkRepoSyncDiff(
+      process.cwd(),
+      { targetType: 'project', projectId: projBId },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(prePullDiffB.hasGitRepo, false);
+    assert.equal(prePullDiffB.remoteBranchExists, true);
+    assert.equal(prePullDiffB.inSync, false);
+    assert.ok(prePullDiffB.allDiffFiles.some((f) => f.path === 'README.md' && f.status === 'remote-only'));
+    assert.ok(prePullDiffB.allDiffFiles.some((f) => f.path === 'app.txt' && f.status === 'remote-only'));
+
+    // Pull into Project B
+    const pullBRes = await pullFromGitHub(
+      process.cwd(),
+      { targetType: 'project', projectId: projBId, strategy: 'ff-only' },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(pullBRes.ok, true);
+    assert.equal(pullBRes.diff?.inSync, true);
+    assert.equal(fs.readFileSync(path.join(dirB, 'README.md'), 'utf-8'), '# Project A v1\n');
+
+    // Update a file in Project A and push; also create a separate local file in Project B
+    fs.writeFileSync(path.join(dirA, 'app.txt'), 'line 1\nline 2 from A\n', 'utf-8');
+    const pushA2Res = await pushToGitHub(
+      process.cwd(),
+      {
+        targetType: 'project',
+        projectId: projAId,
+        commitMessage: 'Update app.txt from A',
+      },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(pushA2Res.ok, true);
+
+    fs.writeFileSync(path.join(dirB, 'local-note.txt'), 'keep me\n', 'utf-8');
+
+    const diffB2 = await checkRepoSyncDiff(
+      process.cwd(),
+      { targetType: 'project', projectId: projBId },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(diffB2.behindCommits, 1);
+    assert.equal(diffB2.inSync, false);
+
+    // Default ff-only refuses while dirty local-note.txt exists
+    const dirtyFfPull = await pullFromGitHub(
+      process.cwd(),
+      { targetType: 'project', projectId: projBId, strategy: 'ff-only' },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(dirtyFfPull.ok, false);
+    assert.equal(dirtyFfPull.needsStrategyChoice, true);
+
+    // rebase-stash preserves local-note.txt and applies remote update to app.txt
+    const rebasePull = await pullFromGitHub(
+      process.cwd(),
+      { targetType: 'project', projectId: projBId, strategy: 'rebase-stash' },
+      { remoteUrlForTestOnly: bareRemote },
+    );
+    assert.equal(rebasePull.ok, true);
+    assert.equal(fs.readFileSync(path.join(dirB, 'app.txt'), 'utf-8'), 'line 1\nline 2 from A\n');
+    assert.equal(fs.readFileSync(path.join(dirB, 'local-note.txt'), 'utf-8'), 'keep me\n');
+  } finally {
+    if (projAId) {
+      await jsonReq(`/api/projects/${encodeURIComponent(projAId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ approved: true }),
+      });
+    }
+    if (projBId) {
+      await jsonReq(`/api/projects/${encodeURIComponent(projBId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ approved: true }),
+      });
+    }
+    fs.rmSync(sandbox, { recursive: true, force: true });
+  }
+});
+
 

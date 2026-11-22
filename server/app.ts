@@ -64,6 +64,16 @@ import { runTeamExecution } from './orchestration/teamOrchestrator';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
+import {
+  checkRepoSyncDiff,
+  getRepoSyncConfig,
+  pullFromGitHub,
+  pushToGitHub,
+  saveRepoSyncConfig,
+  type RepoPullStrategy,
+  type RepoSyncAuthMethod,
+  type RepoSyncTargetType,
+} from './githubRepoSync';
 
 interface HFModelRaw {
   id: string;
@@ -2139,6 +2149,118 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       });
     } catch (err) {
       res.status(502).json({ ok: false, error: err instanceof Error ? err.message : 'Network error' });
+    }
+  });
+
+  app.get('/api/repo-sync/config', async (req, res) => {
+    try {
+      const targetType: RepoSyncTargetType = req.query.targetType === 'project' ? 'project' : 'app';
+      const projectId = typeof req.query.projectId === 'string' ? req.query.projectId : undefined;
+      const config = await getRepoSyncConfig(rootDir, { targetType, projectId });
+      res.json({ ok: true, config });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось прочитать настройки синхронизации' });
+    }
+  });
+
+  app.put('/api/repo-sync/config', async (req, res) => {
+    try {
+      const targetType: RepoSyncTargetType = req.body?.targetType === 'project' ? 'project' : 'app';
+      const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+      const repo = typeof req.body?.repo === 'string' ? req.body.repo : '';
+      const branch = typeof req.body?.branch === 'string' ? req.body.branch : 'main';
+      const authMethod: RepoSyncAuthMethod =
+        req.body?.authMethod === 'ssh' || req.body?.authMethod === 'public' || req.body?.authMethod === 'pat'
+          ? req.body.authMethod
+          : 'pat';
+      const config = await saveRepoSyncConfig(rootDir, {
+        targetType,
+        projectId,
+        repo,
+        branch,
+        authMethod,
+        gitUserName: typeof req.body?.gitUserName === 'string' ? req.body.gitUserName : undefined,
+        gitUserEmail: typeof req.body?.gitUserEmail === 'string' ? req.body.gitUserEmail : undefined,
+        token: typeof req.body?.token === 'string' ? req.body.token : undefined,
+        clearToken: req.body?.clearToken === true,
+      });
+      res.json({ ok: true, config });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось сохранить настройки синхронизации' });
+    }
+  });
+
+  app.post('/api/repo-sync/check', async (req, res) => {
+    const targetType: RepoSyncTargetType = req.body?.targetType === 'project' ? 'project' : 'app';
+    const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+    if (!requireSideEffectApproval(req, res, 'github.verify', projectId || 'app-repo-sync')) return;
+    try {
+      const diff = await checkRepoSyncDiff(rootDir, {
+        targetType,
+        projectId,
+        repo: typeof req.body?.repo === 'string' ? req.body.repo : undefined,
+        branch: typeof req.body?.branch === 'string' ? req.body.branch : undefined,
+        authMethod:
+          req.body?.authMethod === 'ssh' || req.body?.authMethod === 'public' || req.body?.authMethod === 'pat'
+            ? req.body.authMethod
+            : undefined,
+      });
+      res.json({ ok: true, diff });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка проверки различий с GitHub' });
+    }
+  });
+
+  app.post('/api/repo-sync/pull', async (req, res) => {
+    const targetType: RepoSyncTargetType = req.body?.targetType === 'project' ? 'project' : 'app';
+    const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+    if (!requireSideEffectApproval(req, res, 'project.git.mutate', projectId || 'app-repo-sync')) return;
+    try {
+      const strategy: RepoPullStrategy =
+        req.body?.strategy === 'rebase-stash' || req.body?.strategy === 'overwrite-from-remote'
+          ? req.body.strategy
+          : 'ff-only';
+      const result = await pullFromGitHub(rootDir, {
+        targetType,
+        projectId,
+        repo: typeof req.body?.repo === 'string' ? req.body.repo : undefined,
+        branch: typeof req.body?.branch === 'string' ? req.body.branch : undefined,
+        authMethod:
+          req.body?.authMethod === 'ssh' || req.body?.authMethod === 'public' || req.body?.authMethod === 'pat'
+            ? req.body.authMethod
+            : undefined,
+        strategy,
+        gitUserName: typeof req.body?.gitUserName === 'string' ? req.body.gitUserName : undefined,
+        gitUserEmail: typeof req.body?.gitUserEmail === 'string' ? req.body.gitUserEmail : undefined,
+      });
+      res.status(result.ok ? 200 : 409).json(result);
+    } catch (err) {
+      res.status(400).json({ ok: false, action: 'pull', message: err instanceof Error ? err.message : 'Ошибка обновления с GitHub' });
+    }
+  });
+
+  app.post('/api/repo-sync/push', async (req, res) => {
+    const targetType: RepoSyncTargetType = req.body?.targetType === 'project' ? 'project' : 'app';
+    const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId : undefined;
+    if (!requireSideEffectApproval(req, res, 'project.git.mutate', projectId || 'app-repo-sync')) return;
+    try {
+      const result = await pushToGitHub(rootDir, {
+        targetType,
+        projectId,
+        repo: typeof req.body?.repo === 'string' ? req.body.repo : undefined,
+        branch: typeof req.body?.branch === 'string' ? req.body.branch : undefined,
+        authMethod:
+          req.body?.authMethod === 'ssh' || req.body?.authMethod === 'public' || req.body?.authMethod === 'pat'
+            ? req.body.authMethod
+            : undefined,
+        gitUserName: typeof req.body?.gitUserName === 'string' ? req.body.gitUserName : undefined,
+        gitUserEmail: typeof req.body?.gitUserEmail === 'string' ? req.body.gitUserEmail : undefined,
+        commitMessage: typeof req.body?.commitMessage === 'string' ? req.body.commitMessage : undefined,
+        forcePush: req.body?.forcePush === true,
+      });
+      res.status(result.ok ? 200 : 409).json(result);
+    } catch (err) {
+      res.status(400).json({ ok: false, action: 'push', message: err instanceof Error ? err.message : 'Ошибка выгрузки на GitHub' });
     }
   });
 
