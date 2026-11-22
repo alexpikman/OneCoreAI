@@ -25,7 +25,9 @@ export type AppTab =
   | 'hooks'
   | 'tools-hooks'
   | 'permissions'
-  | 'security';
+  | 'security'
+  | 'knowledge'
+  | 'intelligence-library';
 
 export type AgentJournalCategory =
   | 'agent'
