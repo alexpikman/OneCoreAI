@@ -68,7 +68,7 @@ export const removeStyle = (id) => {
   httpServer.listen(PORT, HOST, () => {
     const address = httpServer.address();
     const actualPort = address && typeof address === 'object' ? address.port : PORT;
-    console.log(`ONE CORE AI server listening on http://${HOST}:${actualPort}`);
+    console.log(`ONE CORE AI server listening on http://localhost:${actualPort}`);
   });
 
   let shuttingDown = false;
