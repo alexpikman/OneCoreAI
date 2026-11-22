@@ -473,7 +473,7 @@ export const LlamaServerSettingsPage: React.FC = () => {
 
             <div>
               <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                Путь к llama-server.exe (или команда из PATH)
+                Путь к llama-server (или команда из PATH)
               </label>
               <input
                 type="text"
