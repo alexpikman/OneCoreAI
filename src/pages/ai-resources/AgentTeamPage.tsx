@@ -76,7 +76,11 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
   } = useOneCoreStore();
 
   const [section, setSection] = useState<SubSection>(initialSection);
-  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);\n\n  useEffect(() => {\n    setSection(initialSection);\n  }, [initialSection]);
+  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSection(initialSection);
+  }, [initialSection]);
 
   // Custom role builder state
   const [roleName, setRoleName] = useState('');
