@@ -172,7 +172,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
       <PageHeader>
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
           <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-xl font-semibold">Агенты и роли</h1>
+          <h1 className="text-xl font-semibold">{section === 'pipeline' ? 'Субагенты и делегирование' : 'General Agent и роли'}</h1>
         </div>
       </PageHeader>
       <PageContent contentClassName="space-y-6 pb-6 pt-2">
@@ -181,7 +181,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
           items={[
             { id: 'roles', label: 'Роли одной модели', icon: <UserCheck className="h-3.5 w-3.5" /> },
             { id: 'permissions', label: 'Разрешения и указания', icon: <Shield className="h-3.5 w-3.5" /> },
-            { id: 'pipeline', label: 'Командная оркестрация и пайплайн', icon: <GitBranch className="h-3.5 w-3.5" /> },
+            { id: 'pipeline', label: 'Субагенты и делегирование', icon: <GitBranch className="h-3.5 w-3.5" /> },
           ]}
           selectedId={section}
           onSelect={(id) => setSection(id as SubSection)}
