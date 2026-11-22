@@ -2960,7 +2960,7 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
     );
     assert.equal(pullBRes.ok, true);
     assert.equal(pullBRes.diff?.inSync, true);
-    assert.equal(fs.readFileSync(path.join(dirB, 'README.md'), 'utf-8'), '# Project A v1\n');
+    assert.equal(fs.readFileSync(path.join(dirB, 'README.md'), 'utf-8').replace(/\r\n/g, '\n'), '# Project A v1\n');
 
     // Update a file in Project A and push; also create a separate local file in Project B
     fs.writeFileSync(path.join(dirA, 'app.txt'), 'line 1\nline 2 from A\n', 'utf-8');
