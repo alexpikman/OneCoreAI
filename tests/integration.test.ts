@@ -2976,6 +2976,7 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
     assert.equal(pushA2Res.ok, true);
 
     fs.writeFileSync(path.join(dirB, 'local-note.txt'), 'keep me\n', 'utf-8');
+    fs.writeFileSync(path.join(dirB, 'README.md'), '# Project B local edit\n', 'utf-8');
 
     const diffB2 = await checkRepoSyncDiff(
       process.cwd(),
@@ -2984,6 +2985,10 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
     );
     assert.equal(diffB2.behindCommits, 1);
     assert.equal(diffB2.inSync, false);
+    assert.ok(diffB2.localDirtyFiles.some((file) => file.path === 'README.md'));
+    assert.ok(diffB2.allDiffFiles.some((file) => file.path === 'README.md'));
+    assert.match(diffB2.diffPreview, /README\.md/);
+    assert.match(diffB2.diffPreview, /local-note\.txt/);
 
     // Default ff-only refuses while dirty local-note.txt exists
     const dirtyFfPull = await pullFromGitHub(
@@ -3003,6 +3008,7 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
     assert.equal(rebasePull.ok, true);
     assert.equal(fs.readFileSync(path.join(dirB, 'app.txt'), 'utf-8'), 'line 1\nline 2 from A\n');
     assert.equal(fs.readFileSync(path.join(dirB, 'local-note.txt'), 'utf-8'), 'keep me\n');
+    assert.equal(fs.readFileSync(path.join(dirB, 'README.md'), 'utf-8'), '# Project B local edit\n');
   } finally {
     if (projAId) {
       await jsonReq(`/api/projects/${encodeURIComponent(projAId)}`, {
