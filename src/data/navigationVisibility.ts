@@ -42,6 +42,7 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
       { id: 'item.agent-roles', label: 'Агенты и роли' },
       { id: 'item.skills', label: 'Навыки SKILL.md' },
       { id: 'item.instructions', label: 'Регламенты и схемы' },
+      { id: 'item.intelligence-library', label: 'Intelligence Library' },
       { id: 'item.directories', label: 'Справочники' },
     ]},
     { id: 'group.integrations', label: 'Интеграции', children: [
