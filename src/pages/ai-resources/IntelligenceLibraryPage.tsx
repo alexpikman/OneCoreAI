@@ -64,7 +64,7 @@ const DOCUMENTS = [
 ] as const;
 
 const DOCUMENT_BASE_URL =
-  'https://github.com/alexpikman/OneCoreAI/blob/feat/intelligence-library/docs/intelligence-architecture/';
+  'https://github.com/alexpikman/OneCoreAI/blob/main/docs/intelligence-architecture/';
 
 export const IntelligenceLibraryPage = () => (
   <AIResourcePageLayout>
