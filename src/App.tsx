@@ -9,6 +9,7 @@ import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 import { ModelSwitcherModal } from './components/workstation/ModelSwitcherModal';
 import { AgentTeamPage } from './pages/ai-resources/AgentTeamPage';
 import { InstructionsCatalogPage } from './pages/ai-resources/InstructionsCatalogPage';
+import { IntelligenceLibraryPage } from './pages/ai-resources/IntelligenceLibraryPage';
 import { LlamaServerModelsPage } from './pages/ai-resources/LlamaServerModelsPage';
 import { LlamaServerSettingsPage } from './pages/ai-resources/LlamaServerSettingsPage';
 import { ProvidersPage } from './pages/ai-resources/ProvidersPage';
@@ -239,7 +240,7 @@ export default function App() {
       case 'skills':
         return <SkillsDirectoryPage />;
       case 'instructions':
-        return <InstructionsCatalogPage defaultTab="knowledge" />;
+        return settingsSection === 'intelligence-library' ? <IntelligenceLibraryPage /> : <InstructionsCatalogPage defaultTab="knowledge" />;
       case 'mcp':
         return <McpPage />;
       case 'tools-hooks':
