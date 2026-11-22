@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Cpu, Download, Keyboard, RefreshCw, Server, Shield, Sliders } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Archive, Cpu, Download, FileJson, Keyboard, RefreshCw, Server, Shield, Sliders } from 'lucide-react';
 import { AIResourcePageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -95,6 +95,7 @@ export const LlamaServerSettingsPage: React.FC = () => {
     }>
   >([]);
   const [llamaChecksError, setLlamaChecksError] = useState<string | null>(null);
+  const archiveInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLlamaPortInput(String(llamaPort));
@@ -253,6 +254,115 @@ export const LlamaServerSettingsPage: React.FC = () => {
     }
   };
 
+  const installLlamaServer = async () => {
+    setLlamaActionRunning('install-all');
+    setLlamaInstallMessage(null);
+    try {
+      for (const endpoint of ['download', 'install']) {
+        const response = await fetch(`/api/models/llama-cpp/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({ approved: true }),
+        });
+        const data = await response.json() as {
+          ok?: boolean;
+          executablePath?: string;
+          version?: string;
+          variant?: string;
+          selected?: boolean;
+          error?: string;
+        };
+        if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+        if (endpoint === 'install' && data.executablePath && data.selected) {
+          updateAppSettings({ llamaServerPath: data.executablePath });
+          const saved = await saveSettings();
+          if (!saved.ok) throw new Error(saved.error || 'Не удалось сохранить путь к llama-server.');
+          setLlamaInstallMessage({ kind: 'success', text: `Установлено: ${data.version || data.variant}. Путь сохранён.` });
+        }
+      }
+    } catch (error) {
+      setLlamaInstallMessage({
+        kind: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось установить llama-server.',
+      });
+    } finally {
+      setLlamaActionRunning(null);
+      await refreshLlamaChecks();
+    }
+  };
+
+  const uploadLlamaArchive = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setLlamaActionRunning('archive');
+    setLlamaInstallMessage(null);
+    try {
+      const response = await fetch('/api/models/llama-cpp/archive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Archive-Name': file.name,
+          'X-OneCore-Approval': 'user-confirmed',
+        },
+        body: file,
+      });
+      const data = await response.json() as {
+        ok?: boolean;
+        executablePath?: string;
+        version?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      if (data.executablePath) {
+        updateAppSettings({ llamaServerPath: data.executablePath });
+        const saved = await saveSettings();
+        if (!saved.ok) throw new Error(saved.error || 'Не удалось сохранить путь к llama-server.');
+      }
+      setLlamaInstallMessage({ kind: 'success', text: `Архив установлен. ${data.version || ''}`.trim() });
+    } catch (error) {
+      setLlamaInstallMessage({
+        kind: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось установить архив.',
+      });
+    } finally {
+      setLlamaActionRunning(null);
+      event.target.value = '';
+      await refreshLlamaChecks();
+    }
+  };
+
+  const exportLlamaDiagnostics = async () => {
+    setLlamaActionRunning('diagnostics');
+    setLlamaInstallMessage(null);
+    try {
+      const response = await fetch('/api/models/llama-cpp/diagnostics', {
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        const data = await response.json() as { error?: string };
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'onecoreai-llama-server-diagnostics.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setLlamaInstallMessage({ kind: 'success', text: 'Диагностика экспортирована.' });
+    } catch (error) {
+      setLlamaInstallMessage({
+        kind: 'error',
+        text: error instanceof Error ? error.message : 'Не удалось экспортировать диагностику.',
+      });
+    } finally {
+      setLlamaActionRunning(null);
+    }
+  };
+
   return (
     <PageTransition mode="page" className="flex w-full min-h-0 flex-1 flex-col overflow-hidden">
       <AIResourcePageLayout>
@@ -314,6 +424,175 @@ export const LlamaServerSettingsPage: React.FC = () => {
                 <LlamaServerBenchmarkView embedded />
               ) : (
                 <div className={cn('p-5 border space-y-6', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
+          <section className="space-y-4 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-950/40">
+            <div className="flex items-center gap-2">
+              <Download className="h-4 w-4 text-blue-500" />
+              <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">Установка llama-server</h2>
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => void installLlamaServer()}
+                disabled={Boolean(llamaActionRunning) || Boolean(llamaOperation?.active)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950"
+              >
+                <Download className="h-4 w-4" />
+                {llamaActionRunning === 'install-all' ? 'Установка…' : 'Установить llama-server'}
+              </button>
+              <button
+                type="button"
+                onClick={() => archiveInputRef.current?.click()}
+                disabled={Boolean(llamaActionRunning) || Boolean(llamaOperation?.active)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                <Archive className="h-4 w-4" />
+                {llamaActionRunning === 'archive' ? 'Загрузка архива…' : 'Архив (.zip/.tar.gz)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void exportLlamaDiagnostics()}
+                disabled={Boolean(llamaActionRunning)}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+              >
+                <FileJson className="h-4 w-4" />
+                {llamaActionRunning === 'diagnostics' ? 'Экспорт…' : 'Диагностика'}
+              </button>
+              <input
+                ref={archiveInputRef}
+                type="file"
+                accept=".zip,.tar.gz,application/zip,application/gzip"
+                className="hidden"
+                onChange={(event) => void uploadLlamaArchive(event)}
+              />
+            </div>
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <Sliders className="w-3.5 h-3.5 text-zinc-500" />
+              Пути хранения и бинарники
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
+                Путь к llama-server.exe (или команда из PATH)
+              </label>
+              <input
+                type="text"
+                value={appSettings.llamaServerPath}
+                onChange={(e) => updateAppSettings({ llamaServerPath: e.target.value })}
+                className={cn(
+                  'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
+                  tokens.inputRadius,
+                )}
+              />
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div>
+                <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">Порт llama-server</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={65535}
+                  step={1}
+                  value={llamaPortInput}
+                  onChange={(event) => setLlamaPortInput(event.target.value)}
+                  className={cn(
+                    'h-9 w-full border border-zinc-200 bg-zinc-50 px-3 text-xs text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 tabular-nums',
+                    tokens.inputRadius,
+                  )}
+                />
+                <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  Локальный endpoint: http://127.0.0.1:{llamaPortInput || '—'}/v1. После изменения перезапустите сервер.
+                </p>
+                {llamaPortError && (
+                  <p role="alert" className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                    {llamaPortError}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => void saveLlamaPort()}
+                disabled={llamaPortSaving || !llamaProvider}
+                className="h-9 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 whitespace-nowrap"
+              >
+                {llamaPortSaving ? 'Сохранение…' : 'Сохранить порт'}
+              </button>
+            </div>
+
+            <label className="flex items-center gap-2.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                checked={appSettings.autoCheckSha256}
+                onChange={(e) => updateAppSettings({ autoCheckSha256: e.target.checked })}
+                className="accent-blue-600 rounded"
+              />
+              <span>Автоматически проверять SHA256 после завершения загрузки GGUF</span>
+            </label>
+          </div>
+
+          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
+            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <Cpu className="w-3.5 h-3.5 text-zinc-500" />
+              Аппаратный профиль (для расчёта совместимости VRAM/RAM)
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Бэкенд GPU</label>
+                <select
+                  value={inferenceSettings.gpuBackend}
+                  onChange={(e) => updateInferenceSettings({ gpuBackend: e.target.value as GpuBackend })}
+                  className={cn(
+                    'w-full h-9 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs text-zinc-900 dark:text-zinc-100',
+                    tokens.inputRadius,
+                  )}
+                >
+                  <option value="auto">Авто (CUDA / Vulkan → CPU)</option>
+                  <option value="cuda">NVIDIA CUDA</option>
+                  <option value="vulkan">Vulkan 1.3</option>
+                  <option value="cpu">CPU AVX2</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Доступно VRAM (GB)</label>
+                <input
+                  type="number"
+                  min={2}
+                  max={96}
+                  step={2}
+                  value={inferenceSettings.maxVramGb}
+                  onChange={(e) =>
+                    updateInferenceSettings({ maxVramGb: Math.max(2, Number(e.target.value) || 8) })
+                  }
+                  className={cn(
+                    'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 tabular-nums',
+                    tokens.inputRadius,
+                  )}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Системная RAM (GB)</label>
+                <input
+                  type="number"
+                  min={8}
+                  max={256}
+                  step={4}
+                  value={inferenceSettings.maxRamGb}
+                  onChange={(e) =>
+                    updateInferenceSettings({ maxRamGb: Math.max(8, Number(e.target.value) || 32) })
+                  }
+                  className={cn(
+                    'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 tabular-nums',
+                    tokens.inputRadius,
+                  )}
+                />
+              </div>
+            </div>
+          </div>
+
+
+          </section>
+
           <div className="flex items-center gap-2">
             <Cpu className="w-4 h-4 text-blue-500" />
             <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">
@@ -323,14 +602,7 @@ export const LlamaServerSettingsPage: React.FC = () => {
 
           <div
             className={cn(
-              'rounded-xl border-4 bg-white/70 p-3 dark:bg-zinc-950/50',
-              !llamaChecks?.downloaded
-                ? 'border-rose-500 dark:border-rose-500'
-                : !llamaChecks.installed
-                  ? 'border-orange-500 dark:border-orange-500'
-                  : !llamaChecks.running
-                    ? 'border-amber-400 dark:border-amber-400'
-                    : 'border-emerald-500 dark:border-emerald-500',
+              'bg-white/70 p-3 dark:bg-zinc-950/50',
             )}
           >
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -355,6 +627,20 @@ export const LlamaServerSettingsPage: React.FC = () => {
               ).map((item) => {
                 const Icon = item.icon;
                 const value = llamaChecks?.[item.key] ?? false;
+                const borderState =
+                  item.key === 'downloaded'
+                    ? value ? 'border-emerald-500 dark:border-emerald-500' : 'border-rose-500 dark:border-rose-500'
+                    : item.key === 'installed'
+                      ? !llamaChecks?.downloaded
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : value
+                          ? 'border-emerald-500 dark:border-emerald-500'
+                          : 'border-orange-500 dark:border-orange-500'
+                      : !llamaChecks?.installed
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : value
+                          ? 'border-emerald-500 dark:border-emerald-500'
+                          : 'border-orange-500 dark:border-orange-500';
                 const endpoint =
                   item.key === 'downloaded'
                     ? value
@@ -388,7 +674,10 @@ export const LlamaServerSettingsPage: React.FC = () => {
                 return (
                   <div
                     key={item.key}
-                    className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-900/70"
+                    className={cn(
+                      'flex flex-col gap-3 rounded-lg border-2 bg-zinc-50 px-3 py-3 dark:bg-zinc-900/70',
+                      borderState,
+                    )}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="inline-flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
@@ -548,131 +837,6 @@ export const LlamaServerSettingsPage: React.FC = () => {
                 {llamaInstallMessage.text}
               </p>
             )}
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-              <Sliders className="w-3.5 h-3.5 text-zinc-500" />
-              Пути хранения и бинарники
-            </div>
-
-            <div>
-              <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                Путь к llama-server.exe (или команда из PATH)
-              </label>
-              <input
-                type="text"
-                value={appSettings.llamaServerPath}
-                onChange={(e) => updateAppSettings({ llamaServerPath: e.target.value })}
-                className={cn(
-                  'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-blue-500',
-                  tokens.inputRadius,
-                )}
-              />
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <div>
-                <label className="mb-1 block text-xs text-zinc-600 dark:text-zinc-400">Порт llama-server</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={65535}
-                  step={1}
-                  value={llamaPortInput}
-                  onChange={(event) => setLlamaPortInput(event.target.value)}
-                  className={cn(
-                    'h-9 w-full border border-zinc-200 bg-zinc-50 px-3 text-xs text-zinc-900 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 tabular-nums',
-                    tokens.inputRadius,
-                  )}
-                />
-                <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                  Локальный endpoint: http://127.0.0.1:{llamaPortInput || '—'}/v1. После изменения перезапустите сервер.
-                </p>
-                {llamaPortError && (
-                  <p role="alert" className="mt-1 text-xs text-rose-600 dark:text-rose-400">
-                    {llamaPortError}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => void saveLlamaPort()}
-                disabled={llamaPortSaving || !llamaProvider}
-                className="h-9 rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800 whitespace-nowrap"
-              >
-                {llamaPortSaving ? 'Сохранение…' : 'Сохранить порт'}
-              </button>
-            </div>
-
-            <label className="flex items-center gap-2.5 text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer pt-1">
-              <input
-                type="checkbox"
-                checked={appSettings.autoCheckSha256}
-                onChange={(e) => updateAppSettings({ autoCheckSha256: e.target.checked })}
-                className="accent-blue-600 rounded"
-              />
-              <span>Автоматически проверять SHA256 после завершения загрузки GGUF</span>
-            </label>
-          </div>
-
-          <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
-            <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-zinc-500" />
-              Аппаратный профиль (для расчёта совместимости VRAM/RAM)
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Бэкенд GPU</label>
-                <select
-                  value={inferenceSettings.gpuBackend}
-                  onChange={(e) => updateInferenceSettings({ gpuBackend: e.target.value as GpuBackend })}
-                  className={cn(
-                    'w-full h-9 px-2.5 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs text-zinc-900 dark:text-zinc-100',
-                    tokens.inputRadius,
-                  )}
-                >
-                  <option value="auto">Авто (CUDA / Vulkan → CPU)</option>
-                  <option value="cuda">NVIDIA CUDA</option>
-                  <option value="vulkan">Vulkan 1.3</option>
-                  <option value="cpu">CPU AVX2</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Доступно VRAM (GB)</label>
-                <input
-                  type="number"
-                  min={2}
-                  max={96}
-                  step={2}
-                  value={inferenceSettings.maxVramGb}
-                  onChange={(e) =>
-                    updateInferenceSettings({ maxVramGb: Math.max(2, Number(e.target.value) || 8) })
-                  }
-                  className={cn(
-                    'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 tabular-nums',
-                    tokens.inputRadius,
-                  )}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1">Системная RAM (GB)</label>
-                <input
-                  type="number"
-                  min={8}
-                  max={256}
-                  step={4}
-                  value={inferenceSettings.maxRamGb}
-                  onChange={(e) =>
-                    updateInferenceSettings({ maxRamGb: Math.max(8, Number(e.target.value) || 32) })
-                  }
-                  className={cn(
-                    'w-full h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 font-mono text-xs text-zinc-900 dark:text-zinc-100 tabular-nums',
-                    tokens.inputRadius,
-                  )}
-                />
-              </div>
-            </div>
           </div>
 
           <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800 space-y-3">
