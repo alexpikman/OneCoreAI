@@ -13,6 +13,7 @@ export type NavigationGroup = {
   id: string;
   label: string;
   icon: string;
+  description?: string;
   items: NavigationItem[];
 };
 
@@ -62,6 +63,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
     id: 'ai-agents',
     label: 'Агенты',
     icon: 'robot',
+    description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
     items: [
       { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
       { id: 'subagents-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
@@ -71,6 +73,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
     id: 'knowledge',
     label: 'Библиотека знаний',
     icon: 'brain',
+    description: 'Навыки, регламенты, схемы, справочники и архитектурные контракты.'
     items: [
       { id: 'skills', label: 'Библиотека навыков', icon: 'brain', tab: 'skills' },
       { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions', section: 'knowledge' },
