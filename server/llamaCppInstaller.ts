@@ -577,6 +577,140 @@ async function installLlamaCppRuntimeInternal(): Promise<LlamaCppInstallResult> 
   }
 }
 
+function validateArchiveEntries(entries: string[]): void {
+  if (entries.length === 0 || entries.length > 20_000) {
+    throw new Error('Архив пуст или содержит слишком много файлов.');
+  }
+  for (const entry of entries) {
+    const normalized = entry.replace(/\\\\/g, '/');
+    if (
+      normalized.startsWith('/') ||
+      /^[a-z]:/i.test(normalized) ||
+      normalized.split('/').some((part) => part === '..')
+    ) {
+      throw new Error('Архив содержит недопустимый путь. Распаковка отменена.');
+    }
+  }
+}
+
+export async function installLlamaCppArchive(archivePath: string): Promise<LlamaCppInstallResult> {
+  const archiveName = path.basename(archivePath).toLowerCase();
+  const isZip = archiveName.endsWith('.zip');
+  const isTarGz = archiveName.endsWith('.tar.gz');
+  if (!isZip && !isTarGz) throw new Error('Поддерживаются только архивы .zip и .tar.gz.');
+  if (!fs.existsSync(archivePath) || !fs.statSync(archivePath).isFile()) {
+    throw new Error('Загруженный архив не найден.');
+  }
+  if (fs.statSync(archivePath).size > MAX_ASSET_BYTES) {
+    throw new Error('Размер архива превышает допустимые 2 GB.');
+  }
+
+  const runtimeRoot = getRuntimeRoot();
+  const versionsDir = path.join(runtimeRoot, 'versions');
+  const stagingDir = path.join(runtimeRoot, `.archive-${crypto.randomBytes(8).toString('hex')}`);
+  const extractedDir = path.join(stagingDir, 'runtime');
+  fs.mkdirSync(extractedDir, { recursive: true });
+  updateLlamaCppOperationProgress({
+    active: true,
+    action: 'install',
+    phase: 'extracting',
+    message: `Проверяю и распаковываю архив ${path.basename(archivePath)}…`,
+    sourcePath: archivePath,
+    targetPath: extractedDir,
+    fileName: path.basename(archivePath),
+    downloadedBytes: 0,
+    totalBytes: fs.statSync(archivePath).size,
+    speedBytesPerSecond: 0,
+    percent: null,
+  });
+
+  try {
+    if (isZip && process.platform === 'win32') {
+      await extractZipSafely(archivePath, extractedDir);
+    } else if (isZip) {
+      const listing = await execFileAsync('unzip', ['-Z1', archivePath], {
+        timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
+      });
+      validateArchiveEntries(listing.stdout.split(/\\r?\\n/).filter(Boolean));
+      await execFileAsync('unzip', ['-q', archivePath, '-d', extractedDir], {
+        timeout: 120_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
+      });
+    } else {
+      const listing = await execFileAsync('tar', ['-tzf', archivePath], {
+        timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
+      });
+      validateArchiveEntries(listing.stdout.split(/\\r?\\n/).filter(Boolean));
+      const verbose = await execFileAsync('tar', ['-tvzf', archivePath], {
+        timeout: 30_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
+      });
+      if (verbose.stdout.split(/\\r?\\n/).some((line) => /^[lh]/.test(line))) {
+        throw new Error('Архив с символическими или жёсткими ссылками не поддерживается.');
+      }
+      await execFileAsync('tar', [
+        '-xzf', archivePath, '-C', extractedDir,
+        ...(process.platform === 'win32' ? [] : ['--no-same-owner', '--no-same-permissions']),
+      ], {
+        timeout: 120_000, maxBuffer: 4 * 1024 * 1024, encoding: 'utf8',
+      });
+    }
+
+    const executable = findExecutable(extractedDir);
+    if (!executable || !isInside(extractedDir, executable)) {
+      throw new Error(`В архиве не найден исполняемый файл ${process.platform === 'win32' ? 'llama-server.exe' : 'llama-server'}.`);
+    }
+    if (process.platform !== 'win32') fs.chmodSync(executable, 0o755);
+    updateLlamaCppOperationProgress({
+      phase: 'checking',
+      message: 'Проверяю бинарник командой --version…',
+      targetPath: executable,
+    });
+    const versionResult = await execFileAsync(executable, ['--version'], {
+      windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024, encoding: 'utf8',
+    });
+    const version = (versionResult.stdout || versionResult.stderr || '').trim().slice(0, 240);
+    if (!version) throw new Error('llama-server не вернул версию.');
+
+    fs.mkdirSync(versionsDir, { recursive: true });
+    const versionDir = path.join(versionsDir, `archive-${Date.now()}`);
+    fs.renameSync(extractedDir, versionDir);
+    const installedExecutable = path.join(versionDir, path.relative(extractedDir, executable));
+    const manifest = await readInternalAppSettings();
+    if (manifest) {
+      await saveAppSettings({
+        ...manifest.settings,
+        appSettings: { ...manifest.settings.appSettings, llamaServerPath: installedExecutable },
+      });
+    }
+    const result = {
+      executablePath: installedExecutable,
+      version,
+      releaseUrl: '',
+      variant: 'Локальный архив',
+      selected: true,
+    };
+    updateLlamaCppOperationProgress({
+      active: false,
+      action: null,
+      phase: 'completed',
+      message: `Установлено ${version}. Путь: ${installedExecutable}`,
+      sourcePath: archivePath,
+      targetPath: installedExecutable,
+      percent: 100,
+    });
+    return result;
+  } catch (error) {
+    updateLlamaCppOperationProgress({
+      active: false,
+      action: null,
+      phase: 'error',
+      message: error instanceof Error ? error.message : 'Не удалось установить архив llama-server.',
+    });
+    throw error;
+  } finally {
+    fs.rmSync(stagingDir, { recursive: true, force: true });
+  }
+}
+
 export function installLlamaCppRuntime(): Promise<LlamaCppInstallResult> {
   if (activeInstall) return activeInstall;
   activeInstall = installLlamaCppRuntimeInternal().catch((error) => {
