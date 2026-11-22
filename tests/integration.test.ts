@@ -3006,7 +3006,7 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
       { remoteUrlForTestOnly: bareRemote },
     );
     assert.equal(rebasePull.ok, true);
-    assert.equal(fs.readFileSync(path.join(dirB, 'app.txt'), 'utf-8'), 'line 1\nline 2 from A\n');
+    assert.equal(fs.readFileSync(path.join(dirB, 'app.txt'), 'utf-8').replace(/\r\n/g, '\n'), 'line 1\nline 2 from A\n');
     assert.equal(fs.readFileSync(path.join(dirB, 'local-note.txt'), 'utf-8'), 'keep me\n');
     assert.equal(fs.readFileSync(path.join(dirB, 'README.md'), 'utf-8'), '# Project B local edit\n');
   } finally {
