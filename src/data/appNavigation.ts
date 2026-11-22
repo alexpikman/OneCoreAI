@@ -65,7 +65,8 @@ export const NAV_GROUPS: NavigationGroup[] = [
     items: [
       { id: 'agent-roles', label: 'Агенты и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
       { id: 'skills', label: 'Навыки SKILL.md', icon: 'brain', tab: 'skills' },
-      { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions' },
+      { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions', section: 'knowledge' },
+      { id: 'intelligence-library', label: 'Intelligence Library', icon: 'brain', tab: 'instructions', section: 'intelligence-library' },
       { id: 'directories', label: 'Справочники', icon: 'clipboard', tab: 'directories' },
     ],
   },
