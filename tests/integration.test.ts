@@ -3508,6 +3508,10 @@ test('navigation layout schema rejects missing, duplicate, unknown and remapped 
   const remapped = createDefaultNavigationLayout();
   (remapped.groups[0].items[0] as unknown as Record<string, unknown>).tab = 'security';
   assert.equal(validateNavigationLayout(remapped).valid, false);
+
+  const invalidIcon = createDefaultNavigationLayout();
+  invalidIcon.groups[0].icon = 'unsupported-icon';
+  assert.equal(validateNavigationLayout(invalidIcon).valid, false);
 });
 
 
