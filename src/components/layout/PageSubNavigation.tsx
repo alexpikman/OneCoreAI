@@ -21,7 +21,7 @@ export const PageSubNavigation: React.FC = () => {
 
   if (activeTab === 'workstation') return null;
 
-  const group = navigationGroups.find((item) => item.label === getActiveNavigationGroup(activeTab, settingsSection, navigationGroups));
+  const group = navigationGroups.find((item) => item.label === getActiveNavigationGroup(activeTab, settingsSection, navigationGroups, sshGithubSection));
   if (!group || !isNavigationVisibilityEnabled(navigationVisibility, `group.${group.id}`)) {
     return <div className="h-10 shrink-0" aria-hidden="true" />;
   }
