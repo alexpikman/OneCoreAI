@@ -3447,6 +3447,41 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(emptyTheme.status, 204);
 
+  const appearanceDraftResponse = await fetch(`${apiBaseUrl}/api/designer/configuration/drafts`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      scope: { type: 'global' },
+      changes: { appearance: DEFAULT_APPEARANCE_TOKENS },
+    }),
+  });
+  assert.equal(appearanceDraftResponse.status, 200);
+  const appearanceDraftData = await appearanceDraftResponse.json() as { ok: boolean; draft: unknown };
+  assert.equal(appearanceDraftData.ok, true);
+
+  const appearanceApplyResponse = await fetch(`${apiBaseUrl}/api/designer/configuration/apply`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+      'X-OneCore-Approval': 'user-confirmed',
+    },
+    body: JSON.stringify({ draft: appearanceDraftData.draft }),
+  });
+  assert.equal(appearanceApplyResponse.status, 200);
+
+  const activeTheme = await fetch(`${apiBaseUrl}/api/designer/theme.css`, {
+    headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(activeTheme.status, 200);
+  assert.match(activeTheme.headers.get('content-type') ?? '', /text\/css/);
+  assert.match(await activeTheme.text(), /--font-sans:/);
+
   const outsideDesigner = await fetch(`${apiBaseUrl}/api/projects`, {
     headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
   });
