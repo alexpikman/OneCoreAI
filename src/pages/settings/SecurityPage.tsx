@@ -43,6 +43,7 @@ export const SecurityPage: React.FC = () => {
   const [notice, setNotice] = useState('');
   const [expandedProviderGroups, setExpandedProviderGroups] = useState<Record<string, boolean>>({});
   const [designerPairing, setDesignerPairing] = useState<{ code: string; apiBaseUrl: string; expiresAt: string } | null>(null);
+  const [designerPairingBusy, setDesignerPairingBusy] = useState(false);
 
   const refresh = async () => {
     setLoadingStatus(true);
@@ -68,7 +69,7 @@ export const SecurityPage: React.FC = () => {
   }, []);
 
   const createDesignerPairing = async () => {
-    setBusy('designer-pairing');
+    setDesignerPairingBusy(true);
     setError('');
     setNotice('');
     setDesignerPairing(null);
@@ -99,7 +100,7 @@ export const SecurityPage: React.FC = () => {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка подключения Designer');
     } finally {
-      setBusy(null);
+      setDesignerPairingBusy(false);
     }
   };
 
@@ -371,11 +372,11 @@ export const SecurityPage: React.FC = () => {
             </p>
             <button
               type="button"
-              disabled={busy === 'designer-pairing'}
+              disabled={designerPairingBusy}
               onClick={() => void createDesignerPairing()}
               className="mt-4 h-9 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50 whitespace-nowrap"
             >
-              {busy === 'designer-pairing' ? 'Создание кода…' : 'Создать код подключения'}
+              {designerPairingBusy ? 'Создание кода…' : 'Создать код подключения'}
             </button>
             {designerPairing && (
               <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
