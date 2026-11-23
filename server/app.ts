@@ -65,6 +65,20 @@ import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
 import {
+  analyzeConfigurationDraft,
+  createConfigurationDocument,
+  createConfigurationDraft,
+  type ConfigurationDraft,
+  type ConfigurationScope,
+} from './configurationEngine';
+import {
+  applyConfigurationDraft,
+  ConfigurationRevisionConflictError,
+  listConfigurationHistory,
+  readConfigurationDocument,
+  restoreConfigurationRevision,
+} from './configurationManager';
+import {
   checkRepoSyncDiff,
   getRepoSyncConfig,
   pullFromGitHub,
@@ -739,6 +753,92 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
   app.get('/api/system/metrics', (_req, res) => {
     res.json({ ok: true, metrics: getModelMetrics() });
+  });
+
+  const parseDesignerScope = (scopeValue: unknown, projectIdValue: unknown): ConfigurationScope => {
+    if (scopeValue === 'global' && projectIdValue === undefined) return { type: 'global' };
+    if (scopeValue === 'project' && typeof projectIdValue === 'string' && projectIdValue.trim()) {
+      return { type: 'project', projectId: projectIdValue.trim() };
+    }
+    throw new Error('Укажите область global либо project с projectId');
+  };
+
+  app.get('/api/designer/configuration', (req, res) => {
+    try {
+      const scope = parseDesignerScope(req.query.scope, req.query.projectId);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, configuration: readConfigurationDocument(scope) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось прочитать конфигурацию' });
+    }
+  });
+
+  app.get('/api/designer/configuration/history', (req, res) => {
+    try {
+      const scope = parseDesignerScope(req.query.scope, req.query.projectId);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, revisions: listConfigurationHistory(scope) });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось прочитать историю конфигурации' });
+    }
+  });
+
+  app.post('/api/designer/configuration/drafts', (req, res) => {
+    try {
+      const scope = parseDesignerScope(req.body?.scope?.type, req.body?.scope?.projectId);
+      const current = readConfigurationDocument(scope);
+      const base = current ?? createConfigurationDocument(scope, {});
+      const draft = createConfigurationDraft(base, req.body?.changes);
+      const analysis = analyzeConfigurationDraft(draft);
+      res.json({ ok: true, draft, analysis });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось создать черновик' });
+    }
+  });
+
+  app.post('/api/designer/configuration/apply', async (req, res) => {
+    if (!requireSideEffectApproval(req, res, 'configuration.apply', 'designer-configuration')) return;
+    try {
+      const document = await applyConfigurationDraft(req.body?.draft as ConfigurationDraft);
+      recordAgentEvent({
+        category: 'system',
+        level: 'info',
+        status: 'completed',
+        title: 'Конфигурация Designer сохранена',
+        summary: `Сохранена ревизия конфигурации ${document.revision}`,
+        source: 'configuration-manager',
+        details: { revision: document.revision, scope: document.scope },
+      });
+      res.json({ ok: true, configuration: document });
+    } catch (err) {
+      const status = err instanceof ConfigurationRevisionConflictError ? 409 : 400;
+      res.status(status).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось сохранить конфигурацию' });
+    }
+  });
+
+  app.post('/api/designer/configuration/restore', async (req, res) => {
+    if (!requireSideEffectApproval(req, res, 'configuration.apply', 'designer-configuration-restore')) return;
+    try {
+      const scope = parseDesignerScope(req.body?.scope?.type, req.body?.scope?.projectId);
+      const document = await restoreConfigurationRevision(
+        scope,
+        req.body?.targetRevision,
+        req.body?.expectedCurrentRevision,
+      );
+      recordAgentEvent({
+        category: 'system',
+        level: 'warning',
+        status: 'completed',
+        title: 'Конфигурация Designer восстановлена',
+        summary: `Создана ревизия ${document.revision} на основе предыдущей конфигурации`,
+        source: 'configuration-manager',
+        details: { revision: document.revision, scope: document.scope },
+      });
+      res.json({ ok: true, configuration: document });
+    } catch (err) {
+      const status = err instanceof ConfigurationRevisionConflictError ? 409 : 400;
+      res.status(status).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось восстановить конфигурацию' });
+    }
   });
 
   app.get('/api/settings', async (_req, res) => {
