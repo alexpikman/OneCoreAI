@@ -3657,5 +3657,5 @@ test('appearance stylesheet emits validated Tailwind theme variables for light a
   assert.match(css, /\[data-ui-style\]\.dark/);
   assert.match(css, /--font-sans:/);
   assert.match(css, /--designer-overlay:/);
-  assert.match(css, /--radius-xl: 16px/);
+  assert.match(css, /--radius-xl: 12px/);
 });
