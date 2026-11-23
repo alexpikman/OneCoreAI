@@ -55,11 +55,19 @@ export function createDefaultDesignerLayout(): DesignerLayout {
 }
 function validate(layout: DesignerLayout): boolean {
   const ids = new Set<string>();
+  const occupied = new Set<string>();
   for (const item of layout.elements) {
     if (ids.has(item.id) || item.column < 1 || item.row < 1 || item.columnSpan < 1 || item.rowSpan < 1 ||
       item.column + item.columnSpan - 1 > layout.grid.columns ||
       item.row + item.rowSpan - 1 > layout.grid.rows) return false;
     ids.add(item.id);
+    for (let row = item.row; row < item.row + item.rowSpan; row += 1) {
+      for (let column = item.column; column < item.column + item.columnSpan; column += 1) {
+        const cell = `${column}:${row}`;
+        if (occupied.has(cell)) return false;
+        occupied.add(cell);
+      }
+    }
   }
   return true;
 }
@@ -107,6 +115,9 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
       <section className="min-w-0 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold">Холст</span><div className="flex flex-wrap gap-1">{(Object.keys(labels) as DesignerElementType[]).map(type=><button key={type} type="button" onClick={()=>add(type)} className="h-7 rounded-md border border-zinc-300 px-2 text-[10px] hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">+ {labels[type]}</button>)}</div></div>
         <div className={`grid min-h-[34rem] auto-rows-[minmax(5rem,auto)] content-start ${columns[layout.grid.columns]} ${gaps[layout.grid.gap]} rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-3 dark:border-zinc-700 dark:bg-zinc-950`}>
+          {Array.from({length:layout.grid.rows},(_,rowIndex)=>Array.from({length:layout.grid.columns},(_,columnIndex)=>(
+            <div key={`grid-cell-${columnIndex+1}-${rowIndex+1}`} className={`pointer-events-none col-span-1 row-span-1 ${starts[columnIndex+1]} ${rowStarts[rowIndex+1]} rounded border border-dashed border-zinc-300/70 dark:border-zinc-700/70`}/>
+          )))}
           {layout.elements.map(item=><article key={item.id} draggable onDragStart={()=>setDraggedId(item.id)} onDragEnd={()=>setDraggedId(null)} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();drop(item.id);}} onClick={()=>setSelectedId(item.id)} className={`relative min-w-0 cursor-grab overflow-hidden rounded-lg border p-3 text-left active:cursor-grabbing ${starts[item.column]??'col-start-1'} ${spans[item.columnSpan]??'col-span-1'} ${rowStarts[item.row]??'row-start-1'} ${rowSpans[item.rowSpan]??'row-span-1'} ${selectedId===item.id?'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20 dark:bg-blue-950/40':'border-zinc-300 bg-white hover:border-blue-400 dark:border-zinc-700 dark:bg-zinc-900'}`}>
             <div className="flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold">{item.title}</span><span className="text-[9px] text-zinc-500 dark:text-zinc-400">{labels[item.type]}</span></div>
             <p className="mt-2 line-clamp-2 text-[11px] text-zinc-600 dark:text-zinc-400">{item.content}</p>
