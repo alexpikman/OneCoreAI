@@ -3768,11 +3768,11 @@ test('dashboard card editing preserves registered blocks and immutable section b
   assert.equal(validateDashboardLayout(duplicateOrder).valid, false);
 
   const invalidAppearance = structuredClone(layout);
-  invalidAppearance.cards[0].appearance = 'neon';
+  invalidAppearance.cards[0].appearance = 'neon' as never;
   assert.equal(validateDashboardLayout(invalidAppearance).valid, false);
 
   const invalidDensity = structuredClone(layout);
-  invalidDensity.cards[0].density = 'huge';
+  invalidDensity.cards[0].density = 'huge' as never;
   assert.equal(validateDashboardLayout(invalidDensity).valid, false);
 
   const customized = structuredClone(layout);
