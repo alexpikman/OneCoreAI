@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
+import { AppearanceEditor } from './AppearanceEditor';
 import { NavigationEditor } from './NavigationEditor';
-import type { ComponentRegistry, NavigationLayoutConfig } from './types';
+import type { AppearanceTokens, ComponentRegistry, NavigationLayoutConfig } from './types';
 
 interface ConfigurationDocument {
   schemaVersion: number;
@@ -37,6 +38,8 @@ export default function App() {
   const [navigationIcons, setNavigationIcons] = useState<string[]>([]);
   const [navigationLayout, setNavigationLayout] = useState<NavigationLayoutConfig | null>(null);
   const [navigationLayoutDirty, setNavigationLayoutDirty] = useState(false);
+  const [appearanceTokens, setAppearanceTokens] = useState<AppearanceTokens | null>(null);
+  const [appearanceDirty, setAppearanceDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -54,6 +57,7 @@ export default function App() {
       registry?: ComponentRegistry;
       navigationIcons?: string[];
       defaultNavigationLayout?: NavigationLayoutConfig;
+      defaultAppearanceTokens?: AppearanceTokens;
     };
     if (!configurationResponse.ok || !configurationData.ok) {
       throw new Error(configurationData.error || 'Не удалось загрузить конфигурацию');
@@ -61,7 +65,7 @@ export default function App() {
     if (!historyResponse.ok || !historyData.ok) {
       throw new Error(historyData.error || 'Не удалось загрузить историю конфигураций');
     }
-    if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.navigationIcons || !registryData.defaultNavigationLayout) {
+    if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.navigationIcons || !registryData.defaultNavigationLayout || !registryData.defaultAppearanceTokens) {
       throw new Error(registryData.error || 'Не удалось загрузить реестр компонентов');
     }
     setConfiguration(configurationData.configuration ?? null);
@@ -75,6 +79,13 @@ export default function App() {
         : registryData.defaultNavigationLayout,
     );
     setNavigationLayoutDirty(false);
+    const savedAppearance = configurationData.configuration?.config.appearance;
+    setAppearanceTokens(
+      savedAppearance && typeof savedAppearance === 'object' && !Array.isArray(savedAppearance)
+        ? savedAppearance as AppearanceTokens
+        : registryData.defaultAppearanceTokens,
+    );
+    setAppearanceDirty(false);
   };
 
   const connect = async (event: FormEvent<HTMLFormElement>) => {
@@ -110,7 +121,7 @@ export default function App() {
 
   const refresh = async () => {
     if (!connection) return;
-    if (navigationLayoutDirty && !window.confirm('Отменить несохранённые изменения навигации и загрузить сохранённую версию?')) return;
+    if ((navigationLayoutDirty || appearanceDirty) && !window.confirm('Отменить несохранённые изменения и загрузить сохранённую версию?')) return;
     setBusy(true);
     setError('');
     try {
@@ -123,9 +134,13 @@ export default function App() {
     }
   };
 
-  const saveNavigationLayout = async () => {
-    if (!connection || !navigationLayout) return;
-    if (!window.confirm('Сохранить новую ревизию глобальной навигации?')) return;
+  const saveConfigurationChanges = async (
+    changes: Record<string, unknown>,
+    confirmation: string,
+    successNotice: string,
+  ) => {
+    if (!connection) return;
+    if (!window.confirm(confirmation)) return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -133,33 +148,61 @@ export default function App() {
       Authorization: `Bearer ${connection.token}`,
       'Content-Type': 'application/json',
     };
+
     try {
-      const validationResponse = await fetch(new URL('/api/designer/navigation/validate', connection.apiBaseUrl), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ layout: navigationLayout }),
-      });
-      const validationData = await validationResponse.json() as ApiError & {
-        validation?: { valid: boolean; diagnostics: Array<{ message: string }> };
-      };
-      if (!validationResponse.ok || !validationData.validation?.valid) {
-        throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
+      if (changes.navigation !== undefined) {
+        const validationResponse = await fetch(new URL('/api/designer/navigation/validate', connection.apiBaseUrl), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ layout: changes.navigation }),
+        });
+        const validationData = await validationResponse.json() as ApiError & {
+          validation?: { valid: boolean; diagnostics: Array<{ message: string }> };
+        };
+        if (!validationResponse.ok || !validationData.validation?.valid) {
+          throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
+        }
+      }
+
+      if (changes.appearance !== undefined) {
+        const validationResponse = await fetch(new URL('/api/designer/appearance/validate', connection.apiBaseUrl), {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ appearance: changes.appearance }),
+        });
+        const validationData = await validationResponse.json() as ApiError & {
+          validation?: { valid: boolean; diagnostics: string[] };
+        };
+        if (!validationResponse.ok || !validationData.validation?.valid) {
+          throw new Error(validationData.validation?.diagnostics.join('; ') || validationData.error || 'Настройки оформления не прошли проверку');
+        }
       }
 
       const draftResponse = await fetch(new URL('/api/designer/configuration/drafts', connection.apiBaseUrl), {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          scope: { type: 'global' },
-          changes: { navigation: navigationLayout },
-        }),
+        body: JSON.stringify({ scope: { type: 'global' }, changes }),
       });
       const draftData = await draftResponse.json() as ApiError & {
         draft?: unknown;
+        analysis?: { canApply: boolean; diagnostics: Array<{ message: string }> };
         navigationValidation?: { valid: boolean; diagnostics: Array<{ message: string }> } | null;
+        appearanceValidation?: { valid: boolean; diagnostics: string[] } | null;
       };
-      if (!draftResponse.ok || !draftData.ok || !draftData.draft || draftData.navigationValidation?.valid === false) {
-        throw new Error(draftData.navigationValidation?.diagnostics.map((item) => item.message).join('; ') || draftData.error || 'Не удалось подготовить конфигурацию');
+      if (
+        !draftResponse.ok ||
+        !draftData.ok ||
+        !draftData.draft ||
+        draftData.analysis?.canApply === false ||
+        draftData.navigationValidation?.valid === false ||
+        draftData.appearanceValidation?.valid === false
+      ) {
+        const diagnostics = [
+          ...(draftData.analysis?.diagnostics.map((item) => item.message) ?? []),
+          ...(draftData.navigationValidation?.diagnostics.map((item) => item.message) ?? []),
+          ...(draftData.appearanceValidation?.diagnostics ?? []),
+        ];
+        throw new Error(diagnostics.join('; ') || draftData.error || 'Не удалось подготовить конфигурацию');
       }
 
       const applyResponse = await fetch(new URL('/api/designer/configuration/apply', connection.apiBaseUrl), {
@@ -173,18 +216,37 @@ export default function App() {
       }
 
       setNavigationLayoutDirty(false);
+      setAppearanceDirty(false);
       await loadConfiguration(connection);
-      setNotice('Макет навигации сохранён. OneCoreAI обновит навигацию при возврате в окно приложения или при следующем запуске.');
+      setNotice(successNotice);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка сохранения навигации');
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения конфигурации');
     } finally {
       setBusy(false);
     }
   };
 
+  const saveNavigationLayout = () => {
+    if (!navigationLayout) return;
+    void saveConfigurationChanges(
+      { navigation: navigationLayout },
+      'Сохранить новую ревизию глобальной навигации?',
+      'Макет навигации сохранён. OneCoreAI обновит его при возврате в окно приложения или при следующем запуске.',
+    );
+  };
+
+  const saveAppearance = () => {
+    if (!appearanceTokens) return;
+    void saveConfigurationChanges(
+      { appearance: appearanceTokens },
+      'Сохранить новую ревизию оформления интерфейса?',
+      'Настройки оформления сохранены. OneCoreAI обновит тему при возврате в окно приложения или при следующем запуске.',
+    );
+  };
+
   const restore = async (revision: number) => {
     if (!connection || !configuration) return;
-    const confirmation = navigationLayoutDirty
+    const confirmation = navigationLayoutDirty || appearanceDirty
       ? `Отменить несохранённые изменения и восстановить версию ${revision}?`
       : `Создать новую ревизию на основе версии ${revision}?`;
     if (!window.confirm(confirmation)) return;
@@ -217,7 +279,7 @@ export default function App() {
   };
 
   const disconnect = () => {
-    if (navigationLayoutDirty && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
+    if ((navigationLayoutDirty || appearanceDirty) && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
     setConnection(null);
     setConfiguration(null);
     setHistory([]);
@@ -225,6 +287,8 @@ export default function App() {
     setNavigationIcons([]);
     setNavigationLayout(null);
     setNavigationLayoutDirty(false);
+    setAppearanceTokens(null);
+    setAppearanceDirty(false);
     setNotice('');
     setError('');
   };
@@ -343,6 +407,18 @@ export default function App() {
                     setNavigationLayoutDirty(true);
                   }}
                   onSave={() => void saveNavigationLayout()}
+                />
+              )}
+              {appearanceTokens && (
+                <AppearanceEditor
+                  tokens={appearanceTokens}
+                  dirty={appearanceDirty}
+                  saving={busy}
+                  onChange={(nextTokens) => {
+                    setAppearanceTokens(nextTokens);
+                    setAppearanceDirty(true);
+                  }}
+                  onSave={saveAppearance}
                 />
               )}
               <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
