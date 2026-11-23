@@ -82,16 +82,6 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
   const update = (patch: Partial<DesignerElement>) => {
     if (selected) change({...layout,elements:layout.elements.map(item => item.id === selected.id ? {...item,...patch} : item)});
   };
-  const add = (type: DesignerElementType) => {
-    let position = {column:1,row:1};
-    outer: for (let row=1;row<=layout.grid.rows;row++) for (let column=1;column<=layout.grid.columns;column++) {
-      const used = layout.elements.some(item => column>=item.column && column<item.column+item.columnSpan && row>=item.row && row<item.row+item.rowSpan);
-      if (!used) { position={column,row}; break outer; }
-    }
-    const id = `${type}-${Date.now()}`;
-    const item: DesignerElement = {id,type,title:labels[type],content:'Содержимое элемента',...position,columnSpan:Math.min(type==='section'?layout.grid.columns:3,layout.grid.columns),rowSpan:1};
-    change({...layout,elements:[...layout.elements,item]}); setSelectedId(id);
-  };
   const drop = (targetId: string) => {
     if (!draggedId || draggedId===targetId) return;
     const source=layout.elements.find(item=>item.id===draggedId);
@@ -100,11 +90,6 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
     change({...layout,elements:layout.elements.map(item=>item.id===source.id?{...item,column:target.column,row:target.row}:item.id===target.id?{...item,column:source.column,row:source.row}:item)});
     setDraggedId(null);
   };
-  const remove = () => {
-    if (!selected) return;
-    const next=layout.elements.filter(item=>item.id!==selected.id);
-    onChange({...layout,elements:next}); setSelectedId(next[0]?.id ?? '');
-  };
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h3 className="text-base font-semibold">Визуальный конструктор</h3><p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">CSS Grid · {layout.elements.length} элементов · {dirty?'есть несохранённые изменения':'сохранённая версия'}</p></div>
@@ -112,7 +97,7 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
     </div>
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <section className="min-w-0 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold">Холст</span><div className="flex flex-wrap gap-1">{(Object.keys(labels) as DesignerElementType[]).map(type=><button key={type} type="button" onClick={()=>add(type)} className="h-7 rounded-md border border-zinc-300 px-2 text-[10px] hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">+ {labels[type]}</button>)}</div></div>
+        <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-semibold">Холст дашборда</span><span className="text-[10px] text-zinc-500 dark:text-zinc-400">4 защищённых системных секции</span></div>
         <div className={`grid min-h-[34rem] auto-rows-[minmax(5rem,auto)] content-start ${columns[layout.grid.columns]} ${gaps[layout.grid.gap]} rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-3 dark:border-zinc-700 dark:bg-zinc-950`}>
           {Array.from({length:layout.grid.rows},(_,rowIndex)=>Array.from({length:layout.grid.columns},(_,columnIndex)=>(
             <div key={`grid-cell-${columnIndex+1}-${rowIndex+1}`} className={`pointer-events-none col-span-1 row-span-1 ${starts[columnIndex+1]} ${rowStarts[rowIndex+1]} rounded border border-dashed border-zinc-300/70 dark:border-zinc-700/70`}/>
@@ -135,16 +120,16 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
         </div></div>
         <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><h4 className="text-sm font-semibold">Инспектор свойств</h4>
           {selected?<div className="mt-3 space-y-3">
-            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Тип</span><select value={selected.type} onChange={event=>update({type:event.target.value as DesignerElementType})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+            
             <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Заголовок</span><input value={selected.title} onChange={event=>update({title:event.target.value})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
-            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Содержимое</span><textarea rows={3} value={selected.content} onChange={event=>update({content:event.target.value})} className="w-full rounded-lg border border-zinc-300 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
+            
             <div className="grid grid-cols-2 gap-2">
               {([['column','Колонка',layout.grid.columns],['row','Строка',layout.grid.rows],['columnSpan','Ширина',layout.grid.columns],['rowSpan','Высота',8]] as const).map(([key,label,max])=><label key={key} className="space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">{label}</span><select value={selected[key]} onChange={event=>update({[key]:Number(event.target.value)})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Array.from({length:max},(_,i)=>i+1).map(value=><option key={value}>{value}</option>)}</select></label>)}
             </div>
-            <button type="button" onClick={remove} className="h-9 w-full rounded-lg border border-rose-300 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30">Удалить элемент</button>
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Системные секции защищены от удаления, чтобы не отключить показатели и переходы дашборда.</p>
           </div>:<p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Выбери элемент на холсте.</p>}
         </div>
-        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><p className="text-[10px] text-zinc-500 dark:text-zinc-400">Этот макет сохраняется в конфигурации Designer. Подключение макета к рендерерам страниц OneCoreAI требует отдельного runtime-адаптера.</p><button type="button" onClick={()=>onChange(createDefaultDesignerLayout())} className="mt-3 h-8 w-full rounded-lg border border-zinc-300 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Сбросить макет</button></div>
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><p className="text-[10px] text-zinc-500 dark:text-zinc-400">Макет применяется к реальным секциям дашборда OneCoreAI. Показатели, данные и обработчики остаются в исходных компонентах.</p><button type="button" onClick={()=>onChange(createDefaultDesignerLayout())} className="mt-3 h-8 w-full rounded-lg border border-zinc-300 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Сбросить макет</button></div>
       </aside>
     </div>
   </div>;
