@@ -3372,6 +3372,18 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(authenticated.status, 200);
 
+  const registryResponse = await fetch(`${apiBaseUrl}/api/designer/registry`, {
+    headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(registryResponse.status, 200);
+  const registryPayload = await registryResponse.json() as {
+    ok: boolean;
+    registry: { components: unknown[]; navigation: unknown[] };
+  };
+  assert.equal(registryPayload.ok, true);
+  assert.equal(registryPayload.registry.components.length, 34);
+  assert.equal(registryPayload.registry.navigation.length, NAV_GROUPS.reduce((count, group) => count + group.items.length, 0));
+
   const outsideDesigner = await fetch(`${apiBaseUrl}/api/projects`, {
     headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
   });
