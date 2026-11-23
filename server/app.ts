@@ -939,7 +939,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const appearanceValidation = draft.config.appearance === undefined
         ? null
         : validateAppearanceTokens(draft.config.appearance);
-      const layoutValidation = draft.config.layout === undefined
+      const layoutValidation = scope.type !== 'global' || draft.config.layout === undefined
         ? null
         : validateDashboardLayout(draft.config.layout);
       res.json({ ok: true, draft, analysis, navigationValidation, appearanceValidation, layoutValidation });
@@ -952,7 +952,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     if (!requireSideEffectApproval(req, res, 'configuration.apply', 'designer-configuration')) return;
     try {
       const draft = req.body?.draft as ConfigurationDraft;
-      if (draft?.config?.layout !== undefined) {
+      if (draft?.scope?.type === 'global' && draft.config?.layout !== undefined) {
         const layoutValidation = validateDashboardLayout(draft.config.layout);
         if (!layoutValidation.valid) {
           res.status(400).json({ ok: false, error: layoutValidation.diagnostics.join('; ') });
@@ -982,7 +982,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const scope = parseDesignerScope(req.body?.scope?.type, req.body?.scope?.projectId);
       const targetRevision = req.body?.targetRevision;
       const targetDocument = listConfigurationHistory(scope).find((item) => item.revision === targetRevision);
-      if (targetDocument?.config.layout !== undefined) {
+      if (scope.type === 'global' && targetDocument?.config.layout !== undefined) {
         const layoutValidation = validateDashboardLayout(targetDocument.config.layout);
         if (!layoutValidation.valid) {
           res.status(400).json({ ok: false, error: layoutValidation.diagnostics.join('; ') });
