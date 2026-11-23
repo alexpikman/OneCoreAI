@@ -142,3 +142,25 @@ export function getBuiltInComponentRegistry(): {
     navigation: BUILTIN_NAVIGATION_REGISTRY,
   };
 }
+
+
+export function validateBuiltInComponentRegistry(): { valid: boolean; diagnostics: string[] } {
+  const diagnostics: string[] = [];
+  const componentIds = new Set<string>();
+  const navigationIds = new Set<string>();
+
+  for (const component of BUILTIN_COMPONENT_REGISTRY) {
+    if (componentIds.has(component.id)) diagnostics.push(`Повторный component id: ${component.id}`);
+    componentIds.add(component.id);
+  }
+
+  for (const item of BUILTIN_NAVIGATION_REGISTRY) {
+    if (navigationIds.has(item.id)) diagnostics.push(`Повторный navigation id: ${item.id}`);
+    navigationIds.add(item.id);
+    if (!componentIds.has(item.componentId)) {
+      diagnostics.push(`Для navigation item "${item.id}" не найден компонент "${item.componentId}"`);
+    }
+  }
+
+  return { valid: diagnostics.length === 0, diagnostics };
+}
