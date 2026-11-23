@@ -582,6 +582,7 @@ test('integration navigation has no legacy settings submenu and all 25 tabs rout
   const appSource = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
 
   assert.doesNotMatch(navigationSource, /SETTINGS_ITEMS|Подразделы настроек/);
+  assert.match(appSource, /case 'agent-permissions':[\s\S]*<AgentTeamPage initialSection="permissions" \/>/);
   assert.match(appSource, /case 'agent-journal':[\s\S]*<AgentHistoryPage \/>/);
   assert.match(appSource, /case 'operations-log':[\s\S]*<OperationsLogPage \/>/);
   assert.match(appSource, /case 'terminal':[\s\S]*<TerminalPage \/>/);
