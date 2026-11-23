@@ -534,7 +534,7 @@ export default function App() {
               </div>
             </section>
 
-            <aside className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+            <aside className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
               <h2 className="text-sm font-semibold">История изменений</h2>
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Восстановление создаёт новую ревизию, не удаляя историю.</p>
               <div className="mt-4 space-y-2">
@@ -559,12 +559,12 @@ export default function App() {
                   </p>
                 )}
               </div>
-              <div className="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+              <div className="mt-6 flex min-h-0 flex-1 flex-col border-t border-zinc-200 pt-4 dark:border-zinc-800">
                 <h3 className="text-sm font-semibold">Реестр компонентов</h3>
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                   {registry?.components.length ?? 0} страниц · {registry?.navigation.length ?? 0} пунктов навигации
                 </p>
-                <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
+                <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                   {registry?.components.map((component) => (
                     <div key={component.id} className="rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800">
                       <div className="flex items-start justify-between gap-2">
