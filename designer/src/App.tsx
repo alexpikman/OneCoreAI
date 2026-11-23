@@ -340,6 +340,7 @@ export default function App() {
 
   const disconnect = () => {
     if ((navigationLayoutDirty || appearanceDirty) && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
+    clearAppearancePreview();
     setConnection(null);
     setConfiguration(null);
     setHistory([]);
