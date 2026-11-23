@@ -807,7 +807,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         title: 'Конфигурация Designer сохранена',
         summary: `Сохранена ревизия конфигурации ${document.revision}`,
         source: 'configuration-manager',
-        details: { revision: document.revision, scope: document.scope },
+        details: { revision: document.revision, scopeType: document.scope.type, projectId: document.scope.projectId ?? null },
       });
       res.json({ ok: true, configuration: document });
     } catch (err) {
