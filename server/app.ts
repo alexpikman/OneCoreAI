@@ -887,7 +887,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     });
   });
 
-  app.get('/api/designer/theme.css', (req, res) => {
+  app.get('/api/designer/theme.css', (_req, res) => {
     try {
       const configuration = readConfigurationDocument({ type: 'global' });
       const appearance = configuration?.config.appearance;
