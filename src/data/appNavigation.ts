@@ -7,6 +7,7 @@ export type NavigationItem = {
   tab: AppTab;
   section?: SettingsSectionId;
   providerCategory?: AiProviderCategory;
+  children?: NavigationItem[];
 };
 
 export type NavigationGroup = {
@@ -65,7 +66,18 @@ export const NAV_GROUPS: NavigationGroup[] = [
     icon: 'robot',
     description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
     items: [
-      { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
+      {
+        id: 'agent-roles',
+        label: 'General Agent и роли',
+        icon: 'robot',
+        tab: 'models',
+        section: 'roles-pipeline',
+        children: [
+          { id: 'agent-page-roles', label: 'Роли одной модели', icon: 'user-check', tab: 'models', section: 'roles-pipeline' },
+          { id: 'agent-page-permissions', label: 'Разрешения и указания', icon: 'shield', tab: 'models', section: 'agent-permissions' },
+          { id: 'agent-page-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
+        ],
+      },
     ],
   },
   {
@@ -136,7 +148,7 @@ export function getActiveNavigationGroup(activeTab: AppTab, settingsSection: Set
   ) {
     return 'AI Инструменты';
   }
-  if (activeTab === 'models' && ['roles-pipeline', 'subagents-delegation'].includes(settingsSection)) {
+  if (activeTab === 'models' && ['roles-pipeline', 'agent-permissions', 'subagents-delegation'].includes(settingsSection)) {
     return 'Агенты';
   }
   if (
@@ -188,7 +200,7 @@ export function isNavigationItemActive(
   if (item.id === 'skills' && activeTab === 'models' && settingsSection === 'skills-memory') {
     return true;
   }
-  if (item.id === 'agent-roles' && activeTab === 'models' && settingsSection === 'subagents-delegation') {
+  if (item.id === 'agent-roles' && activeTab === 'models' && ['agent-permissions', 'subagents-delegation'].includes(settingsSection)) {
     return true;
   }
   if (item.id === 'provider-local') {
