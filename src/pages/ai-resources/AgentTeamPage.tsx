@@ -172,7 +172,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
       <PageHeader>
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
           <UserCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-xl font-semibold">{section === 'pipeline' ? 'Субагенты и делегирование' : 'General Agent и роли'}</h1>
+          <h1 className="text-xl font-semibold">{section === 'roles' ? 'Роли одной модели' : section === 'permissions' ? 'Разрешения и указания' : 'Субагенты и делегирование'}</h1>
         </div>
       </PageHeader>
       <PageContent contentClassName="space-y-6 pb-6 pt-2">
