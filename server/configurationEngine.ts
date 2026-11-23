@@ -25,7 +25,8 @@ export interface ConfigurationDiagnostic {
     | 'missing-dependency'
     | 'disabled-dependency'
     | 'dependency-cycle'
-    | 'conflicting-nodes';
+    | 'conflicting-nodes'
+    | 'invalid-draft';
   message: string;
   nodeIds: string[];
 }
@@ -69,8 +70,8 @@ export function mergeConfigurationLayers(
   let resolved: ConfigurationObject = {};
 
   for (const layer of layers) {
-    if (!isConfigurationObject(layer)) {
-      throw new Error('Слой конфигурации должен быть объектом');
+    if (!isConfigurationObject(layer) || !validateConfigurationValue(layer, new WeakSet())) {
+      throw new Error('Слой конфигурации должен содержать только безопасные JSON-значения');
     }
 
     const merge = (base: ConfigurationObject, override: ConfigurationObject): ConfigurationObject => {
@@ -277,14 +278,18 @@ function validateConfigurationValue(
   if (seen.has(value)) return false;
   seen.add(value);
 
+  let valid: boolean;
   if (Array.isArray(value)) {
-    return value.every((item) => validateConfigurationValue(item, seen));
+    valid = value.every((item) => validateConfigurationValue(item, seen));
+  } else if (!isConfigurationObject(value)) {
+    valid = false;
+  } else {
+    valid = Object.entries(value).every(([key, child]) =>
+      !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen),
+    );
   }
-  if (!isConfigurationObject(value)) return false;
-
-  return Object.entries(value).every(([key, child]) =>
-    !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen),
-  );
+  seen.delete(value);
+  return valid;
 }
 
 export function validateConfigurationDocument(
@@ -343,6 +348,9 @@ export function createConfigurationDocument(
   config: ConfigurationObject,
   revision = 0,
 ): ConfigurationDocument {
+  if (!isConfigurationObject(config) || !validateConfigurationValue(config, new WeakSet())) {
+    throw new Error('Конфигурация должна содержать только безопасные JSON-значения');
+  }
   const document: ConfigurationDocument = {
     schemaVersion: CONFIGURATION_SCHEMA_VERSION,
     revision,
@@ -399,7 +407,7 @@ export function analyzeConfigurationDraft(
     !validateConfigurationValue(draft.config, new WeakSet())
   ) {
     diagnostics.push({
-      code: 'duplicate-id',
+      code: 'invalid-draft',
       message: 'Черновик конфигурации имеет некорректную структуру или версию',
       nodeIds: [],
     });
