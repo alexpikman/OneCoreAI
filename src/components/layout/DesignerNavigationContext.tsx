@@ -60,7 +60,9 @@ export function DesignerNavigationProvider({ children }: { children: ReactNode }
 
       if (configurationResult.status === 'fulfilled' && configurationResult.value.ok) {
         try {
-          const data = await configurationResult.value.json() as NavigationConfigurationResponse;
+          const responseBody = await configurationResult.value.text();
+          if (!responseBody.trim()) throw new Error('API конфигурации навигации вернул пустой ответ');
+          const data = JSON.parse(responseBody) as NavigationConfigurationResponse;
           const layout = data.configuration?.config?.navigation;
           const nextGroups = layout ? resolveNavigationGroups(layout) : NAV_GROUPS;
           if (active && sequence === requestSequence) {
