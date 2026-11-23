@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "OneCore Designer",
+  "version": "0.1.0",
+  "identifier": "com.onecoreai.designer",
+  "build": {
+    "beforeDevCommand": "npm --prefix .. run designer:dev",
+    "devUrl": "http://127.0.0.1:4174",
+    "beforeBuildCommand": "npm --prefix .. run designer:build",
+    "frontendDist": "../dist-designer"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "OneCore Designer",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1100,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:*; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": [
+      "../../src-tauri/icons/32x32.png",
+      "../../src-tauri/icons/128x128.png",
+      "../../src-tauri/icons/128x128@2x.png",
+      "../../src-tauri/icons/icon.ico"
+    ]
+  }
+}
