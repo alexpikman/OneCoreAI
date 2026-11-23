@@ -3096,3 +3096,56 @@ test('configuration dependency analysis detects dependency, parent and compatibi
     ['conflicting-nodes', 'dependency-cycle', 'parent-cycle'],
   );
 });
+
+
+import {
+  analyzeConfigurationDraft,
+  createConfigurationDocument,
+  createConfigurationDraft,
+  validateConfigurationDocument,
+} from '../server/configurationEngine';
+
+test('configuration documents enforce schema version, revision, scope and JSON-safe values', () => {
+  const document = createConfigurationDocument(
+    { type: 'project', projectId: 'project-1' },
+    { layout: { columns: 3 }, enabled: true },
+  );
+
+  assert.equal(validateConfigurationDocument(document).valid, true);
+  assert.equal(validateConfigurationDocument({
+    ...document,
+    schemaVersion: 99,
+  }).diagnostics[0]?.code, 'unsupported-schema-version');
+  assert.equal(validateConfigurationDocument({
+    ...document,
+    revision: -1,
+  }).diagnostics[0]?.code, 'invalid-revision');
+  assert.equal(validateConfigurationDocument({
+    ...document,
+    scope: { type: 'project', projectId: ' ' },
+  }).diagnostics[0]?.code, 'invalid-scope');
+  assert.equal(validateConfigurationDocument({
+    ...document,
+    config: { value: Number.NaN },
+  }).diagnostics[0]?.code, 'invalid-config');
+});
+
+test('configuration drafts are isolated, retain base revision and do not apply changes', () => {
+  const base = createConfigurationDocument(
+    { type: 'global' },
+    { layout: { columns: 3, density: 'comfortable' } },
+    7,
+  );
+  const changes = { layout: { columns: 2 } };
+  const draft = createConfigurationDraft(base, changes);
+
+  assert.equal(draft.status, 'draft');
+  assert.equal(draft.baseRevision, 7);
+  assert.deepEqual(draft.config, { layout: { columns: 2, density: 'comfortable' } });
+  assert.deepEqual(base.config, { layout: { columns: 3, density: 'comfortable' } });
+  assert.deepEqual(changes, { layout: { columns: 2 } });
+  assert.equal(analyzeConfigurationDraft(draft).canApply, true);
+  assert.equal(analyzeConfigurationDraft(draft, [
+    { id: 'panel', kind: 'block', requires: ['missing-service'] },
+  ]).canApply, false);
+});
