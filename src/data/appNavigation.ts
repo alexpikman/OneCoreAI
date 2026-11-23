@@ -123,10 +123,11 @@ export function getActiveNavigationGroup(
   activeTab: AppTab,
   settingsSection: SettingsSectionId,
   groups: readonly NavigationGroup[] = NAV_GROUPS,
+  sshGithubSection: SshGithubSectionId = 'ssh-keys',
 ): string {
   const activeGroup = groups.find((group) =>
     group.items.some((item) =>
-      isNavigationItemActive(item, activeTab, settingsSection, 'ssh-keys'),
+      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),
     ),
   );
   return activeGroup?.label ?? groups[0]?.label ?? 'Рабочее пространство';
