@@ -3476,6 +3476,43 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(appearanceApplyResponse.status, 200);
 
+  const invalidDashboardDraftResponse = await fetch(`${apiBaseUrl}/api/designer/configuration/drafts`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      scope: { type: 'global' },
+      changes: {
+        layout: {
+          schemaVersion: 1,
+          grid: { columns: 12, rows: 4, gap: 3 },
+          elements: [],
+        },
+      },
+    }),
+  });
+  assert.equal(invalidDashboardDraftResponse.status, 200);
+  const invalidDashboardDraft = await invalidDashboardDraftResponse.json() as {
+    draft: unknown;
+    layoutValidation: { valid: boolean };
+  };
+  assert.equal(invalidDashboardDraft.layoutValidation.valid, false);
+
+  const rejectedDashboardApply = await fetch(`${apiBaseUrl}/api/designer/configuration/apply`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+      'X-OneCore-Approval': 'user-confirmed',
+    },
+    body: JSON.stringify({ draft: invalidDashboardDraft.draft }),
+  });
+  assert.equal(rejectedDashboardApply.status, 400);
+
   const activeTheme = await fetch(`${apiBaseUrl}/api/designer/theme.css`, {
     headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
   });
