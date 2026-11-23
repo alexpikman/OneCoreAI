@@ -172,6 +172,7 @@ export default function App() {
         throw new Error(applyData.error || 'Не удалось сохранить конфигурацию');
       }
 
+      setNavigationLayoutDirty(false);
       await loadConfiguration(connection);
       setNotice('Макет навигации сохранён. OneCoreAI обновит навигацию при возврате в окно приложения или при следующем запуске.');
     } catch (e) {
