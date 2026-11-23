@@ -60,7 +60,8 @@ export function NavigationEditor({
     const targetIndex = groups.findIndex((group) => group.id === targetGroupId);
     if (sourceIndex < 0 || targetIndex < 0) return;
     const [group] = groups.splice(sourceIndex, 1);
-    groups.splice(targetIndex, 0, group);
+    const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+    groups.splice(insertionIndex, 0, group);
     onChange({ ...layout, groups });
   };
 
