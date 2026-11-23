@@ -3087,7 +3087,7 @@ test('configuration dependency analysis blocks missing and disabled dependencies
 test('configuration dependency analysis detects dependency, parent and compatibility cycles', () => {
   const result = analyzeConfigurationDependencies([
     { id: 'a', kind: 'page', parentId: 'b', requires: ['b'], conflictsWith: ['b'] },
-    { id: 'b', kind: 'block', parentId: 'a', requires: ['a'], conflictsWith: ['a'] },
+    { id: 'b', kind: 'block', parentId: 'a', requires: ['a'] },
   ]);
 
   assert.equal(result.canApply, false);
