@@ -226,21 +226,24 @@ export default function App() {
     }
   };
 
+  const saveDirtyConfiguration = (confirmation: string, successNotice: string) => {
+    const changes: Record<string, unknown> = {};
+    if (navigationLayoutDirty && navigationLayout) changes.navigation = navigationLayout;
+    if (appearanceDirty && appearanceTokens) changes.appearance = appearanceTokens;
+    void saveConfigurationChanges(changes, confirmation, successNotice);
+  };
+
   const saveNavigationLayout = () => {
-    if (!navigationLayout) return;
-    void saveConfigurationChanges(
-      { navigation: navigationLayout },
-      'Сохранить новую ревизию глобальной навигации?',
-      'Макет навигации сохранён. OneCoreAI обновит его при возврате в окно приложения или при следующем запуске.',
+    saveDirtyConfiguration(
+      'Сохранить все изменённые настройки Designer?',
+      'Конфигурация Designer сохранена. OneCoreAI обновит её при возврате в окно приложения или при следующем запуске.',
     );
   };
 
   const saveAppearance = () => {
-    if (!appearanceTokens) return;
-    void saveConfigurationChanges(
-      { appearance: appearanceTokens },
-      'Сохранить новую ревизию оформления интерфейса?',
-      'Настройки оформления сохранены. OneCoreAI обновит тему при возврате в окно приложения или при следующем запуске.',
+    saveDirtyConfiguration(
+      'Сохранить все изменённые настройки Designer?',
+      'Конфигурация Designer сохранена. OneCoreAI обновит её при возврате в окно приложения или при следующем запуске.',
     );
   };
 
