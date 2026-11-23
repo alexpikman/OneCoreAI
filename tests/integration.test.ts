@@ -3322,7 +3322,7 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   const invalid = await fetch(`${apiBaseUrl}/api/designer/session`, {
     method: 'POST',
     headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code: '00000000' }),
+    body: JSON.stringify({ code: 'not-a-code' }),
   });
   assert.equal(invalid.status, 401);
 
