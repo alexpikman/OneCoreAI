@@ -37,6 +37,7 @@ export interface ConfigurationAnalysis {
 }
 
 const FORBIDDEN_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const SENSITIVE_KEY_PATTERN = /(?:api.?key|api.?token|access.?token|refresh.?token|github.?token|provider.?token|cloud.?token|cloudfallback.?key|bot.?token|bearer.?token|oauth.?token|personal.?access.?token|private.?key|password|secret|authorization|credential|^token$)/i;
 
 function isConfigurationObject(value: unknown): value is ConfigurationObject {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -290,7 +291,7 @@ function validateConfigurationValue(
     valid = false;
   } else {
     valid = Object.entries(value).every(([key, child]) =>
-      !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen, depth + 1),
+      !FORBIDDEN_KEYS.has(key) && !SENSITIVE_KEY_PATTERN.test(key) && validateConfigurationValue(child, seen, depth + 1),
     );
   }
   seen.delete(value);
