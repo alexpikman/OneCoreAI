@@ -64,6 +64,7 @@ import { runTeamExecution } from './orchestration/teamOrchestrator';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
+import { getBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -320,6 +321,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
 
     const isDesignerConfigurationRoute =
+      req.path === '/designer/registry' ||
       req.path === '/designer/configuration' ||
       req.path.startsWith('/designer/configuration/');
     if (apiSession.scope === 'designer' && !isDesignerConfigurationRoute) {
@@ -842,6 +844,11 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       apiBaseUrl: `http://127.0.0.1:${req.socket.localPort}`,
       expiresAt: new Date(expiresAt).toISOString(),
     });
+  });
+
+  app.get('/api/designer/registry', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, registry: getBuiltInComponentRegistry() });
   });
 
   app.get('/api/designer/configuration', (req, res) => {
