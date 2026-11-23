@@ -12,6 +12,8 @@ export interface DashboardCardLayout {
   sectionId: 'dashboard-system' | 'dashboard-ai' | 'dashboard-activity';
   title: string;
   order: number;
+  appearance?: 'default' | 'muted' | 'accent';
+  density?: 'compact' | 'normal' | 'spacious';
 }
 
 export interface DashboardLayoutConfig {
@@ -37,7 +39,7 @@ export const DASHBOARD_CARD_DEFINITIONS: readonly DashboardCardLayout[] = [
 ];
 
 export function createDefaultDashboardCards(): DashboardCardLayout[] {
-  return DASHBOARD_CARD_DEFINITIONS.map((card) => ({ ...card }));
+  return DASHBOARD_CARD_DEFINITIONS.map((card) => ({ ...card, appearance: 'default', density: 'normal' }));
 }
 
 export const REQUIRED_DASHBOARD_SECTION_IDS = [
@@ -131,7 +133,9 @@ export function validateDashboardLayout(value: unknown): {
         if (
           card.sectionId !== definition.sectionId ||
           typeof card.title !== 'string' || !card.title.trim() || card.title.length > 80 ||
-          !Number.isInteger(card.order) || card.order < 1 || card.order > 4
+          !Number.isInteger(card.order) || card.order < 1 || card.order > 4 ||
+          (card.appearance !== undefined && !['default', 'muted', 'accent'].includes(card.appearance)) ||
+          (card.density !== undefined && !['compact', 'normal', 'spacious'].includes(card.density))
         ) {
           diagnostics.push(`Карточка "${card.id}" содержит недопустимые свойства`);
           continue;
