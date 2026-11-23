@@ -1,5 +1,6 @@
 import { NAV_GROUPS } from './appNavigation';
 import {
+  BUILTIN_NAVIGATION_ICON_IDS,
   BUILTIN_NAVIGATION_REGISTRY,
   type BuiltinNavigationBinding,
 } from './componentRegistry';
@@ -120,6 +121,7 @@ export function validateNavigationLayout(value: unknown): NavigationLayoutValida
       rawGroup.label.length > 80 ||
       typeof rawGroup.icon !== 'string' ||
       !SAFE_ICON.test(rawGroup.icon) ||
+      !BUILTIN_NAVIGATION_ICON_IDS.includes(rawGroup.icon) ||
       !Array.isArray(rawGroup.items)
     ) {
       diagnostics.push({
@@ -149,6 +151,7 @@ export function validateNavigationLayout(value: unknown): NavigationLayoutValida
         rawItem.label.length > 80 ||
         typeof rawItem.icon !== 'string' ||
         !SAFE_ICON.test(rawItem.icon) ||
+        !BUILTIN_NAVIGATION_ICON_IDS.includes(rawItem.icon) ||
         typeof rawItem.visible !== 'boolean'
       ) {
         diagnostics.push({
