@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AppearanceEditor } from './AppearanceEditor';
 import { NavigationEditor } from './NavigationEditor';
+import { LayoutEditor } from './LayoutEditor';
 import type { AppearanceTokens, ComponentRegistry, NavigationLayoutConfig } from './types';
 
 interface ConfigurationDocument {
@@ -60,6 +61,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [activePage, setActivePage] = useState<'editor' | 'system'>('editor');
+  const [activeEditorMode, setActiveEditorMode] = useState<'layout' | 'settings'>('layout');
 
   const clearAppearancePreview = () => {
     previewLinkRef.current?.remove();
@@ -490,6 +492,26 @@ export default function App() {
 
             {activePage === 'editor' ? (
               <div className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveEditorMode('layout')}
+                    className={activeEditorMode === 'layout' ? 'h-9 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white' : 'h-9 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800'}
+                  >
+                    Макет
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveEditorMode('settings')}
+                    className={activeEditorMode === 'settings' ? 'h-9 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white' : 'h-9 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800'}
+                  >
+                    Настройки
+                  </button>
+                </div>
+                {activeEditorMode === 'layout' ? (
+                  <LayoutEditor />
+                ) : (
+                  <div className="space-y-6">
                 {navigationLayout && (
                   <NavigationEditor
                     layout={navigationLayout}
@@ -521,7 +543,8 @@ export default function App() {
                 )}
                 <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
                   Изменения навигации проверяются и сохраняются как отдельная версия Designer. Runtime OneCoreAI загружает проверенный макет при запуске и возврате в окно приложения. Перестановка внутренних блоков страниц остаётся заблокированной до описания их контрактов и зависимостей.
-                </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
