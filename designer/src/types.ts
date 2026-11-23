@@ -59,7 +59,7 @@ export interface AppearanceTokens {
   typography: {
     fontFamily: AppearanceFontFamily;
     baseFontSizePx: number;
-    lineHeight: number;
+    lineHeightScale: number;
   };
   shape: {
     radiusSmPx: number;
