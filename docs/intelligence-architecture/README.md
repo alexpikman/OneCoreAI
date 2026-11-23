@@ -10,15 +10,15 @@ Intelligence Library — каталог канонических архитек�
 
 | Документ | Назначение | Статус |
 |---|---|---|
-| [Ontology v2](ontology-v2.md) | Термины, сущности, связи и инварианты | Draft |
-| [Playbook Schema v1.1](playbook-schema-v1.1.md) | Структура исполняемого сценария | Draft |
-| [Execution Model v2](execution-model-v2.md) | Resolver, Engine, Control Layer и выполнение | Draft |
-| [Capability Contract v1](capability-contract-v1.md) | Контракт возможностей Tool и фактических эффектов | Draft |
-| [Decision Trace v1](decision-trace-v1.md) | Аудит решений и операций | Draft |
-| [Delegation Model v1](delegation-model-v1.md) | Субагенты, Manager/Dispatcher, handoff, изоляция контекста и приёмка | Draft |
-| [Skill Registry v1](skill-registry-v1.md) | Импорт, происхождение, версии, доверие и подбор Skills | Draft |
-| [Task Context Package v1](task-context-package-v1.md) | Контекст конкретной задачи и его безопасная передача workers | Draft |
-| [Code Audit v1](code-audit-v1.md) | Первый сквозной сценарий проверки кода | Draft |
+| [Ontology](ontology-v2.md) | Термины, сущности, связи и инварианты | Draft |
+| [Playbook Schema](playbook-schema-v1.1.md) | Структура исполняемого сценария | Draft |
+| [Execution Model](execution-model-v2.md) | Resolver, Engine, Control Layer и выполнение | Draft |
+| [Capability Contract](capability-contract-v1.md) | Контракт возможностей Tool и фактических эффектов | Draft |
+| [Decision Trace](decision-trace-v1.md) | Аудит решений и операций | Draft |
+| [Delegation Model](delegation-model-v1.md) | Субагенты, Manager/Dispatcher, handoff, изоляция контекста и приёмка | Draft |
+| [Skill Registry](skill-registry-v1.md) | Импорт, происхождение, версии, доверие и подбор Skills | Draft |
+| [Task Context Package](task-context-package-v1.md) | Контекст конкретной задачи и его безопасная передача workers | Draft |
+| [Code Audit](code-audit-v1.md) | Первый сквозной сценарий проверки кода | Draft |
 | [Implementation Roadmap](implementation-roadmap.md) | Этапы проектирования, реализации и проверки | Draft |
 
 ## Границы источников истины
