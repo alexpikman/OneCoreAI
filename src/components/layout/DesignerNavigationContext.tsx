@@ -30,10 +30,10 @@ function resolveNavigationGroups(layout: unknown): NavigationGroup[] {
       ...(originalGroup?.description && originalGroup.label === group.label
         ? { description: originalGroup.description }
         : {}),
-    items: group.items.map((item) => {
-      const original = originalItems.get(item.id);
-      if (!original) throw new Error(`Navigation target "${item.id}" is not registered`);
-      return { ...original, label: item.label, icon: item.icon };
+      items: group.items.map((item) => {
+        const original = originalItems.get(item.id);
+        if (!original) throw new Error(`Navigation target "${item.id}" is not registered`);
+        return { ...original, label: item.label, icon: item.icon };
       }),
     };
   });
