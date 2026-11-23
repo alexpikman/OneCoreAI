@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import {
-  getActiveNavigationGroup,
+  getActiveNavigationGroupId,
   isNavigationItemActive,
   type NavigationItem,
 } from '../../data/appNavigation';
@@ -53,7 +53,7 @@ export const AppNavigation: React.FC = () => {
   } = useOneCoreStore();
 
   const [mobileExpanded, setMobileExpanded] = useState(false);
-  const [activeNavGroup, setActiveNavGroup] = useState('Рабочее пространство');
+  const [activeNavGroup, setActiveNavGroup] = useState('workspace');
   const [popupGroupId, setPopupGroupId] = useState<string | null>(null);
   const [popupAnchor, setPopupAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
@@ -101,7 +101,7 @@ export const AppNavigation: React.FC = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection, navigationGroups, sshGithubSection));
+    setActiveNavGroup(getActiveNavigationGroupId(activeTab, settingsSection, navigationGroups, sshGithubSection) ?? 'workspace');
   }, [activeTab, settingsSection, navigationGroups, sshGithubSection]);
 
   const handleSelectNavItem = (item: NavigationItem) => {
@@ -227,7 +227,7 @@ export const AppNavigation: React.FC = () => {
                   ) {
                     return null;
                   }
-                  const active = activeNavGroup === group.label;
+                  const active = activeNavGroup === group.id;
                   const popupOpen = popupGroupId === group.id;
 
                   return (
