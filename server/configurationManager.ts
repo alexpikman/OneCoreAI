@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { getOneCoreHome } from './paths';
+import { validateNavigationLayout } from '../src/data/navigationLayout';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -73,6 +74,14 @@ function readDocument(filePath: string, expectedScope: ConfigurationScope): Conf
   return document;
 }
 
+function assertDesignerConfigurationValid(config: ConfigurationDocument['config']): void {
+  if (config.navigation === undefined) return;
+  const validation = validateNavigationLayout(config.navigation);
+  if (!validation.valid) {
+    throw new Error(`Макет навигации некорректен: ${validation.diagnostics.map((item) => item.message).join('; ')}`);
+  }
+}
+
 const scopeLocks = new Map<string, Promise<void>>();
 
 async function withScopeLock<T>(key: string, operation: () => Promise<T>): Promise<T> {
@@ -128,6 +137,7 @@ export async function applyConfigurationDraft(
   if (!analysis.canApply) {
     throw new Error(`Применение заблокировано: ${analysis.diagnostics.map((item) => item.message).join('; ')}`);
   }
+  assertDesignerConfigurationValid(draft.config);
 
   const key = scopeKey(draft.scope);
   return withScopeLock(key, async () => {
@@ -170,6 +180,7 @@ export async function restoreConfigurationRevision(
 
     const target = readDocument(path.join(paths.history, `${targetRevision}.json`), scope);
     if (!target) throw new Error(`Ревизия ${targetRevision} не найдена`);
+    assertDesignerConfigurationValid(target.config);
 
     const restored = createConfigurationDocument(
       scope,
