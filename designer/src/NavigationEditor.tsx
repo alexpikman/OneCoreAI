@@ -5,6 +5,7 @@ interface NavigationEditorProps {
   layout: NavigationLayoutConfig;
   dirty: boolean;
   saving: boolean;
+  icons: string[];
   onChange: (layout: NavigationLayoutConfig) => void;
   onSave: () => void;
 }
@@ -13,6 +14,7 @@ export function NavigationEditor({
   layout,
   dirty,
   saving,
+  icons,
   onChange,
   onSave,
 }: NavigationEditorProps) {
@@ -151,13 +153,14 @@ export function NavigationEditor({
                 aria-label="Название группы"
                 maxLength={80}
               />
-              <input
-                className="h-8 w-20 rounded-md border border-zinc-300 bg-white px-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
+              <select
+                className="h-8 w-24 rounded-md border border-zinc-300 bg-white px-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
                 value={group.icon}
                 onChange={(event) => updateGroup(group.id, { icon: event.target.value })}
                 aria-label="Иконка группы"
-                maxLength={48}
-              />
+              >
+                {icons.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+              </select>
               <button
                 type="button"
                 disabled={group.items.length > 0 || layout.groups.length <= 1}
@@ -197,13 +200,14 @@ export function NavigationEditor({
                     aria-label={`Название пункта ${item.id}`}
                     maxLength={80}
                   />
-                  <input
-                    className="h-7 w-16 rounded border border-zinc-200 bg-transparent px-2 text-[10px] outline-none focus:border-blue-500 dark:border-zinc-700"
+                  <select
+                    className="h-7 w-24 rounded border border-zinc-200 bg-transparent px-1 text-[10px] outline-none focus:border-blue-500 dark:border-zinc-700"
                     value={item.icon}
                     onChange={(event) => updateItem(item.id, { icon: event.target.value })}
                     aria-label={`Иконка пункта ${item.id}`}
-                    maxLength={48}
-                  />
+                  >
+                    {icons.map((icon) => <option key={icon} value={icon}>{icon}</option>)}
+                  </select>
                   <label className="flex shrink-0 items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400">
                     <input
                       type="checkbox"
