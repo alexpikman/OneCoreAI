@@ -21,19 +21,22 @@ function resolveNavigationGroups(layout: unknown): NavigationGroup[] {
     NAV_GROUPS.flatMap((group) => group.items.map((item) => [item.id, item] as const)),
   );
 
-  return resolved.map((group) => ({
-    id: group.id,
-    label: group.label,
-    icon: group.icon,
-    ...(originalGroups.get(group.id)?.description
-      ? { description: originalGroups.get(group.id)?.description }
-      : {}),
+  return resolved.map((group) => {
+    const originalGroup = originalGroups.get(group.id);
+    return {
+      id: group.id,
+      label: group.label,
+      icon: group.icon,
+      ...(originalGroup?.description && originalGroup.label === group.label
+        ? { description: originalGroup.description }
+        : {}),
     items: group.items.map((item) => {
       const original = originalItems.get(item.id);
       if (!original) throw new Error(`Navigation target "${item.id}" is not registered`);
       return { ...original, label: item.label, icon: item.icon };
-    }),
-  }));
+      }),
+    };
+  });
 }
 
 export function DesignerNavigationProvider({ children }: { children: ReactNode }) {
