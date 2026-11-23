@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createDefaultDashboardCards, type DashboardCardLayout } from '../../src/data/dashboardLayout';
 
 export type DesignerElementType = 'section' | 'card' | 'heading' | 'text' | 'button' | 'indicator';
 export interface DesignerElement {
@@ -9,6 +10,7 @@ export interface DesignerLayout {
   schemaVersion: 1;
   grid: { columns: number; rows: number; gap: number; snap: boolean };
   elements: DesignerElement[];
+  cards?: DashboardCardLayout[];
 }
 interface Props {
   layout: DesignerLayout; dirty: boolean; saving: boolean;
@@ -44,6 +46,7 @@ export function createDefaultDesignerLayout(): DesignerLayout {
   return {
     schemaVersion: 1,
     grid: { columns: 12, rows: 4, gap: 3, snap: true },
+    cards: createDefaultDashboardCards(),
     elements: [
       { id: 'dashboard-system', type: 'section', title: 'Состояние системы', content: 'Реальный блок дашборда', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
       { id: 'dashboard-ai', type: 'section', title: 'AI-инфраструктура', content: 'Реальный блок дашборда', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
@@ -73,8 +76,11 @@ function validate(layout: DesignerLayout): boolean {
 export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
   const [selectedId,setSelectedId] = useState(layout.elements[0]?.id ?? '');
   const [draggedId,setDraggedId] = useState<string | null>(null);
+  const [selectedCardId,setSelectedCardId] = useState('cpu');
   const [error,setError] = useState('');
   const selected = layout.elements.find(item => item.id === selectedId) ?? null;
+  const cards = layout.cards ?? createDefaultDashboardCards();
+  const selectedCard = cards.find(item => item.id === selectedCardId) ?? cards[0] ?? null;
   const change = (next: DesignerLayout) => {
     if (!validate(next)) { setError('Элемент выходит за границы сетки. Изменение отменено.'); return; }
     setError(''); onChange(next);
@@ -97,7 +103,7 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
     </div>
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
       <section className="min-w-0 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-semibold">Холст дашборда</span><span className="text-[10px] text-zinc-500 dark:text-zinc-400">4 защищённых системных секции</span></div>
+        <div className="mb-3 flex items-center justify-between gap-2"><span className="text-xs font-semibold">Холст дашборда</span><span className="text-[10px] text-zinc-500 dark:text-zinc-400">4 секции · 12 защищённых карточек</span></div>
         <div className={`grid min-h-[34rem] auto-rows-[minmax(5rem,auto)] content-start ${columns[layout.grid.columns]} ${gaps[layout.grid.gap]} rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-3 dark:border-zinc-700 dark:bg-zinc-950`}>
           {Array.from({length:layout.grid.rows},(_,rowIndex)=>Array.from({length:layout.grid.columns},(_,columnIndex)=>(
             <div key={`grid-cell-${columnIndex+1}-${rowIndex+1}`} className={`pointer-events-none col-span-1 row-span-1 ${starts[columnIndex+1]} ${rowStarts[rowIndex+1]} rounded border border-dashed border-zinc-300/70 dark:border-zinc-700/70`}/>
@@ -118,7 +124,15 @@ export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
           <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Интервал</span><select value={layout.grid.gap} onChange={event=>change({...layout,grid:{...layout.grid,gap:Number(event.target.value)}})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{[1,2,3,4,5,6].map(value=><option key={value} value={value}>{value*4} px</option>)}</select></label>
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={layout.grid.snap} onChange={event=>change({...layout,grid:{...layout.grid,snap:event.target.checked}})}/>Привязка к сетке</label>
         </div></div>
-        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><h4 className="text-sm font-semibold">Инспектор свойств</h4>
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><h4 className="text-sm font-semibold">Карточки дашборда</h4>
+          <div className="mt-3 space-y-3">
+            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Реальный блок</span><select value={selectedCard?.id ?? ''} onChange={event=>setSelectedCardId(event.target.value)} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{cards.map(card=><option key={card.id} value={card.id}>{card.title}</option>)}</select></label>
+            {selectedCard && <><label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Заголовок карточки</span><input value={selectedCard.title} maxLength={80} onChange={event=>change({...layout,cards:cards.map(card=>card.id===selectedCard.id?{...card,title:event.target.value}:card)})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
+            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Позиция внутри секции</span><select value={selectedCard.order} onChange={event=>{const order=Number(event.target.value);const previous=selectedCard.order;change({...layout,cards:cards.map(card=>card.id===selectedCard.id?{...card,order}:card.sectionId===selectedCard.sectionId&&card.order===order?{...card,order:previous}:card)});}} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{[1,2,3,4].map(value=><option key={value} value={value}>{value}</option>)}</select></label>
+            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">Данные, индикаторы и обработчик перехода карточки защищены. Меняются только заголовок и порядок.</p></>}
+          </div>
+        </div>
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><h4 className="text-sm font-semibold">Инспектор секции</h4>
           {selected?<div className="mt-3 space-y-3">
             
             <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Заголовок</span><input value={selected.title} onChange={event=>update({title:event.target.value})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
