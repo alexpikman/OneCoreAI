@@ -7,29 +7,29 @@ const DOCUMENTS = [
   {
     group: 'Фундамент',
     items: [
-      { title: 'Ontology v2', description: 'Сущности General Agent, специализации, компетенции, роли, связи и архитектурные инварианты.', path: 'ontology-v2.md', url: undefined, icon: GitBranch, status: 'Draft' },
-      { title: 'Playbook Schema v1.1', description: 'Структура сценария, фаз, условий, переходов, outputs и бюджетов.', path: 'playbook-schema-v1.1.md', url: undefined, icon: FileCode2, status: 'Draft' },
+      { title: 'Ontology', description: 'Сущности General Agent, специализации, компетенции, роли, связи и архитектурные инварианты.', path: 'ontology-v2.md', url: undefined, icon: GitBranch, status: 'Draft' },
+      { title: 'Playbook Schema', description: 'Структура сценария, фаз, условий, переходов, outputs и бюджетов.', path: 'playbook-schema-v1.1.md', url: undefined, icon: FileCode2, status: 'Draft' },
     ],
   },
   {
     group: 'Механизмы исполнения',
     items: [
-      { title: 'Execution Model v2', description: 'Preflight, Runtime Resolver, Execution Snapshot, Playbook Engine и Control Layer.', path: 'execution-model-v2.md', url: undefined, icon: Workflow, status: 'Draft' },
-      { title: 'Capability Contract v1', description: 'Операции Tool, эффекты, Authorization, Guardrails, Confirmation и enforcement.', path: 'capability-contract-v1.md', url: undefined, icon: ShieldCheck, status: 'Draft' },
-      { title: 'Decision Trace v1', description: 'Аудит решений, проверок политик, операций и фактических результатов.', path: 'decision-trace-v1.md', url: undefined, icon: ClipboardCheck, status: 'Draft' },
+      { title: 'Execution Model', description: 'Preflight, Runtime Resolver, Execution Snapshot, Playbook Engine и Control Layer.', path: 'execution-model-v2.md', url: undefined, icon: Workflow, status: 'Draft' },
+      { title: 'Capability Contract', description: 'Операции Tool, эффекты, Authorization, Guardrails, Confirmation и enforcement.', path: 'capability-contract-v1.md', url: undefined, icon: ShieldCheck, status: 'Draft' },
+      { title: 'Decision Trace', description: 'Аудит решений, проверок политик, операций и фактических результатов.', path: 'decision-trace-v1.md', url: undefined, icon: ClipboardCheck, status: 'Draft' },
     ],
   },
   {
     group: 'Субагенты и делегирование',
     items: [
-      { title: 'Delegation Model v1', description: 'Manager, Dispatcher и workers; handoff, изоляция контекста и приёмка результатов.', path: 'delegation-model-v1.md', url: undefined, icon: Network, status: 'Draft' },
+      { title: 'Delegation Model', description: 'Manager, Dispatcher и workers; handoff, изоляция контекста и приёмка результатов.', path: 'delegation-model-v1.md', url: undefined, icon: Network, status: 'Draft' },
     ],
   },
   {
     group: 'Контекст и каталог навыков',
     items: [
-      { title: 'Skill Registry v1', description: 'Происхождение, версии, доверие, проверка и безопасное подключение внешних SKILL.md.', path: 'skill-registry-v1.md', url: undefined, icon: BookOpen, status: 'Draft' },
-      { title: 'Task Context Package v1', description: 'Сборка минимального контекста задачи из Skills, инструкций, ограничений и evidence.', path: 'task-context-package-v1.md', url: undefined, icon: Layers3, status: 'Draft' },
+      { title: 'Skill Registry', description: 'Происхождение, версии, доверие, проверка и безопасное подключение внешних SKILL.md.', path: 'skill-registry-v1.md', url: undefined, icon: BookOpen, status: 'Draft' },
+      { title: 'Task Context Package', description: 'Сборка минимального контекста задачи из Skills, инструкций, ограничений и evidence.', path: 'task-context-package-v1.md', url: undefined, icon: Layers3, status: 'Draft' },
     ],
   },
   {
@@ -45,7 +45,7 @@ const DOCUMENTS = [
   {
     group: 'Сценарии и реализация',
     items: [
-      { title: 'Code Audit v1', description: 'Первый вертикальный сценарий: анализ, тестирование и ревью в режиме read-only.', path: 'code-audit-v1.md', url: undefined, icon: BookOpen, status: 'Draft' },
+      { title: 'Code Audit', description: 'Первый вертикальный сценарий: анализ, тестирование и ревью в режиме read-only.', path: 'code-audit-v1.md', url: undefined, icon: BookOpen, status: 'Draft' },
       { title: 'Implementation Roadmap', description: 'Аудит текущего кода, read-only прототип, Registry и контролируемое исполнение.', path: 'implementation-roadmap.md', url: undefined, icon: Workflow, status: 'Draft' },
     ],
   },
@@ -56,10 +56,10 @@ const DOCUMENT_BASE_URL =
 
 export const IntelligenceLibraryPage = () => (
   <AIResourcePageLayout>
-    <PageHeader showSave={false} showSubNavigation={false}>
+    <PageHeader showSave={false}>
       <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
         <BookOpen className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-        <h1 className="text-xl font-semibold">Intelligence Library</h1>
+        <h1 className="text-xl font-semibold">Архитектурные документы</h1>
       </div>
     </PageHeader>
     <PageContent contentClassName="space-y-6 pb-6 pt-4">
