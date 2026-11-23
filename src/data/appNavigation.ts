@@ -119,6 +119,20 @@ export const NAV_GROUPS: NavigationGroup[] = [
   },
 ];
 
+export function getActiveNavigationGroupId(
+  activeTab: AppTab,
+  settingsSection: SettingsSectionId,
+  groups: readonly NavigationGroup[] = NAV_GROUPS,
+  sshGithubSection: SshGithubSectionId = 'ssh-keys',
+): string | null {
+  const activeGroup = groups.find((group) =>
+    group.items.some((item) =>
+      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),
+    ),
+  );
+  return activeGroup?.id ?? groups[0]?.id ?? null;
+}
+
 export function getActiveNavigationGroup(
   activeTab: AppTab,
   settingsSection: SettingsSectionId,
