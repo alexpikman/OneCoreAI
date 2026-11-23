@@ -83,6 +83,7 @@ export type SettingsSectionId =
   | 'model-manager'
   | 'model-search'
   | 'roles-pipeline'
+  | 'agent-permissions'
   | 'subagents-delegation'
   | 'knowledge'
   | 'intelligence-library'
