@@ -201,26 +201,41 @@ function rgba(hex: string, opacity: number): string {
   return `rgba(${red}, ${green}, ${blue}, ${opacity.toFixed(3)})`;
 }
 
-function paletteCss(palette: AppearancePalette, panelOpacity: number, overlayOpacity: number): string {
-  return [
+function paletteCss(
+  palette: AppearancePalette,
+  panelOpacity: number,
+  overlayOpacity: number,
+  mode: 'light' | 'dark',
+): string {
+  const colors = [
+    `--designer-surface: ${rgba(palette.surface, panelOpacity)};`,
+    `--designer-surface-raised: ${rgba(palette.surfaceRaised, panelOpacity)};`,
+    `--designer-overlay: ${rgba('#000000', overlayOpacity)};`,
     `--color-zinc-50: ${palette.background};`,
-    `--color-zinc-100: ${rgba(palette.surfaceRaised, panelOpacity)};`,
+    `--color-zinc-100: ${mode === 'dark' ? palette.text : rgba(palette.surfaceRaised, panelOpacity)};`,
     `--color-zinc-200: ${palette.border};`,
     `--color-zinc-300: ${palette.textMuted};`,
     `--color-zinc-400: ${palette.textMuted};`,
     `--color-zinc-500: ${palette.textMuted};`,
     `--color-zinc-600: ${palette.textMuted};`,
-    `--color-zinc-700: ${palette.border};`,
-    `--color-zinc-800: ${rgba(palette.surfaceRaised, panelOpacity)};`,
-    `--color-zinc-900: ${rgba(palette.surface, panelOpacity)};`,
-    `--color-zinc-950: ${palette.background};`,
-    `--color-white: ${rgba(palette.surface, panelOpacity)};`,
-    `--color-black: ${rgba('#000000', overlayOpacity)};`,
+    `--color-zinc-700: ${mode === 'dark' ? palette.border : palette.textMuted};`,
+    `--color-zinc-800: ${mode === 'dark' ? rgba(palette.surfaceRaised, panelOpacity) : palette.text};`,
+    `--color-zinc-900: ${mode === 'dark' ? rgba(palette.surface, panelOpacity) : palette.text};`,
+    `--color-zinc-950: ${mode === 'dark' ? palette.background : palette.text};`,
     `--color-blue-600: ${palette.accent};`,
     `--color-blue-500: ${palette.accentHover};`,
     `--color-red-600: ${palette.danger};`,
     `--color-yellow-600: ${palette.warning};`,
     `--color-green-600: ${palette.success};`,
+  ];
+  const modeSelector = mode === 'dark' ? '[data-ui-style].dark' : '[data-ui-style]:not(.dark)';
+  return [
+    `${modeSelector} {\n${colors.join('\n')}\n}`,
+    `${modeSelector} .bg-white { background-color: var(--designer-surface) !important; }`,
+    ...(mode === 'dark'
+      ? [`${modeSelector} .bg-zinc-100 { background-color: var(--designer-surface-raised) !important; }`]
+      : []),
+    `${modeSelector} .bg-black { background-color: var(--designer-overlay) !important; }`,
   ].join('\n');
 }
 
@@ -257,7 +272,7 @@ export function createAppearanceStylesheet(value: unknown): string {
   ].join('\n');
 
   return [
-    `[data-ui-style] {\n${common}\n${paletteCss(tokens.colors.light, tokens.opacity.panel, tokens.opacity.overlay)}\n}`,
-    `[data-ui-style].dark {\n${paletteCss(tokens.colors.dark, tokens.opacity.panel, tokens.opacity.overlay)}\n}`,
+    `[data-ui-style] {\n${common}\n${paletteCss(tokens.colors.light, tokens.opacity.panel, tokens.opacity.overlay, 'light')}\n}`,
+    `[data-ui-style].dark {\n${paletteCss(tokens.colors.dark, tokens.opacity.panel, tokens.opacity.overlay, 'dark')}\n}`,
   ].join('\n');
 }
