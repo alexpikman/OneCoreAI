@@ -17,7 +17,11 @@
     "tauri:dev": "npx @tauri-apps/cli@2 dev",
     "tauri:build": "npx @tauri-apps/cli@2 build",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "designer:dev": "vite --config designer/vite.config.ts --host 127.0.0.1 --port 4174 --strictPort",
+    "designer:build": "vite build --config designer/vite.config.ts",
+    "designer:tauri:dev": "cd designer && npx @tauri-apps/cli@2 dev",
+    "designer:tauri:build": "cd designer && npx @tauri-apps/cli@2 build"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",
