@@ -1,4 +1,4 @@
-# Capability Contract v1
+# Capability Contract
 
 Статус: **Draft**. Контракт описывает декларируемые возможности Tool и ожидаемые эффекты. Сам по себе он не обеспечивает безопасность без runtime-enforcement.
 
