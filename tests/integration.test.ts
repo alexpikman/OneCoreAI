@@ -3449,3 +3449,46 @@ test('built-in component registry maps every existing navigation item and protec
   assert.equal(system?.protected, true);
   assert.equal(BUILTIN_COMPONENT_REGISTRY.every((component) => component.supportsPageBlockReorder === false), true);
 });
+
+
+import {
+  createDefaultNavigationLayout,
+  resolveNavigationLayout,
+  validateNavigationLayout,
+} from '../src/data/navigationLayout';
+
+test('navigation layout schema permits safe reordering and grouping without changing page targets', () => {
+  const layout = createDefaultNavigationLayout();
+  const workspace = layout.groups.find((group) => group.id === 'workspace');
+  const context = layout.groups.find((group) => group.id === 'context');
+  assert.ok(workspace && context);
+
+  const browser = workspace.items.find((item) => item.id === 'browser');
+  assert.ok(browser);
+  workspace.items = workspace.items.filter((item) => item.id !== 'browser');
+  context.items.unshift(browser);
+
+  assert.equal(validateNavigationLayout(layout).valid, true);
+  const resolved = resolveNavigationLayout(layout);
+  const movedBrowser = resolved.find((group) => group.id === 'context')?.items[0];
+  assert.equal(movedBrowser?.id, 'browser');
+  assert.equal(movedBrowser?.binding.target.tab, 'browser');
+});
+
+test('navigation layout schema rejects missing, duplicate, unknown and remapped items', () => {
+  const missing = createDefaultNavigationLayout();
+  missing.groups[0].items = missing.groups[0].items.filter((item) => item.id !== 'chat');
+  assert.equal(validateNavigationLayout(missing).valid, false);
+
+  const duplicate = createDefaultNavigationLayout();
+  duplicate.groups[1].items.push({ ...duplicate.groups[0].items[0] });
+  assert.equal(validateNavigationLayout(duplicate).valid, false);
+
+  const unknown = createDefaultNavigationLayout();
+  unknown.groups[0].items[0].id = 'page.injected';
+  assert.equal(validateNavigationLayout(unknown).valid, false);
+
+  const remapped = createDefaultNavigationLayout();
+  (remapped.groups[0].items[0] as unknown as Record<string, unknown>).tab = 'security';
+  assert.equal(validateNavigationLayout(remapped).valid, false);
+});
