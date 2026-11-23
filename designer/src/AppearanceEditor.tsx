@@ -174,16 +174,21 @@ export function AppearanceEditor({
             <h4 className="text-xs font-semibold">{mode === 'light' ? 'Светлая тема' : 'Тёмная тема'}</h4>
             <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
               {COLOR_FIELDS.map(({ key, label }) => (
-                <label key={key} className="flex min-w-0 items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
-                  <input
-                    type="color"
-                    value={tokens.colors[mode][key]}
-                    disabled={saving}
-                    onChange={(event) => updateColor(mode, key, event.target.value)}
-                    className="h-8 w-9 shrink-0 cursor-pointer rounded border border-zinc-300 bg-transparent p-0.5 dark:border-zinc-700"
-                  />
-                  <span className="min-w-0 truncate">{label}</span>
-                </label>
+                <div key={key} className="flex min-w-0 items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  <span className="shrink-0 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{tokens.colors[mode][key].toUpperCase()}</span>
+                  <label className="relative inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-zinc-300 bg-white px-3 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800">
+                    Выбрать
+                    <input
+                      type="color"
+                      aria-label={`Выбрать цвет: ${label}`}
+                      value={tokens.colors[mode][key]}
+                      disabled={saving}
+                      onChange={(event) => updateColor(mode, key, event.target.value)}
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                    />
+                  </label>
+                </div>
               ))}
             </div>
           </div>
