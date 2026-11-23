@@ -156,6 +156,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     source: 'server',
   });
   const tauriOrigins = new Set(['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost']);
+  const designerDevOrigins = new Set(['http://127.0.0.1:4174']);
   const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1']);
   const apiSessions = new Map<string, number>();
   const designerPairingCodes = new Map<string, number>();
@@ -213,7 +214,8 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     const origin = req.header('Origin');
     const fetchSite = req.header('Sec-Fetch-Site');
     const isTauriOrigin = origin ? tauriOrigins.has(origin) : false;
-    let isAllowedOrigin = isTauriOrigin;
+    const isDesignerDevOrigin = process.env.NODE_ENV !== 'production' && Boolean(origin && designerDevOrigins.has(origin));
+    let isAllowedOrigin = isTauriOrigin || isDesignerDevOrigin;
 
     const matchesRequestAuthority = (parsed: URL): boolean => {
       if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
@@ -229,7 +231,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       return parsed.hostname.toLowerCase() === requestHost && authorityPort === req.socket.localPort;
     };
 
-    if (origin && !isTauriOrigin) {
+    if (origin && !isTauriOrigin && !isDesignerDevOrigin) {
       try {
         isAllowedOrigin = matchesRequestAuthority(new URL(origin));
       } catch {
@@ -324,7 +326,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
   app.post('/api/designer/session', (req, res) => {
     const origin = req.header('Origin');
-    if (!origin || !tauriOrigins.has(origin) || res.locals.oneCoreTrustedClient !== true) {
+    if (!origin || (!tauriOrigins.has(origin) && !(process.env.NODE_ENV !== 'production' && designerDevOrigins.has(origin))) || res.locals.oneCoreTrustedClient !== true) {
       res.status(403).json({ ok: false, error: 'Связать Designer можно только из доверенного desktop-приложения' });
       return;
     }
