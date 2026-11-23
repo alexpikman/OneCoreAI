@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { NavigationEditor } from './NavigationEditor';
+import type { ComponentRegistry, NavigationLayoutConfig } from './types';
 
 interface ConfigurationDocument {
   schemaVersion: number;
@@ -11,28 +13,6 @@ interface Connection {
   apiBaseUrl: string;
   token: string;
 }
-
-interface ComponentRegistry {
-  schemaVersion: number;
-  components: Array<{
-    id: string;
-    label: string;
-    renderer: string;
-    category: string;
-    protected: boolean;
-    protectedReason?: string;
-    supportsPageBlockReorder: boolean;
-    constraints: string[];
-  }>;
-  navigation: Array<{
-    id: string;
-    groupId: string;
-    groupLabel: string;
-    label: string;
-    componentId: string;
-  }>;
-}
-
 
 interface ApiError {
   ok?: boolean;
@@ -54,6 +34,8 @@ export default function App() {
   const [configuration, setConfiguration] = useState<ConfigurationDocument | null>(null);
   const [history, setHistory] = useState<ConfigurationDocument[]>([]);
   const [registry, setRegistry] = useState<ComponentRegistry | null>(null);
+  const [navigationLayout, setNavigationLayout] = useState<NavigationLayoutConfig | null>(null);
+  const [navigationLayoutDirty, setNavigationLayoutDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -67,19 +49,29 @@ export default function App() {
     ]);
     const configurationData = await configurationResponse.json() as ApiError & { configuration?: ConfigurationDocument | null };
     const historyData = await historyResponse.json() as ApiError & { revisions?: ConfigurationDocument[] };
-    const registryData = await registryResponse.json() as ApiError & { registry?: ComponentRegistry };
+    const registryData = await registryResponse.json() as ApiError & {
+      registry?: ComponentRegistry;
+      defaultNavigationLayout?: NavigationLayoutConfig;
+    };
     if (!configurationResponse.ok || !configurationData.ok) {
       throw new Error(configurationData.error || 'Не удалось загрузить конфигурацию');
     }
     if (!historyResponse.ok || !historyData.ok) {
       throw new Error(historyData.error || 'Не удалось загрузить историю конфигураций');
     }
-    if (!registryResponse.ok || !registryData.ok || !registryData.registry) {
+    if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.defaultNavigationLayout) {
       throw new Error(registryData.error || 'Не удалось загрузить реестр компонентов');
     }
     setConfiguration(configurationData.configuration ?? null);
     setHistory(historyData.revisions ?? []);
     setRegistry(registryData.registry);
+    const savedNavigationLayout = configurationData.configuration?.config.navigation;
+    setNavigationLayout(
+      savedNavigationLayout && typeof savedNavigationLayout === 'object' && !Array.isArray(savedNavigationLayout)
+        ? savedNavigationLayout as NavigationLayoutConfig
+        : registryData.defaultNavigationLayout,
+    );
+    setNavigationLayoutDirty(false);
   };
 
   const connect = async (event: FormEvent<HTMLFormElement>) => {
@@ -127,6 +119,64 @@ export default function App() {
     }
   };
 
+  const saveNavigationLayout = async () => {
+    if (!connection || !navigationLayout) return;
+    if (!window.confirm('Сохранить новую ревизию глобальной навигации?')) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    const headers = {
+      Authorization: `Bearer ${connection.token}`,
+      'Content-Type': 'application/json',
+    };
+    try {
+      const validationResponse = await fetch(new URL('/api/designer/navigation/validate', connection.apiBaseUrl), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ layout: navigationLayout }),
+      });
+      const validationData = await validationResponse.json() as ApiError & {
+        validation?: { valid: boolean; diagnostics: Array<{ message: string }> };
+      };
+      if (!validationResponse.ok || !validationData.validation?.valid) {
+        throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
+      }
+
+      const draftResponse = await fetch(new URL('/api/designer/configuration/drafts', connection.apiBaseUrl), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          scope: { type: 'global' },
+          changes: { navigation: navigationLayout },
+        }),
+      });
+      const draftData = await draftResponse.json() as ApiError & {
+        draft?: unknown;
+        navigationValidation?: { valid: boolean; diagnostics: Array<{ message: string }> } | null;
+      };
+      if (!draftResponse.ok || !draftData.ok || !draftData.draft || draftData.navigationValidation?.valid === false) {
+        throw new Error(draftData.navigationValidation?.diagnostics.map((item) => item.message).join('; ') || draftData.error || 'Не удалось подготовить конфигурацию');
+      }
+
+      const applyResponse = await fetch(new URL('/api/designer/configuration/apply', connection.apiBaseUrl), {
+        method: 'POST',
+        headers: { ...headers, 'X-OneCore-Approval': 'user-confirmed' },
+        body: JSON.stringify({ draft: draftData.draft }),
+      });
+      const applyData = await applyResponse.json() as ApiError;
+      if (!applyResponse.ok || !applyData.ok) {
+        throw new Error(applyData.error || 'Не удалось сохранить конфигурацию');
+      }
+
+      await loadConfiguration(connection);
+      setNotice('Макет навигации сохранён в новой ревизии. Runtime OneCoreAI пока использует прежнюю конфигурацию.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка сохранения навигации');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const restore = async (revision: number) => {
     if (!connection || !configuration) return;
     if (!window.confirm(`Создать новую ревизию на основе версии ${revision}?`)) return;
@@ -163,6 +213,8 @@ export default function App() {
     setConfiguration(null);
     setHistory([]);
     setRegistry(null);
+    setNavigationLayout(null);
+    setNavigationLayoutDirty(false);
     setNotice('');
     setError('');
   };
@@ -270,8 +322,20 @@ export default function App() {
                 </div>
               )}
 
+              {navigationLayout && (
+                <NavigationEditor
+                  layout={navigationLayout}
+                  dirty={navigationLayoutDirty}
+                  saving={busy}
+                  onChange={(nextLayout) => {
+                    setNavigationLayout(nextLayout);
+                    setNavigationLayoutDirty(true);
+                  }}
+                  onSave={() => void saveNavigationLayout()}
+                />
+              )}
               <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-                Редактирование runtime пока отключено. Сейчас доступны защищённое подключение, просмотр сохранённой конфигурации и история ревизий. Визуальный редактор будет подключён после регистрации компонентов и проверки их зависимостей.
+                Изменения навигации проверяются и сохраняются как отдельная версия Designer. Runtime OneCoreAI пока не переключается на этот макет. Перестановка внутренних блоков страниц остаётся заблокированной до описания их контрактов и зависимостей.
               </div>
             </section>
 
