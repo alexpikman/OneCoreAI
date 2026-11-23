@@ -232,6 +232,7 @@ function paletteCss(
   return [
     `${modeSelector} {\n${colors.join('\n')}\n}`,
     `${modeSelector} .bg-white { background-color: var(--designer-surface) !important; }`,
+    `${modeSelector} [class*="border-zinc-800"] { border-color: ${palette.border} !important; }`,
     ...(mode === 'dark'
       ? [`${modeSelector} .bg-zinc-100 { background-color: var(--designer-surface-raised) !important; }`]
       : []),
