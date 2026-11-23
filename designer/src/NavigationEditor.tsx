@@ -109,6 +109,7 @@ export function NavigationEditor({
           <button
             type="button"
             onClick={addGroup}
+            disabled={saving}
             className="h-8 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
           >
             Добавить группу
@@ -135,7 +136,8 @@ export function NavigationEditor({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                draggable
+                draggable={!saving}
+                disabled={saving}
                 onDragStart={(event) => {
                   setDraggedGroupId(group.id);
                   event.dataTransfer.effectAllowed = 'move';
@@ -150,6 +152,7 @@ export function NavigationEditor({
               <input
                 className="h-8 min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-2 text-xs font-semibold outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
                 value={group.label}
+                disabled={saving}
                 onChange={(event) => updateGroup(group.id, { label: event.target.value })}
                 aria-label="Название группы"
                 maxLength={80}
@@ -157,6 +160,7 @@ export function NavigationEditor({
               <select
                 className="h-8 w-24 rounded-md border border-zinc-300 bg-white px-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900"
                 value={group.icon}
+                disabled={saving}
                 onChange={(event) => updateGroup(group.id, { icon: event.target.value })}
                 aria-label="Иконка группы"
               >
@@ -164,7 +168,7 @@ export function NavigationEditor({
               </select>
               <button
                 type="button"
-                disabled={group.items.length > 0 || layout.groups.length <= 1}
+                disabled={saving || group.items.length > 0 || layout.groups.length <= 1}
                 onClick={() => removeEmptyGroup(group.id)}
                 className="h-8 rounded-md border border-zinc-300 px-2 text-[10px] text-zinc-500 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-zinc-700 dark:hover:bg-zinc-800"
               >
@@ -176,7 +180,7 @@ export function NavigationEditor({
               {group.items.map((item, index) => (
                 <div
                   key={item.id}
-                  draggable
+                  draggable={!saving}
                   onDragStart={(event) => {
                     event.stopPropagation();
                     setDraggedItemId(item.id);
@@ -197,6 +201,7 @@ export function NavigationEditor({
                   <input
                     className="h-7 min-w-0 flex-1 rounded border border-zinc-200 bg-transparent px-2 text-xs outline-none focus:border-blue-500 dark:border-zinc-700"
                     value={item.label}
+                    disabled={saving}
                     onChange={(event) => updateItem(item.id, { label: event.target.value })}
                     aria-label={`Название пункта ${item.id}`}
                     maxLength={80}
@@ -204,6 +209,7 @@ export function NavigationEditor({
                   <select
                     className="h-7 w-24 rounded border border-zinc-200 bg-transparent px-1 text-[10px] outline-none focus:border-blue-500 dark:border-zinc-700"
                     value={item.icon}
+                    disabled={saving}
                     onChange={(event) => updateItem(item.id, { icon: event.target.value })}
                     aria-label={`Иконка пункта ${item.id}`}
                   >
@@ -213,6 +219,7 @@ export function NavigationEditor({
                     <input
                       type="checkbox"
                       checked={item.visible}
+                      disabled={saving}
                       onChange={(event) => updateItem(item.id, { visible: event.target.checked })}
                     />
                     Видим
