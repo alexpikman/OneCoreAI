@@ -32,9 +32,21 @@ async function getSessionToken(apiBaseUrl?: string): Promise<string> {
         cache: 'no-store',
         headers: { Accept: 'application/json' },
       });
-      const payload = (await response.json()) as { ok?: boolean; token?: string; error?: string };
+      const responseBody = await response.text();
+      let payload: { ok?: boolean; token?: string; error?: string };
+      try {
+        payload = responseBody.trim()
+          ? JSON.parse(responseBody) as { ok?: boolean; token?: string; error?: string }
+          : {};
+      } catch {
+        const preview = responseBody.slice(0, 240).replace(/\s+/g, ' ');
+        throw new Error(
+          `API-сессия вернула некорректный JSON (HTTP ${response.status}): ${preview || 'пустое тело ответа'}`,
+        );
+      }
       if (!response.ok || !payload.ok || typeof payload.token !== 'string') {
-        throw new Error(payload.error || `Не удалось создать API-сессию: HTTP ${response.status}`);
+        const detail = payload.error || (responseBody.trim() ? responseBody.slice(0, 240) : 'API вернул пустое тело ответа');
+        throw new Error(`Не удалось создать API-сессию: HTTP ${response.status}. ${detail}`);
       }
       return payload.token;
     })().catch((error: unknown) => {
