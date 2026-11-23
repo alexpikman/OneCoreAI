@@ -64,7 +64,7 @@ import { runTeamExecution } from './orchestration/teamOrchestrator';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
-import { getBuiltInComponentRegistry } from '../src/data/componentRegistry';
+import { getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -847,6 +847,11 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.get('/api/designer/registry', (_req, res) => {
+    const validation = validateBuiltInComponentRegistry();
+    if (!validation.valid) {
+      res.status(500).json({ ok: false, error: 'Реестр встроенных компонентов некорректен', diagnostics: validation.diagnostics });
+      return;
+    }
     res.setHeader('Cache-Control', 'no-store');
     res.json({ ok: true, registry: getBuiltInComponentRegistry() });
   });
