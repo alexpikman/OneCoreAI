@@ -115,8 +115,8 @@ export function AppearanceEditor({
               <input type="range" min={12} max={20} step={1} value={tokens.typography.baseFontSizePx} disabled={saving} onChange={(event) => updateTypography({ baseFontSizePx: Number(event.target.value) })} />
             </label>
             <label className="grid gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-              <span className="flex justify-between"><span>Межстрочный интервал</span><strong>{tokens.typography.lineHeight.toFixed(2)}</strong></span>
-              <input type="range" min={1.2} max={1.8} step={0.05} value={tokens.typography.lineHeight} disabled={saving} onChange={(event) => updateTypography({ lineHeight: Number(event.target.value) })} />
+              <span className="flex justify-between"><span>Масштаб межстрочного интервала</span><strong>{tokens.typography.lineHeightScale.toFixed(2)}</strong></span>
+              <input type="range" min={0.8} max={1.2} step={0.05} value={tokens.typography.lineHeightScale} disabled={saving} onChange={(event) => updateTypography({ lineHeightScale: Number(event.target.value) })} />
             </label>
           </div>
         </div>
