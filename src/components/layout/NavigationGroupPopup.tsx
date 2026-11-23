@@ -9,6 +9,7 @@ export interface VisibleNavPopupItem {
   active: boolean;
   showIcon: boolean;
   showLabel: boolean;
+  children?: Array<{ item: NavigationItem; active: boolean; showLabel: boolean }>;
 }
 
 interface NavigationGroupPopupProps {
@@ -89,36 +90,61 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-        {items.map(({ item, active, showIcon, showLabel }) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              onSelectItem(item);
-              onClose();
-            }}
-            aria-current={active ? 'page' : undefined}
-            className={cn(
-              'relative w-full h-9 px-3 inline-flex items-center gap-2.5 rounded-xl text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
-              active
-                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
-                : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-50',
+        {items.map(({ item, active, showIcon, showLabel, children }) => (
+          <div key={item.id} className="space-y-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                onSelectItem(item);
+                onClose();
+              }}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'relative w-full h-9 px-3 inline-flex items-center gap-2.5 rounded-xl text-left text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
+                active
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
+                  : 'text-zinc-700 hover:bg-zinc-100 hover:text-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-50',
+              )}
+            >
+              {active && (
+                <span
+                  className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-blue-600 dark:bg-blue-400"
+                  aria-hidden="true"
+                />
+              )}
+              {showIcon && (
+                <NavTablerIcon
+                  name={item.icon}
+                  className={cn('h-4 w-4 shrink-0', active ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400')}
+                />
+              )}
+              {showLabel && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+            </button>
+            {children && children.length > 0 && (
+              <div className="ml-5 space-y-0.5 border-l border-zinc-200 pl-2 dark:border-zinc-700">
+                {children.filter((child) => child.showLabel).map((child) => (
+                  <button
+                    key={child.item.id}
+                    type="button"
+                    onClick={() => {
+                      onSelectItem(child.item);
+                      onClose();
+                    }}
+                    aria-current={child.active ? 'page' : undefined}
+                    className={cn(
+                      'relative flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
+                      child.active
+                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
+                        : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100',
+                    )}
+                  >
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-50" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate">{child.item.label}</span>
+                  </button>
+                ))}
+              </div>
             )}
-          >
-            {active && (
-              <span
-                className="absolute bottom-2 left-0 top-2 w-1 rounded-r-full bg-blue-600 dark:bg-blue-400"
-                aria-hidden="true"
-              />
-            )}
-            {showIcon && (
-              <NavTablerIcon
-                name={item.icon}
-                className={cn('h-4 w-4 shrink-0', active ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400')}
-              />
-            )}
-            {showLabel && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
-          </button>
+          </div>
         ))}
       </div>
     </div>
