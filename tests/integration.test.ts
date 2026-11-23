@@ -3766,6 +3766,19 @@ test('dashboard card editing preserves registered blocks and immutable section b
   const duplicateOrder = structuredClone(layout);
   duplicateOrder.cards[1].order = 1;
   assert.equal(validateDashboardLayout(duplicateOrder).valid, false);
+
+  const invalidAppearance = structuredClone(layout);
+  invalidAppearance.cards[0].appearance = 'neon';
+  assert.equal(validateDashboardLayout(invalidAppearance).valid, false);
+
+  const invalidDensity = structuredClone(layout);
+  invalidDensity.cards[0].density = 'huge';
+  assert.equal(validateDashboardLayout(invalidDensity).valid, false);
+
+  const customized = structuredClone(layout);
+  customized.cards[0].appearance = 'accent';
+  customized.cards[0].density = 'compact';
+  assert.equal(validateDashboardLayout(customized).valid, true);
 });
 
 test('dashboard layout validation protects required runtime sections and grid geometry', () => {
