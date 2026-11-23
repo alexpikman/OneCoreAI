@@ -37,6 +37,7 @@ import {
   DEFAULT_APPEARANCE_TOKENS,
   validateAppearanceTokens,
 } from '../src/data/appearanceTokens';
+import { validateDashboardLayout } from '../src/data/dashboardLayout';
 import {
   analyzeConfigurationDependencies,
   analyzeConfigurationDraft,
@@ -3693,4 +3694,34 @@ test('appearance stylesheet emits validated Tailwind theme variables for light a
   assert.match(css, /--font-sans:/);
   assert.match(css, /--designer-overlay:/);
   assert.match(css, /--radius-xl: 12px/);
+});
+
+
+test('dashboard layout validation protects required runtime sections and grid geometry', () => {
+  const validLayout = {
+    schemaVersion: 1,
+    grid: { columns: 12, rows: 4, gap: 3 },
+    elements: [
+      { id: 'dashboard-system', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-ai', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-activity', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-issues', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
+    ],
+  };
+
+  assert.equal(validateDashboardLayout(validLayout).valid, true);
+
+  const missingRequiredBlock = structuredClone(validLayout);
+  missingRequiredBlock.elements = missingRequiredBlock.elements.filter((item) => item.id !== 'dashboard-issues');
+  assert.equal(validateDashboardLayout(missingRequiredBlock).valid, false);
+  assert.match(validateDashboardLayout(missingRequiredBlock).diagnostics.join('; '), /нельзя удалить/);
+
+  const overlappingBlocks = structuredClone(validLayout);
+  overlappingBlocks.elements[1].row = 1;
+  assert.equal(validateDashboardLayout(overlappingBlocks).valid, false);
+  assert.match(validateDashboardLayout(overlappingBlocks).diagnostics.join('; '), /пересекается/);
+
+  const outOfBounds = structuredClone(validLayout);
+  outOfBounds.elements[0].columnSpan = 13;
+  assert.equal(validateDashboardLayout(outOfBounds).valid, false);
 });
