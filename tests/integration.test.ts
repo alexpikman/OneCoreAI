@@ -3412,3 +3412,28 @@ test('configuration validation rejects excessively deep JSON structures', () => 
     config: root,
   }).valid, false);
 });
+
+
+import {
+  BUILTIN_COMPONENT_REGISTRY,
+  BUILTIN_NAVIGATION_REGISTRY,
+  validateBuiltInComponentRegistry,
+} from '../src/data/componentRegistry';
+
+test('built-in component registry maps every existing navigation item and protects composite pages', () => {
+  const validation = validateBuiltInComponentRegistry();
+  const navigationCount = NAV_GROUPS.reduce((count, group) => count + group.items.length, 0);
+
+  assert.equal(validation.valid, true, validation.diagnostics.join('; '));
+  assert.equal(BUILTIN_NAVIGATION_REGISTRY.length, navigationCount);
+  assert.equal(new Set(BUILTIN_NAVIGATION_REGISTRY.map((item) => item.id)).size, navigationCount);
+  assert.ok(BUILTIN_NAVIGATION_REGISTRY.every((item) =>
+    BUILTIN_COMPONENT_REGISTRY.some((component) => component.id === item.componentId),
+  ));
+
+  const workstation = BUILTIN_COMPONENT_REGISTRY.find((component) => component.id === 'page.workstation');
+  const system = BUILTIN_COMPONENT_REGISTRY.find((component) => component.id === 'page.system');
+  assert.equal(workstation?.protected, true);
+  assert.equal(system?.protected, true);
+  assert.equal(BUILTIN_COMPONENT_REGISTRY.every((component) => component.supportsPageBlockReorder === false), true);
+});
