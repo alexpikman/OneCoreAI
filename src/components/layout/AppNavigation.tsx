@@ -121,6 +121,11 @@ export const AppNavigation: React.FC = () => {
           active: isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory),
           showIcon: showNav(`item.${item.id}.icon`),
           showLabel: showNav(`item.${item.id}.label`),
+          children: item.children?.map((child) => ({
+            item: child,
+            active: isNavigationItemActive(child, activeTab, settingsSection, sshGithubSection, aiSettingsCategory),
+            showLabel: showNav(`item.${item.id}.label`),
+          })),
         }))
     : [];
 
