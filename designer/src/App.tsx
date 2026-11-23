@@ -528,10 +528,9 @@ export default function App() {
                       setDesignerLayout(nextLayout);
                       setDesignerLayoutDirty(true);
                     }}
-                    onSave={() => saveConfigurationChanges(
-                      { layout: designerLayout },
-                      'Сохранить текущий макет в конфигурации Designer?',
-                      'Макет сохранён в истории конфигураций Designer.',
+                    onSave={() => saveDirtyConfiguration(
+                      'Сохранить все изменённые настройки Designer?',
+                      'Изменения Designer сохранены в истории конфигураций.',
                     )}
                   />
                 ) : (
