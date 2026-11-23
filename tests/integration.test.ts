@@ -33,6 +33,30 @@ import { getActiveNavigationGroup, isNavigationItemActive, NAV_GROUPS } from '..
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
 import {
+  analyzeConfigurationDependencies,
+  analyzeConfigurationDraft,
+  createConfigurationDocument,
+  createConfigurationDraft,
+  mergeConfigurationLayers,
+  validateConfigurationDocument,
+} from '../server/configurationEngine';
+import {
+  applyConfigurationDraft,
+  listConfigurationHistory,
+  readConfigurationDocument,
+  restoreConfigurationRevision,
+} from '../server/configurationManager';
+import {
+  BUILTIN_COMPONENT_REGISTRY,
+  BUILTIN_NAVIGATION_REGISTRY,
+  validateBuiltInComponentRegistry,
+} from '../src/data/componentRegistry';
+import {
+  createDefaultNavigationLayout,
+  resolveNavigationLayout,
+  validateNavigationLayout,
+} from '../src/data/navigationLayout';
+import {
   checkRepoSyncDiff,
   normalizeGitHubRepo,
   pullFromGitHub,
@@ -3064,11 +3088,6 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
 
 
 
-import {
-  analyzeConfigurationDependencies,
-  mergeConfigurationLayers,
-} from '../server/configurationEngine';
-
 test('configuration layers merge objects, replace arrays and preserve lower layers', () => {
   const system = { layout: { density: 'comfortable', columns: 3 }, plugins: ['core'] };
   const global = { layout: { density: 'compact' }, plugins: ['core', 'designer'] };
@@ -3141,13 +3160,6 @@ test('configuration dependency analysis detects dependency, parent and compatibi
 });
 
 
-import {
-  analyzeConfigurationDraft,
-  createConfigurationDocument,
-  createConfigurationDraft,
-  validateConfigurationDocument,
-} from '../server/configurationEngine';
-
 test('configuration documents enforce schema version, revision, scope and JSON-safe values', () => {
   const document = createConfigurationDocument(
     { type: 'project', projectId: 'project-1' },
@@ -3203,13 +3215,6 @@ test('configuration documents reject cyclic object graphs before cloning', () =>
   ), /безопасные JSON-значения/);
 });
 
-
-import {
-  applyConfigurationDraft,
-  listConfigurationHistory,
-  readConfigurationDocument,
-  restoreConfigurationRevision,
-} from '../server/configurationManager';
 
 test('configuration manager applies revisions, rejects stale drafts and restores history safely', async () => {
   const scope = { type: 'project' as const, projectId: `designer-test-${crypto.randomUUID()}` };
@@ -3455,12 +3460,6 @@ test('configuration validation rejects excessively deep JSON structures', () => 
 });
 
 
-import {
-  BUILTIN_COMPONENT_REGISTRY,
-  BUILTIN_NAVIGATION_REGISTRY,
-  validateBuiltInComponentRegistry,
-} from '../src/data/componentRegistry';
-
 test('built-in component registry maps every existing navigation item and protects composite pages', () => {
   const validation = validateBuiltInComponentRegistry();
   const navigationCount = NAV_GROUPS.reduce((count, group) => count + group.items.length, 0);
@@ -3479,12 +3478,6 @@ test('built-in component registry maps every existing navigation item and protec
   assert.equal(BUILTIN_COMPONENT_REGISTRY.every((component) => component.supportsPageBlockReorder === false), true);
 });
 
-
-import {
-  createDefaultNavigationLayout,
-  resolveNavigationLayout,
-  validateNavigationLayout,
-} from '../src/data/navigationLayout';
 
 test('navigation layout schema permits safe reordering and grouping without changing page targets', () => {
   const layout = createDefaultNavigationLayout();
