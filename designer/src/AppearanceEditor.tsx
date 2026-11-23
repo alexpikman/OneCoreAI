@@ -4,6 +4,9 @@ interface AppearanceEditorProps {
   tokens: AppearanceTokens;
   dirty: boolean;
   saving: boolean;
+  previewing: boolean;
+  onPreview: () => void;
+  onClearPreview: () => void;
   onChange: (tokens: AppearanceTokens) => void;
   onSave: () => void;
 }
@@ -26,6 +29,9 @@ export function AppearanceEditor({
   tokens,
   dirty,
   saving,
+  previewing,
+  onPreview,
+  onClearPreview,
   onChange,
   onSave,
 }: AppearanceEditorProps) {
@@ -57,14 +63,34 @@ export function AppearanceEditor({
             Типографика, геометрия, отступы, прозрачность и отдельные палитры светлой и тёмной темы.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!dirty || saving}
-          className="h-8 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {saving ? 'Сохранение…' : 'Сохранить оформление'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={saving}
+            className="h-8 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            Предпросмотр
+          </button>
+          {previewing && (
+            <button
+              type="button"
+              onClick={onClearPreview}
+              disabled={saving}
+              className="h-8 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Сбросить предпросмотр
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!dirty || saving}
+            className="h-8 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {saving ? 'Сохранение…' : 'Сохранить оформление'}
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
@@ -123,6 +149,25 @@ export function AppearanceEditor({
         </div>
       </div>
 
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-2">
+        <div data-ui-style="appearance-preview" className="rounded-xl border border-zinc-200 bg-zinc-50 p-3 text-zinc-900 dark:border-zinc-700">
+          <p className="mb-2 text-[11px] font-semibold">Предпросмотр — светлая тема</p>
+          <div className="rounded-xl border border-zinc-200 bg-white p-4">
+            <p className="text-sm font-semibold">Карточка интерфейса</p>
+            <p className="mt-1 text-xs text-zinc-500">Текст, поверхность, граница и радиусы</p>
+            <button type="button" className="mt-3 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white">Акцент</button>
+          </div>
+        </div>
+        <div data-ui-style="appearance-preview" className="dark rounded-xl border border-zinc-700 bg-zinc-950 p-3 text-zinc-100">
+          <p className="mb-2 text-[11px] font-semibold">Предпросмотр — тёмная тема</p>
+          <div className="rounded-xl border border-zinc-700 bg-zinc-900 p-4">
+            <p className="text-sm font-semibold">Карточка интерфейса</p>
+            <p className="mt-1 text-xs text-zinc-400">Текст, поверхность, граница и радиусы</p>
+            <button type="button" className="mt-3 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white">Акцент</button>
+          </div>
+        </div>
+      </div>
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         {(['light', 'dark'] as const).map((mode) => (
           <div key={mode} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
