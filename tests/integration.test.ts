@@ -3423,6 +3423,29 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   };
   assert.equal(navigationValidationData.validation.valid, true);
 
+  const appearanceValidation = await fetch(`${apiBaseUrl}/api/designer/appearance/validate`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ appearance: DEFAULT_APPEARANCE_TOKENS }),
+  });
+  assert.equal(appearanceValidation.status, 200);
+  const appearanceValidationData = await appearanceValidation.json() as {
+    ok: boolean;
+    validation: { valid: boolean };
+    css: string;
+  };
+  assert.equal(appearanceValidationData.validation.valid, true);
+  assert.match(appearanceValidationData.css, /--font-sans:/);
+
+  const emptyTheme = await fetch(`${apiBaseUrl}/api/designer/theme.css`, {
+    headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(emptyTheme.status, 204);
+
   const outsideDesigner = await fetch(`${apiBaseUrl}/api/projects`, {
     headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
   });
@@ -3524,6 +3547,28 @@ test('navigation layout schema rejects missing, duplicate, unknown and remapped 
   assert.equal(validateNavigationLayout(invalidIcon).valid, false);
 });
 
+
+test('configuration manager refuses to persist invalid appearance tokens', async () => {
+  const scope = { type: 'project' as const, projectId: `designer-invalid-appearance-${crypto.randomUUID()}` };
+  const scopeKey = crypto.createHash('sha256').update(scope.projectId).digest('hex');
+  const storageRoot = path.join(tempOneCoreHome, 'designer-configurations');
+  const invalidAppearance = {
+    ...DEFAULT_APPEARANCE_TOKENS,
+    opacity: { ...DEFAULT_APPEARANCE_TOKENS.opacity, panel: 2 },
+  };
+  const draft = createConfigurationDraft(createConfigurationDocument(scope, {}), {
+    appearance: invalidAppearance,
+  });
+
+  try {
+    await assert.rejects(applyConfigurationDraft(draft), /Настройки оформления некорректны/);
+    assert.equal(readConfigurationDocument(scope), null);
+    assert.deepEqual(listConfigurationHistory(scope), []);
+  } finally {
+    fs.rmSync(path.join(storageRoot, 'current', `${scopeKey}.json`), { force: true });
+    fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
+  }
+});
 
 test('configuration manager refuses to persist an invalid navigation layout', async () => {
   const scope = { type: 'project' as const, projectId: `designer-invalid-nav-${crypto.randomUUID()}` };
