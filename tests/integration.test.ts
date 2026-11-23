@@ -3298,3 +3298,53 @@ test('Designer configuration API requires approval and exposes revision history 
     fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
   }
 });
+
+
+test('Designer pairing issues a one-time desktop session only after explicit approval', async () => {
+  const denied = await jsonReq<{ ok: boolean }>('/api/designer/pairing', { method: 'POST', body: JSON.stringify({}) });
+  assert.equal(denied.status, 403);
+
+  const pairing = await jsonReq<{
+    ok: boolean;
+    code: string;
+    apiBaseUrl: string;
+    expiresAt: string;
+  }>('/api/designer/pairing', {
+    method: 'POST',
+    headers: { 'X-OneCore-Approval': 'user-confirmed' },
+    body: JSON.stringify({}),
+  });
+  assert.equal(pairing.status, 200);
+  assert.match(pairing.data.code, /^\d{8}$/);
+  assert.match(pairing.data.apiBaseUrl, /^http:\/\/127\.0\.0\.1:\d+$/);
+  assert.ok(Date.parse(pairing.data.expiresAt) > Date.now());
+
+  const invalid = await fetch(`${apiBaseUrl}/api/designer/session`, {
+    method: 'POST',
+    headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: '00000000' }),
+  });
+  assert.equal(invalid.status, 401);
+
+  const connected = await fetch(`${apiBaseUrl}/api/designer/session`, {
+    method: 'POST',
+    headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: pairing.data.code }),
+  });
+  assert.equal(connected.status, 200);
+  const session = await connected.json() as { ok: boolean; token: string; expiresAt: string };
+  assert.equal(session.ok, true);
+  assert.ok(session.token.length >= 40);
+
+  const authenticated = await fetch(`${apiBaseUrl}/api/designer/configuration?scope=global`, {
+    headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(authenticated.status, 200);
+
+  const reused = await fetch(`${apiBaseUrl}/api/designer/session`, {
+    method: 'POST',
+    headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code: pairing.data.code }),
+  });
+  assert.equal(reused.status, 401);
+});
