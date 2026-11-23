@@ -970,6 +970,37 @@ test('local API accepts only the native configured token when one is set', async
     });
     assert.equal(validToken.status, 200);
 
+    const pairingResponse = await fetch(`${baseUrl}/api/designer/pairing`, {
+      method: 'POST',
+      headers: {
+        Origin: new URL(baseUrl).origin,
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-OneCore-Approval': 'user-confirmed',
+      },
+      body: JSON.stringify({ approved: true }),
+    });
+    assert.equal(pairingResponse.status, 200);
+    const pairing = await pairingResponse.json() as { code: string };
+
+    const designerSessionResponse = await fetch(`${baseUrl}/api/designer/session`, {
+      method: 'POST',
+      headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: pairing.code }),
+    });
+    assert.equal(designerSessionResponse.status, 200);
+    const designerSession = await designerSessionResponse.json() as { token: string };
+
+    const designerAccess = await fetch(`${baseUrl}/api/designer/configuration?scope=global`, {
+      headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${designerSession.token}` },
+    });
+    assert.equal(designerAccess.status, 200);
+
+    const deniedDesignerAccess = await fetch(`${baseUrl}/api/projects`, {
+      headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${designerSession.token}` },
+    });
+    assert.equal(deniedDesignerAccess.status, 403);
+
     const bootstrap = await fetch(`${baseUrl}/api/auth/session`, {
       headers: { Origin: new URL(baseUrl).origin },
     });
