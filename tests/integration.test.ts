@@ -3346,6 +3346,17 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(outsideDesigner.status, 403);
 
+  const cannotCreatePairing = await fetch(`${apiBaseUrl}/api/designer/pairing`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'X-OneCore-Approval': 'user-confirmed',
+    },
+    body: JSON.stringify({ approved: true }),
+  });
+  assert.equal(cannotCreatePairing.status, 403);
+
   const reused = await fetch(`${apiBaseUrl}/api/designer/session`, {
     method: 'POST',
     headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
