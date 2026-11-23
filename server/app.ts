@@ -832,7 +832,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         title: 'Конфигурация Designer восстановлена',
         summary: `Создана ревизия ${document.revision} на основе предыдущей конфигурации`,
         source: 'configuration-manager',
-        details: { revision: document.revision, scope: document.scope },
+        details: { revision: document.revision, scopeType: document.scope.type, projectId: document.scope.projectId ?? null },
       });
       res.json({ ok: true, configuration: document });
     } catch (err) {
