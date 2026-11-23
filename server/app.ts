@@ -319,7 +319,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       return;
     }
 
-    if (apiSession.scope === 'designer' && !req.path.startsWith('/designer/')) {
+    const isDesignerConfigurationRoute =
+      req.path === '/designer/configuration' ||
+      req.path.startsWith('/designer/configuration/');
+    if (apiSession.scope === 'designer' && !isDesignerConfigurationRoute) {
       res.status(403).json({ ok: false, error: 'Сессия Designer не имеет доступа к этому API-разделу' });
       return;
     }
