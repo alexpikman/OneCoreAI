@@ -11,6 +11,7 @@ Documentation has two independent authority axes.
 Defines what AI agents are allowed to do and how they must work. Higher-level rules constrain lower-level procedures.
 
 1. [AI Working Rules](governance/AI_WORKING_RULES.md) — engineering constitution: workflow, security, UI constraints, source hierarchy, verification.
+2. [Interface and Dependent Feature Development Rules](governance/INTERFACE_AND_DEPENDENT_FEATURE_DEVELOPMENT_RULES.md) — ownership boundaries, sources of truth, UI consistency, and change/verification rules.
 2. [Project Agent Instructions](governance/PROJECT_AGENT_INSTRUCTIONS.md) — runtime contract for the Project Agent operating inside user projects.
 3. [Knowledge base](knowledge/README.md) — reusable roles, procedures, protocols, and lifecycle rules.
 
