@@ -64,7 +64,7 @@ import { runTeamExecution } from './orchestration/teamOrchestrator';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
-import { getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
+import { BUILTIN_NAVIGATION_ICON_IDS, getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
 import {
   analyzeConfigurationDraft,
@@ -864,6 +864,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     res.json({
       ok: true,
       registry: getBuiltInComponentRegistry(),
+      navigationIcons: BUILTIN_NAVIGATION_ICON_IDS,
       defaultNavigationLayout,
     });
   });
