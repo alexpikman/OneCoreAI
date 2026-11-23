@@ -66,6 +66,24 @@ const dashboardSectionTitle = (layout: DashboardLayoutConfig, id: string, fallba
 const dashboardCardTitle = (layout: DashboardLayoutConfig, id: string, fallback: string): string =>
   (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.title ?? fallback;
 
+const dashboardCardAppearanceClass = (layout: DashboardLayoutConfig, id: string): string => {
+  const appearance = (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.appearance ?? 'default';
+  return ({
+    default: 'border-zinc-200/80 bg-white/80 dark:border-zinc-800 dark:bg-zinc-900/70',
+    muted: 'border-zinc-200/60 bg-zinc-100/70 dark:border-zinc-800 dark:bg-zinc-950/60',
+    accent: 'border-blue-200 bg-blue-50/80 dark:border-blue-900 dark:bg-blue-950/30',
+  } as const)[appearance];
+};
+
+const dashboardCardDensityClass = (layout: DashboardLayoutConfig, id: string): string => {
+  const density = (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.density ?? 'normal';
+  return ({
+    compact: 'p-3 [&_[data-card-value]]:mt-2 [&_[data-card-value]]:text-xl',
+    normal: 'p-4',
+    spacious: 'p-5 [&_[data-card-value]]:mt-5 [&_[data-card-value]]:text-3xl',
+  } as const)[density];
+};
+
 const dashboardCardOrderClass = (layout: DashboardLayoutConfig, id: string): string => {
   const order = (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.order ?? 1;
   return ({ 1: 'order-1', 2: 'order-2', 3: 'order-3', 4: 'order-4' } as Record<number, string>)[order] ?? 'order-1';
@@ -93,6 +111,8 @@ interface DashboardCardProps {
   onClick: () => void;
   status?: 'good' | 'warning' | 'neutral';
   orderClass: string;
+  appearanceClass: string;
+  densityClass: string;
 }
 
 const DashboardCard: React.FC<DashboardCardProps> = ({
@@ -103,11 +123,13 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   onClick,
   status = 'neutral',
   orderClass,
+  appearanceClass,
+  densityClass,
 }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`group min-w-0 ${orderClass} rounded-2xl border border-zinc-200/80 bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-blue-700`}
+    className={`group min-w-0 ${orderClass} ${densityClass} rounded-2xl border ${appearanceClass} text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:border-blue-700`}
   >
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{title}</span>
@@ -115,7 +137,7 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
         <Icon className="h-4 w-4" />
       </span>
     </div>
-    <div className="mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-100">
+    <div data-card-value className="mt-4 truncate text-2xl font-semibold tracking-tight tabular-nums text-zinc-900 dark:text-zinc-100">
       {value}
     </div>
     <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
@@ -239,6 +261,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'cpu', 'Процессор')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'cpu')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'cpu')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'cpu')}
                 value={hardwareLoading && !hardware ? 'Загрузка…' : hardware ? `${hardware.cpu.cores} ядер` : 'Нет данных'}
                 detail={hardware?.cpu.model || hardwareError || 'Аппаратный профиль не получен'}
                 icon={Cpu}
@@ -248,6 +272,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'ram', 'Оперативная память')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'ram')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'ram')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'ram')}
                 value={hardware ? formatGb(hardware.ram.totalGb - hardware.ram.freeGb) : 'Нет данных'}
                 detail={
                   hardware
@@ -261,6 +287,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'gpu', 'Графический процессор')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'gpu')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'gpu')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'gpu')}
                 value={
                   hardware?.gpuDetected
                     ? formatGb(hardware.totalVramGb - hardware.freeVramGb)
@@ -280,6 +308,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'disk', 'Диск')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'disk')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'disk')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'disk')}
                 value={hardware ? formatGb(hardware.disk.freeGb) : 'Нет данных'}
                 detail={hardware ? `свободно из ${formatGb(hardware.disk.totalGb)}` : hardwareError || 'Нет данных'}
                 icon={HardDrive}
@@ -295,6 +325,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'models', 'Локальные модели')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'models')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'models')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'models')}
                 value={String(readyModels)}
                 detail={activeModel ? `Активна: ${activeModel.name}` : `${localModels.length} моделей · активная не выбрана`}
                 icon={Server}
@@ -304,6 +336,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'providers', 'Провайдеры')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'providers')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'providers')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'providers')}
                 value={String(connectedProviders)}
                 detail={activeProvider ? `Выбран: ${activeProvider.name}` : `${freeProviders.length} настроено`}
                 icon={Cloud}
@@ -313,6 +347,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'agents', 'Агенты')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'agents')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'agents')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'agents')}
                 value={String(activeAgents)}
                 detail={agentActivity === 'idle' ? 'Основной агент не выполняет задачу' : 'Основной агент занят'}
                 icon={Bot}
@@ -322,6 +358,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'inference', 'Среда моделей')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'inference')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'inference')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'inference')}
                 value={
                   serverStatus === 'ready'
                     ? 'Готова'
@@ -353,6 +391,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'projects', 'Проекты')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'projects')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'projects')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'projects')}
                 value={String(projects.length)}
                 detail="Созданные рабочие проекты"
                 icon={FolderKanban}
@@ -362,6 +402,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'tasks', 'Задачи в работе')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'tasks')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'tasks')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'tasks')}
                 value={String(activeTasks)}
                 detail={`${pendingTasks} ожидают выполнения в активном проекте`}
                 icon={CheckCircle2}
@@ -371,6 +413,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'processes', 'Процессы')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'processes')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'processes')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'processes')}
                 value={String(activeAgents + activeTasks)}
                 detail="Активные агенты и задачи проекта"
                 icon={Workflow}
@@ -380,6 +424,8 @@ export const DashboardPage: React.FC = () => {
               <DashboardCard
                 title={dashboardCardTitle(dashboardLayout, 'integrations', 'Подключения')}
                 orderClass={dashboardCardOrderClass(dashboardLayout, 'integrations')}
+                appearanceClass={dashboardCardAppearanceClass(dashboardLayout, 'integrations')}
+                densityClass={dashboardCardDensityClass(dashboardLayout, 'integrations')}
                 value={String(connectedIntegrations)}
                 detail="Провайдеры, SSH, шлюзы и GitHub"
                 icon={Cloud}
