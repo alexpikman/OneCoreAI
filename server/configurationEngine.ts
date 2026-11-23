@@ -235,3 +235,177 @@ export function analyzeConfigurationDependencies(
     diagnostics,
   };
 }
+
+
+export const CONFIGURATION_SCHEMA_VERSION = 1 as const;
+
+export interface ConfigurationScope {
+  type: 'global' | 'project';
+  projectId?: string;
+}
+
+export interface ConfigurationDocument {
+  schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION;
+  revision: number;
+  scope: ConfigurationScope;
+  config: ConfigurationObject;
+}
+
+export interface ConfigurationDraft {
+  status: 'draft';
+  schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION;
+  scope: ConfigurationScope;
+  baseRevision: number;
+  config: ConfigurationObject;
+}
+
+export interface ConfigurationDocumentValidation {
+  valid: boolean;
+  diagnostics: Array<{
+    code: 'invalid-document' | 'unsupported-schema-version' | 'invalid-revision' | 'invalid-scope' | 'invalid-config';
+    message: string;
+  }>;
+}
+
+function validateConfigurationValue(
+  value: unknown,
+  seen: WeakSet<object>,
+): boolean {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (typeof value !== 'object') return false;
+  if (seen.has(value)) return false;
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.every((item) => validateConfigurationValue(item, seen));
+  }
+  if (!isConfigurationObject(value)) return false;
+
+  return Object.entries(value).every(([key, child]) =>
+    !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen),
+  );
+}
+
+export function validateConfigurationDocument(
+  value: unknown,
+): ConfigurationDocumentValidation {
+  const diagnostics: ConfigurationDocumentValidation['diagnostics'] = [];
+  if (!isConfigurationObject(value)) {
+    return {
+      valid: false,
+      diagnostics: [{ code: 'invalid-document', message: 'Документ конфигурации должен быть объектом' }],
+    };
+  }
+
+  if (value.schemaVersion !== CONFIGURATION_SCHEMA_VERSION) {
+    diagnostics.push({
+      code: 'unsupported-schema-version',
+      message: `Версия схемы конфигурации "${String(value.schemaVersion)}" не поддерживается`,
+    });
+  }
+
+  if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 0) {
+    diagnostics.push({
+      code: 'invalid-revision',
+      message: 'Ревизия конфигурации должна быть целым неотрицательным числом',
+    });
+  }
+
+  if (!isConfigurationObject(value.scope)) {
+    diagnostics.push({
+      code: 'invalid-scope',
+      message: 'Область конфигурации должна быть объектом',
+    });
+  } else if (
+    (value.scope.type !== 'global' && value.scope.type !== 'project') ||
+    (value.scope.type === 'project' && (typeof value.scope.projectId !== 'string' || !value.scope.projectId.trim())) ||
+    (value.scope.type === 'global' && value.scope.projectId !== undefined)
+  ) {
+    diagnostics.push({
+      code: 'invalid-scope',
+      message: 'Область должна быть global либо project с непустым projectId',
+    });
+  }
+
+  if (!isConfigurationObject(value.config) || !validateConfigurationValue(value.config, new WeakSet())) {
+    diagnostics.push({
+      code: 'invalid-config',
+      message: 'Конфигурация должна содержать только безопасные JSON-значения',
+    });
+  }
+
+  return { valid: diagnostics.length === 0, diagnostics };
+}
+
+export function createConfigurationDocument(
+  scope: ConfigurationScope,
+  config: ConfigurationObject,
+  revision = 0,
+): ConfigurationDocument {
+  const document: ConfigurationDocument = {
+    schemaVersion: CONFIGURATION_SCHEMA_VERSION,
+    revision,
+    scope: { ...scope },
+    config: cloneConfigurationValue(config) as ConfigurationObject,
+  };
+  const validation = validateConfigurationDocument(document);
+  if (!validation.valid) {
+    throw new Error(validation.diagnostics.map((item) => item.message).join('; '));
+  }
+  return document;
+}
+
+/**
+ * Creates an isolated draft. It never persists or applies changes to a runtime.
+ * The base revision is retained so a future apply operation can detect stale drafts.
+ */
+export function createConfigurationDraft(
+  base: ConfigurationDocument,
+  changes: ConfigurationObject,
+): ConfigurationDraft {
+  const validation = validateConfigurationDocument(base);
+  if (!validation.valid) {
+    throw new Error(validation.diagnostics.map((item) => item.message).join('; '));
+  }
+  if (!isConfigurationObject(changes) || !validateConfigurationValue(changes, new WeakSet())) {
+    throw new Error('Изменения черновика должны содержать только безопасные JSON-значения');
+  }
+
+  return {
+    status: 'draft',
+    schemaVersion: CONFIGURATION_SCHEMA_VERSION,
+    scope: { ...base.scope },
+    baseRevision: base.revision,
+    config: mergeConfigurationLayers(base.config, changes),
+  };
+}
+
+export function analyzeConfigurationDraft(
+  draft: ConfigurationDraft,
+  nodes: readonly ConfigurationNode[] = [],
+): ConfigurationAnalysis {
+  const diagnostics: ConfigurationDiagnostic[] = [];
+  if (
+    draft.status !== 'draft' ||
+    draft.schemaVersion !== CONFIGURATION_SCHEMA_VERSION ||
+    !Number.isSafeInteger(draft.baseRevision) ||
+    draft.baseRevision < 0 ||
+    !isConfigurationObject(draft.scope) ||
+    (draft.scope.type !== 'global' && draft.scope.type !== 'project') ||
+    (draft.scope.type === 'project' && (typeof draft.scope.projectId !== 'string' || !draft.scope.projectId.trim())) ||
+    (draft.scope.type === 'global' && draft.scope.projectId !== undefined) ||
+    !isConfigurationObject(draft.config) ||
+    !validateConfigurationValue(draft.config, new WeakSet())
+  ) {
+    diagnostics.push({
+      code: 'duplicate-id',
+      message: 'Черновик конфигурации имеет некорректную структуру или версию',
+      nodeIds: [],
+    });
+  }
+
+  const dependencyAnalysis = analyzeConfigurationDependencies(nodes);
+  diagnostics.push(...dependencyAnalysis.diagnostics);
+  return { canApply: diagnostics.length === 0, diagnostics };
+}
