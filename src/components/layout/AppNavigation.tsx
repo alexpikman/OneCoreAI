@@ -12,10 +12,10 @@ import { useOneCoreStore } from '../../store/useOneCoreStore';
 import {
   getActiveNavigationGroup,
   isNavigationItemActive,
-  NAV_GROUPS,
   type NavigationItem,
 } from '../../data/appNavigation';
 import { cn } from '../../utils/cn';
+import { useDesignerNavigationGroups } from './DesignerNavigationContext';
 import { getUiTokens } from '../../utils/uiStyle';
 import { ModelMascot } from '../agent/ModelMascot';
 import { isNavigationVisibilityEnabled } from '../../data/navigationVisibility';
@@ -59,6 +59,7 @@ export const AppNavigation: React.FC = () => {
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
   const [workspaceModalSection, setWorkspaceModalSection] = useState<WorkspaceModalSection>('project');
 
+  const navigationGroups = useDesignerNavigationGroups();
   const tokens = getUiTokens(uiStyle);
   const showNav = (key: string) => isNavigationVisibilityEnabled(navigationVisibility, key);
   const activeRole = roles.find((role) => role.id === activeRoleId) ?? roles[0];
@@ -100,8 +101,8 @@ export const AppNavigation: React.FC = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection));
-  }, [activeTab, settingsSection]);
+    setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection, navigationGroups));
+  }, [activeTab, settingsSection, navigationGroups]);
 
   const handleSelectNavItem = (item: NavigationItem) => {
     if (item.section) setSettingsSection(item.section);
@@ -112,7 +113,7 @@ export const AppNavigation: React.FC = () => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
 
-  const popupGroup = NAV_GROUPS.find((group) => group.id === popupGroupId) ?? null;
+  const popupGroup = navigationGroups.find((group) => group.id === popupGroupId) ?? null;
   const popupItems = popupGroup
     ? popupGroup.items
         .filter((item) => showNav(`item.${item.id}`) && (showNav(`item.${item.id}.icon`) || showNav(`item.${item.id}.label`)))
@@ -213,7 +214,7 @@ export const AppNavigation: React.FC = () => {
           <nav aria-label="Основные разделы" className="shrink-0 flex flex-col gap-1.5">
             <section className="shrink-0 rounded-2xl border border-zinc-200/70 bg-zinc-50/90 p-1.5 shadow-inner dark:border-zinc-800 dark:bg-zinc-900/70">
               <div className="flex flex-col gap-0.5">
-                {NAV_GROUPS.map((group) => {
+                {navigationGroups.map((group) => {
                   const hasVisibleItems = group.items.some(
                     (item) =>
                       showNav(`item.${item.id}`) &&
