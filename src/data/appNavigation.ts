@@ -73,7 +73,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
         tab: 'models',
         section: 'roles-pipeline',
         children: [
-          { id: 'agent-page-roles', label: 'Роли одной модели', icon: 'user-check', tab: 'models', section: 'roles-pipeline' },
+          { id: 'agent-page-roles', label: 'Роли одной модели', icon: 'users', tab: 'models', section: 'roles-pipeline' },
           { id: 'agent-page-permissions', label: 'Разрешения и указания', icon: 'shield', tab: 'models', section: 'agent-permissions' },
           { id: 'agent-page-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
         ],
