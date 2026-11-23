@@ -142,7 +142,7 @@ export const DashboardPage: React.FC = () => {
           configuration?: { config?: { layout?: DashboardLayoutConfig } } | null;
         };
         const saved = payload.configuration?.config?.layout;
-        if (validateDashboardLayout(saved).valid) {
+        if (saved && validateDashboardLayout(saved).valid) {
           setDashboardLayout(saved);
         }
         return null;
