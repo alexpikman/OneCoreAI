@@ -42,14 +42,13 @@ const gaps: Record<number, string> = {1:'gap-1',2:'gap-2',3:'gap-3',4:'gap-4',5:
 
 export function createDefaultDesignerLayout(): DesignerLayout {
   return {
-    schemaVersion: 1, grid: { columns: 12, rows: 8, gap: 3, snap: true },
+    schemaVersion: 1,
+    grid: { columns: 12, rows: 4, gap: 3, snap: true },
     elements: [
-      {id:'section-overview',type:'section',title:'Обзор системы',content:'Состояние и основные показатели',column:1,row:1,columnSpan:12,rowSpan:2},
-      {id:'card-cpu',type:'card',title:'Процессор',content:'Загрузка процессора · 24%',column:1,row:3,columnSpan:3,rowSpan:2},
-      {id:'card-memory',type:'card',title:'Память',content:'Использовано · 18 из 32 ГБ',column:4,row:3,columnSpan:3,rowSpan:2},
-      {id:'card-agents',type:'card',title:'AI-агенты',content:'Активно · 6',column:7,row:3,columnSpan:3,rowSpan:2},
-      {id:'card-status',type:'indicator',title:'Статус',content:'Все системы работают штатно',column:10,row:3,columnSpan:3,rowSpan:2},
-      {id:'section-activity',type:'section',title:'Последняя активность',content:'Задачи, процессы и подключения',column:1,row:5,columnSpan:12,rowSpan:2},
+      { id: 'dashboard-system', type: 'section', title: 'Состояние системы', content: 'Реальный блок дашборда', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-ai', type: 'section', title: 'AI-инфраструктура', content: 'Реальный блок дашборда', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-activity', type: 'section', title: 'Рабочая активность', content: 'Реальный блок дашборда', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-issues', type: 'section', title: 'Требует внимания', content: 'Реальный блок дашборда', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
     ],
   };
 }
