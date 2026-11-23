@@ -3509,3 +3509,23 @@ test('navigation layout schema rejects missing, duplicate, unknown and remapped 
   (remapped.groups[0].items[0] as unknown as Record<string, unknown>).tab = 'security';
   assert.equal(validateNavigationLayout(remapped).valid, false);
 });
+
+
+test('configuration manager refuses to persist an invalid navigation layout', async () => {
+  const scope = { type: 'project' as const, projectId: `designer-invalid-nav-${crypto.randomUUID()}` };
+  const scopeKey = crypto.createHash('sha256').update(scope.projectId).digest('hex');
+  const storageRoot = path.join(tempOneCoreHome, 'designer-configurations');
+  const base = createConfigurationDocument(scope, {});
+  const draft = createConfigurationDraft(base, {
+    navigation: { schemaVersion: 1, groups: [] },
+  });
+
+  try {
+    await assert.rejects(applyConfigurationDraft(draft), /Макет навигации некорректен/);
+    assert.equal(readConfigurationDocument(scope), null);
+    assert.deepEqual(listConfigurationHistory(scope), []);
+  } finally {
+    fs.rmSync(path.join(storageRoot, 'current', `${scopeKey}.json`), { force: true });
+    fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
+  }
+});
