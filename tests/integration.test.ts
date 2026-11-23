@@ -3550,3 +3550,24 @@ test('active navigation group follows renamed and rearranged layout groups', () 
 
   assert.equal(getActiveNavigationGroup('dashboard', 'ui-chat', groups), 'Моя рабочая область');
 });
+
+
+test('active navigation group follows the immutable GitHub and SSH target IDs after groups split', () => {
+  const groups = [
+    {
+      id: 'github-tools',
+      label: 'Git hosting',
+      icon: 'github',
+      items: [{ id: 'github', label: 'Source control', icon: 'github', tab: 'settings' as const, section: 'ssh-github' as const }],
+    },
+    {
+      id: 'remote-access',
+      label: 'Remote access',
+      icon: 'lock',
+      items: [{ id: 'ssh', label: 'Secure shell', icon: 'lock', tab: 'settings' as const, section: 'ssh-github' as const }],
+    },
+  ];
+
+  assert.equal(getActiveNavigationGroup('settings', 'ssh-github', groups, 'github'), 'Git hosting');
+  assert.equal(getActiveNavigationGroup('settings', 'ssh-github', groups, 'ssh-keys'), 'Remote access');
+});
