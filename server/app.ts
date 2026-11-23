@@ -849,16 +849,22 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   });
 
   app.get('/api/designer/registry', (_req, res) => {
-    const validation = validateBuiltInComponentRegistry();
-    if (!validation.valid) {
-      res.status(500).json({ ok: false, error: 'Реестр встроенных компонентов некорректен', diagnostics: validation.diagnostics });
+    const registryValidation = validateBuiltInComponentRegistry();
+    const defaultNavigationLayout = createDefaultNavigationLayout();
+    const navigationValidation = validateNavigationLayout(defaultNavigationLayout);
+    if (!registryValidation.valid || !navigationValidation.valid) {
+      res.status(500).json({
+        ok: false,
+        error: 'Реестр встроенных компонентов или макет навигации некорректен',
+        diagnostics: [...registryValidation.diagnostics, ...navigationValidation.diagnostics.map((item) => item.message)],
+      });
       return;
     }
     res.setHeader('Cache-Control', 'no-store');
     res.json({
       ok: true,
       registry: getBuiltInComponentRegistry(),
-      defaultNavigationLayout: createDefaultNavigationLayout(),
+      defaultNavigationLayout,
     });
   });
 
