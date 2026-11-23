@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AppNavigation } from './components/layout/AppNavigation';
+import { DesignerNavigationProvider } from './components/layout/DesignerNavigationContext';
 import { DeleteWarningHost } from './components/layout/DeleteWarningHost';
 import { NotificationHost } from './components/layout/NotificationHost';
 import { PageContextSidebar } from './components/layout/PageContextSidebar';
@@ -271,8 +272,9 @@ export default function App() {
   };
 
   return (
-    <div
-      data-ui-style={uiStyle}
+    <DesignerNavigationProvider>
+      <div
+        data-ui-style={uiStyle}
       className={cn('h-screen w-screen flex flex-col overflow-hidden', tokens.shellBg, theme === 'dark' && 'dark')}
     >
       <div className="flex flex-1 min-h-0 gap-3 overflow-hidden px-3 pt-3 pb-3 lg:px-4 lg:pt-4 lg:pb-4">
@@ -293,6 +295,7 @@ export default function App() {
       <ModelSwitcherModal />
       <DeleteWarningHost />
       <NotificationHost />
-    </div>
+      </div>
+    </DesignerNavigationProvider>
   );
 }
