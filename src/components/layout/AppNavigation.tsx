@@ -107,8 +107,8 @@ export const AppNavigation: React.FC = () => {
   const handleSelectNavItem = (item: NavigationItem) => {
     if (item.section) setSettingsSection(item.section);
     if (item.providerCategory) setAiSettingsCategory(item.providerCategory);
-    if (item.label === 'GitHub') setSshGithubSection('github');
-    if (item.label === 'SSH') setSshGithubSection('ssh-keys');
+    if (item.id === 'github') setSshGithubSection('github');
+    if (item.id === 'ssh') setSshGithubSection('ssh-keys');
     setActiveTab(item.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
