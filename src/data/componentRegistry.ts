@@ -74,6 +74,10 @@ const NAVIGATION_COMPONENT_IDS: Record<string, string> = {
   'agent-history': 'page.agent-history',
 };
 
+export const BUILTIN_NAVIGATION_ICON_IDS: readonly string[] = Array.from(new Set(
+  NAV_GROUPS.flatMap((group) => [group.icon, ...group.items.map((item) => item.icon)]),
+));
+
 export const BUILTIN_COMPONENT_REGISTRY: readonly BuiltinPageComponent[] = [
   { id: 'page.dashboard', kind: 'page', label: 'Дашборд', renderer: 'DashboardPage', category: 'workspace', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.workstation', kind: 'page', label: 'Рабочая станция', renderer: 'WorkstationPage', category: 'workspace', protected: true, protectedReason: 'Составная рабочая область: CenterAgentPane и RightInspectorPane связаны общим контекстом.', constraints: ['composite-page', 'keep-center-and-inspector-together'], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
