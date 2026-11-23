@@ -29,7 +29,7 @@ import { deleteExternalReference, listExternalReferences, saveExternalReference 
 import { recordProjectMemory, safeResolveInside } from '../server/projectAgent';
 import { verifyCommandResult, verifyFileContent, verifyFileRemoved } from '../server/verificationGate';
 import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
-import { getActiveNavigationGroup, isNavigationItemActive, NAV_GROUPS } from '../src/data/appNavigation';
+import { getActiveNavigationGroup, getActiveNavigationGroupId, isNavigationItemActive, NAV_GROUPS } from '../src/data/appNavigation';
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
 import {
