@@ -3395,3 +3395,20 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(reused.status, 401);
 });
+
+
+test('configuration validation rejects excessively deep JSON structures', () => {
+  let nested: Record<string, unknown> = {};
+  const root = nested;
+  for (let depth = 0; depth < 70; depth += 1) {
+    const next: Record<string, unknown> = {};
+    nested.child = next;
+    nested = next;
+  }
+  assert.equal(validateConfigurationDocument({
+    schemaVersion: 1,
+    revision: 0,
+    scope: { type: 'global' },
+    config: root,
+  }).valid, false);
+});
