@@ -37,7 +37,7 @@ import {
   DEFAULT_APPEARANCE_TOKENS,
   validateAppearanceTokens,
 } from '../src/data/appearanceTokens';
-import { validateDashboardLayout } from '../src/data/dashboardLayout';
+import { createDefaultDashboardCards, validateDashboardLayout } from '../src/data/dashboardLayout';
 import {
   analyzeConfigurationDependencies,
   analyzeConfigurationDraft,
@@ -3696,6 +3696,40 @@ test('appearance stylesheet emits validated Tailwind theme variables for light a
   assert.match(css, /--radius-xl: 12px/);
 });
 
+
+test('dashboard card editing preserves registered blocks and immutable section bindings', () => {
+  const layout = {
+    schemaVersion: 1 as const,
+    grid: { columns: 12, rows: 4, gap: 3 },
+    elements: [
+      { id: 'dashboard-system', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-ai', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-activity', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
+      { id: 'dashboard-issues', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
+    ],
+    cards: createDefaultDashboardCards(),
+  };
+
+  assert.equal(validateDashboardLayout(layout).valid, true);
+
+  const renamed = structuredClone(layout);
+  renamed.cards[0].title = 'CPU';
+  renamed.cards[0].order = 4;
+  renamed.cards[3].order = 1;
+  assert.equal(validateDashboardLayout(renamed).valid, true);
+
+  const missing = structuredClone(layout);
+  missing.cards = missing.cards.filter((card) => card.id !== 'cpu');
+  assert.equal(validateDashboardLayout(missing).valid, false);
+
+  const remapped = structuredClone(layout);
+  remapped.cards[0].sectionId = 'dashboard-ai';
+  assert.equal(validateDashboardLayout(remapped).valid, false);
+
+  const duplicateOrder = structuredClone(layout);
+  duplicateOrder.cards[1].order = 1;
+  assert.equal(validateDashboardLayout(duplicateOrder).valid, false);
+});
 
 test('dashboard layout validation protects required runtime sections and grid geometry', () => {
   const validLayout = {
