@@ -21,7 +21,7 @@ export interface AppearanceTokens {
   typography: {
     fontFamily: AppearanceFontFamily;
     baseFontSizePx: number;
-    lineHeight: number;
+    lineHeightScale: number;
   };
   shape: {
     radiusSmPx: number;
@@ -57,18 +57,18 @@ export const DEFAULT_APPEARANCE_TOKENS: AppearanceTokens = {
   typography: {
     fontFamily: 'manrope',
     baseFontSizePx: 14,
-    lineHeight: 1.5,
+    lineHeightScale: 1,
   },
   shape: {
     radiusSmPx: 4,
-    radiusMdPx: 8,
-    radiusLgPx: 12,
-    radiusXlPx: 16,
+    radiusMdPx: 6,
+    radiusLgPx: 8,
+    radiusXlPx: 12,
     spacingScale: 1,
   },
   opacity: {
-    panel: 0.94,
-    overlay: 0.58,
+    panel: 1,
+    overlay: 0.5,
   },
   colors: {
     light: {
@@ -144,7 +144,7 @@ export function validateAppearanceTokens(value: unknown): AppearanceValidation {
     diagnostics.push(`Версия настроек оформления "${String(value.schemaVersion)}" не поддерживается`);
   }
 
-  const typographyKeys = ['fontFamily', 'baseFontSizePx', 'lineHeight'];
+  const typographyKeys = ['fontFamily', 'baseFontSizePx', 'lineHeightScale'];
   if (!isRecord(value.typography) || !hasOnlyKeys(value.typography, typographyKeys)) {
     diagnostics.push('Блок типографики имеет неверный формат');
   } else {
@@ -154,8 +154,8 @@ export function validateAppearanceTokens(value: unknown): AppearanceValidation {
     if (!isNumberInRange(value.typography.baseFontSizePx, 12, 20)) {
       diagnostics.push('Базовый размер шрифта должен быть от 12 до 20 px');
     }
-    if (!isNumberInRange(value.typography.lineHeight, 1.2, 1.8)) {
-      diagnostics.push('Межстрочный интервал должен быть от 1.2 до 1.8');
+    if (!isNumberInRange(value.typography.lineHeightScale, 0.8, 1.2)) {
+      diagnostics.push('Масштаб межстрочного интервала должен быть от 0.8 до 1.2');
     }
   }
 
@@ -251,21 +251,23 @@ export function createAppearanceStylesheet(value: unknown): string {
       ? '"DM Mono", ui-monospace, monospace'
       : 'ui-sans-serif, system-ui, sans-serif';
   const base = tokens.typography.baseFontSizePx;
-  const lineHeight = tokens.typography.lineHeight;
+  const lineHeightScale = tokens.typography.lineHeightScale;
   const common = [
     `--font-sans: ${fontFamily};`,
     'font-family: var(--font-sans);',
     '--font-mono: "DM Mono", ui-monospace, monospace;',
-    `--text-xs: ${(base * 0.82).toFixed(2)}px;`,
+    `--text-xs: ${(base * 0.857).toFixed(2)}px;`,
     `--text-sm: ${base.toFixed(2)}px;`,
     `--text-base: ${(base * 1.14).toFixed(2)}px;`,
     `--text-lg: ${(base * 1.29).toFixed(2)}px;`,
-    `--text-xl: ${(base * 1.57).toFixed(2)}px;`,
-    `--text-2xl: ${(base * 1.86).toFixed(2)}px;`,
-    `--text-xs--line-height: ${lineHeight};`,
-    `--text-sm--line-height: ${lineHeight};`,
-    `--text-base--line-height: ${lineHeight};`,
-    `--text-lg--line-height: ${lineHeight};`,
+    `--text-xl: ${(base * 1.429).toFixed(2)}px;`,
+    `--text-2xl: ${(base * 1.714).toFixed(2)}px;`,
+    `--text-xs--line-height: calc(1rem * ${lineHeightScale});`,
+    `--text-sm--line-height: calc(1.25rem * ${lineHeightScale});`,
+    `--text-base--line-height: calc(1.5rem * ${lineHeightScale});`,
+    `--text-lg--line-height: calc(1.75rem * ${lineHeightScale});`,
+    `--text-xl--line-height: calc(1.75rem * ${lineHeightScale});`,
+    `--text-2xl--line-height: calc(2rem * ${lineHeightScale});`,
     `--spacing: ${(4 * tokens.shape.spacingScale).toFixed(2)}px;`,
     `--radius-sm: ${tokens.shape.radiusSmPx}px;`,
     `--radius-md: ${tokens.shape.radiusMdPx}px;`,
