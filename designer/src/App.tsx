@@ -93,18 +93,65 @@ export default function App() {
     if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.navigationIcons || !registryData.defaultNavigationLayout || !registryData.defaultAppearanceTokens) {
       throw new Error(registryData.error || 'Не удалось загрузить реестр компонентов');
     }
-    setConfiguration(configurationData.configuration ?? null);
-    setHistory(historyData.revisions ?? []);
+
+    let currentConfiguration = configurationData.configuration ?? null;
+    let currentHistory = historyData.revisions ?? [];
+
+    if (!currentConfiguration) {
+      const draftResponse = await fetch(new URL('/api/designer/configuration/drafts', activeConnection.apiBaseUrl), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scope: { type: 'global' },
+          changes: { navigation: registryData.defaultNavigationLayout },
+        }),
+      });
+      const draftData = await readApiResponse(draftResponse);
+      if (!draftResponse.ok || !draftData.ok || !draftData.draft || draftData.analysis?.canApply === false || draftData.navigationValidation?.valid === false) {
+        const diagnostics = draftData.analysis?.diagnostics?.map((item: { message: string }) => item.message) ?? [];
+        throw new Error(diagnostics.join('; ') || draftData.error || 'Не удалось создать начальную конфигурацию Designer');
+      }
+
+      const applyResponse = await fetch(new URL('/api/designer/configuration/apply', activeConnection.apiBaseUrl), {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json', 'X-OneCore-Approval': 'user-confirmed' },
+        body: JSON.stringify({ draft: draftData.draft }),
+      });
+      const applyData = await readApiResponse(applyResponse);
+
+      if (applyResponse.status === 409) {
+        const [latestConfigurationResponse, latestHistoryResponse] = await Promise.all([
+          fetch(new URL('/api/designer/configuration?scope=global', activeConnection.apiBaseUrl), { headers }),
+          fetch(new URL('/api/designer/configuration/history?scope=global', activeConnection.apiBaseUrl), { headers }),
+        ]);
+        const latestConfigurationData = await readApiResponse(latestConfigurationResponse);
+        const latestHistoryData = await readApiResponse(latestHistoryResponse);
+        if (!latestConfigurationResponse.ok || !latestConfigurationData.ok || !latestConfigurationData.configuration || !latestHistoryResponse.ok || !latestHistoryData.ok) {
+          throw new Error(latestConfigurationData.error || 'Не удалось загрузить созданную глобальную конфигурацию');
+        }
+        currentConfiguration = latestConfigurationData.configuration;
+        currentHistory = latestHistoryData.revisions ?? [];
+      } else {
+        if (!applyResponse.ok || !applyData.ok || !applyData.configuration) {
+          throw new Error(applyData.error || 'Не удалось сохранить начальную конфигурацию Designer');
+        }
+        currentConfiguration = applyData.configuration;
+        currentHistory = [applyData.configuration];
+      }
+    }
+
+    setConfiguration(currentConfiguration);
+    setHistory(currentHistory);
     setRegistry(registryData.registry);
     setNavigationIcons(registryData.navigationIcons);
-    const savedNavigationLayout = configurationData.configuration?.config.navigation;
+    const savedNavigationLayout = currentConfiguration?.config.navigation;
     setNavigationLayout(
       savedNavigationLayout && typeof savedNavigationLayout === 'object' && !Array.isArray(savedNavigationLayout)
         ? savedNavigationLayout as NavigationLayoutConfig
         : registryData.defaultNavigationLayout,
     );
     setNavigationLayoutDirty(false);
-    const savedAppearance = configurationData.configuration?.config.appearance;
+    const savedAppearance = currentConfiguration?.config.appearance;
     setAppearanceTokens(
       savedAppearance && typeof savedAppearance === 'object' && !Array.isArray(savedAppearance)
         ? savedAppearance as AppearanceTokens
@@ -449,7 +496,7 @@ export default function App() {
               ) : (
                 <div className="mt-6 rounded-xl border border-dashed border-zinc-300 px-5 py-10 text-center dark:border-zinc-700">
                   <p className="text-sm font-medium">Глобальная конфигурация ещё не создана</p>
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Хранилище готово. Runtime OneCoreAI пока не использует Designer-конфигурации.</p>
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Runtime OneCoreAI загружает сохранённую конфигурацию навигации при запуске и возврате в окно приложения. Настройки оформления применяются после сохранения в Designer.</p>
                 </div>
               )}
 
