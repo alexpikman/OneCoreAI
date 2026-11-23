@@ -237,6 +237,7 @@ function writeEncryptedVault(store: VaultStore): void {
 }
 
 async function tryOsKeychainSet(account: string, secret: string): Promise<boolean> {
+  if (process.env.ONECORE_TEST_DISABLE_OS_KEYCHAIN === '1') return false;
   const platform = os.platform();
   try {
     if (platform === 'darwin') {
@@ -271,6 +272,7 @@ async function tryOsKeychainSet(account: string, secret: string): Promise<boolea
 }
 
 async function tryOsKeychainGet(account: string): Promise<string | null> {
+  if (process.env.ONECORE_TEST_DISABLE_OS_KEYCHAIN === '1') return null;
   const platform = os.platform();
   try {
     if (platform === 'darwin') {
@@ -298,6 +300,7 @@ async function tryOsKeychainGet(account: string): Promise<string | null> {
 }
 
 async function tryOsKeychainDelete(account: string): Promise<void> {
+  if (process.env.ONECORE_TEST_DISABLE_OS_KEYCHAIN === '1') return;
   const platform = os.platform();
   try {
     if (platform === 'darwin') {
