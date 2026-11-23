@@ -66,7 +66,6 @@ export const NAV_GROUPS: NavigationGroup[] = [
     description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
     items: [
       { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
-      { id: 'subagents-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
     ],
   },
   {
@@ -137,7 +136,7 @@ export function getActiveNavigationGroup(activeTab: AppTab, settingsSection: Set
   ) {
     return 'AI Инструменты';
   }
-  if (activeTab === 'models' && ['roles-pipeline', 'subagents-delegation'].includes(settingsSection)) {
+  if (activeTab === 'models' && settingsSection === 'roles-pipeline') {
     return 'Агенты';
   }
   if (
