@@ -274,7 +274,9 @@ export interface ConfigurationDocumentValidation {
 function validateConfigurationValue(
   value: unknown,
   seen: WeakSet<object>,
+  depth = 0,
 ): boolean {
+  if (depth > 64) return false;
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
   if (typeof value === 'number') return Number.isFinite(value);
   if (typeof value !== 'object') return false;
@@ -283,12 +285,12 @@ function validateConfigurationValue(
 
   let valid: boolean;
   if (Array.isArray(value)) {
-    valid = value.every((item) => validateConfigurationValue(item, seen));
+    valid = value.every((item) => validateConfigurationValue(item, seen, depth + 1));
   } else if (!isConfigurationObject(value)) {
     valid = false;
   } else {
     valid = Object.entries(value).every(([key, child]) =>
-      !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen),
+      !FORBIDDEN_KEYS.has(key) && validateConfigurationValue(child, seen, depth + 1),
     );
   }
   seen.delete(value);
