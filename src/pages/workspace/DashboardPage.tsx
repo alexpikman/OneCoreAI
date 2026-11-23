@@ -18,7 +18,7 @@ import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
 import { apiFetch } from '../../utils/apiFetch';
-import { validateDashboardLayout, type DashboardLayoutConfig } from '../../data/dashboardLayout';
+import { createDefaultDashboardCards, validateDashboardLayout, type DashboardLayoutConfig } from '../../data/dashboardLayout';
 
 const gridColumns: Record<number, string> = {
   1: 'grid-cols-1 xl:grid-cols-1', 2: 'grid-cols-1 xl:grid-cols-2', 3: 'grid-cols-1 xl:grid-cols-3', 4: 'grid-cols-1 xl:grid-cols-4',
@@ -51,6 +51,7 @@ const gridRowSpans: Record<number, string> = {
 const defaultDashboardLayout: DashboardLayoutConfig = {
   schemaVersion: 1,
   grid: { columns: 12, rows: 4, gap: 3 },
+  cards: createDefaultDashboardCards(),
   elements: [
     { id: 'dashboard-system', title: 'Состояние системы', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
     { id: 'dashboard-ai', title: 'AI-инфраструктура', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
@@ -61,6 +62,14 @@ const defaultDashboardLayout: DashboardLayoutConfig = {
 
 const dashboardSectionTitle = (layout: DashboardLayoutConfig, id: string, fallback: string): string =>
   layout.elements.find((element) => element.id === id)?.title?.trim() || fallback;
+
+const dashboardCardTitle = (layout: DashboardLayoutConfig, id: string, fallback: string): string =>
+  (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.title ?? fallback;
+
+const dashboardCardOrderClass = (layout: DashboardLayoutConfig, id: string): string => {
+  const order = (layout.cards ?? createDefaultDashboardCards()).find((card) => card.id === id)?.order ?? 1;
+  return ({ 1: 'order-1', 2: 'order-2', 3: 'order-3', 4: 'order-4' } as Record<number, string>)[order] ?? 'order-1';
+};
 
 const dashboardSectionClass = (layout: DashboardLayoutConfig, id: string): string => {
   const item = layout.elements.find((element) => element.id === id)
@@ -83,6 +92,7 @@ interface DashboardCardProps {
   icon: React.ComponentType<{ className?: string }>;
   onClick: () => void;
   status?: 'good' | 'warning' | 'neutral';
+  orderClass: string;
 }
 
 const DashboardCard: React.FC<DashboardCardProps> = ({
@@ -92,11 +102,12 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
   icon: Icon,
   onClick,
   status = 'neutral',
+  orderClass,
 }) => (
   <button
     type="button"
     onClick={onClick}
-    className="group min-w-0 rounded-2xl border border-zinc-200/80 bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-blue-700"
+    className={`group min-w-0 ${orderClass} rounded-2xl border border-zinc-200/80 bg-white/80 p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-800 dark:bg-zinc-900/70 dark:hover:border-blue-700`}
   >
     <div className="flex items-center justify-between gap-3">
       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">{title}</span>
@@ -226,7 +237,8 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
-                title="Процессор"
+                title={dashboardCardTitle(dashboardLayout, 'cpu', 'Процессор')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'cpu')}
                 value={hardwareLoading && !hardware ? 'Загрузка…' : hardware ? `${hardware.cpu.cores} ядер` : 'Нет данных'}
                 detail={hardware?.cpu.model || hardwareError || 'Аппаратный профиль не получен'}
                 icon={Cpu}
@@ -234,7 +246,8 @@ export const DashboardPage: React.FC = () => {
                 status={hardware ? 'good' : 'warning'}
               />
               <DashboardCard
-                title="Оперативная память"
+                title={dashboardCardTitle(dashboardLayout, 'ram', 'Оперативная память')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'ram')}
                 value={hardware ? formatGb(hardware.ram.totalGb - hardware.ram.freeGb) : 'Нет данных'}
                 detail={
                   hardware
@@ -246,7 +259,8 @@ export const DashboardPage: React.FC = () => {
                 status={hardware ? 'good' : 'warning'}
               />
               <DashboardCard
-                title="Графический процессор"
+                title={dashboardCardTitle(dashboardLayout, 'gpu', 'Графический процессор')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'gpu')}
                 value={
                   hardware?.gpuDetected
                     ? formatGb(hardware.totalVramGb - hardware.freeVramGb)
@@ -264,7 +278,8 @@ export const DashboardPage: React.FC = () => {
                 status={hardware?.gpuDetected ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Диск"
+                title={dashboardCardTitle(dashboardLayout, 'disk', 'Диск')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'disk')}
                 value={hardware ? formatGb(hardware.disk.freeGb) : 'Нет данных'}
                 detail={hardware ? `свободно из ${formatGb(hardware.disk.totalGb)}` : hardwareError || 'Нет данных'}
                 icon={HardDrive}
@@ -278,7 +293,8 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-ai', 'AI-инфраструктура')}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
-                title="Локальные модели"
+                title={dashboardCardTitle(dashboardLayout, 'models', 'Локальные модели')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'models')}
                 value={String(readyModels)}
                 detail={activeModel ? `Активна: ${activeModel.name}` : `${localModels.length} моделей · активная не выбрана`}
                 icon={Server}
@@ -286,7 +302,8 @@ export const DashboardPage: React.FC = () => {
                 status={localModelsError ? 'warning' : readyModels > 0 ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Провайдеры"
+                title={dashboardCardTitle(dashboardLayout, 'providers', 'Провайдеры')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'providers')}
                 value={String(connectedProviders)}
                 detail={activeProvider ? `Выбран: ${activeProvider.name}` : `${freeProviders.length} настроено`}
                 icon={Cloud}
@@ -294,7 +311,8 @@ export const DashboardPage: React.FC = () => {
                 status={providerErrors > 0 ? 'warning' : connectedProviders > 0 ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Агенты"
+                title={dashboardCardTitle(dashboardLayout, 'agents', 'Агенты')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'agents')}
                 value={String(activeAgents)}
                 detail={agentActivity === 'idle' ? 'Основной агент не выполняет задачу' : 'Основной агент занят'}
                 icon={Bot}
@@ -302,7 +320,8 @@ export const DashboardPage: React.FC = () => {
                 status={activeAgents > 0 || agentActivity !== 'idle' ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Среда моделей"
+                title={dashboardCardTitle(dashboardLayout, 'inference', 'Среда моделей')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'inference')}
                 value={
                   serverStatus === 'ready'
                     ? 'Готова'
@@ -332,7 +351,8 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-activity', 'Рабочая активность')}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
-                title="Проекты"
+                title={dashboardCardTitle(dashboardLayout, 'projects', 'Проекты')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'projects')}
                 value={String(projects.length)}
                 detail="Созданные рабочие проекты"
                 icon={FolderKanban}
@@ -340,7 +360,8 @@ export const DashboardPage: React.FC = () => {
                 status={projects.length > 0 ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Задачи в работе"
+                title={dashboardCardTitle(dashboardLayout, 'tasks', 'Задачи в работе')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'tasks')}
                 value={String(activeTasks)}
                 detail={`${pendingTasks} ожидают выполнения в активном проекте`}
                 icon={CheckCircle2}
@@ -348,7 +369,8 @@ export const DashboardPage: React.FC = () => {
                 status={activeTasks > 0 ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Процессы"
+                title={dashboardCardTitle(dashboardLayout, 'processes', 'Процессы')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'processes')}
                 value={String(activeAgents + activeTasks)}
                 detail="Активные агенты и задачи проекта"
                 icon={Workflow}
@@ -356,7 +378,8 @@ export const DashboardPage: React.FC = () => {
                 status={activeAgents + activeTasks > 0 ? 'good' : 'neutral'}
               />
               <DashboardCard
-                title="Подключения"
+                title={dashboardCardTitle(dashboardLayout, 'integrations', 'Подключения')}
+                orderClass={dashboardCardOrderClass(dashboardLayout, 'integrations')}
                 value={String(connectedIntegrations)}
                 detail="Провайдеры, SSH, шлюзы и GitHub"
                 icon={Cloud}
