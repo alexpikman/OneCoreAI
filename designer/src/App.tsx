@@ -183,7 +183,7 @@ export default function App() {
         });
         const validationData = await readApiResponse(validationResponse);
         if (!validationResponse.ok || !validationData.validation?.valid) {
-          throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
+          throw new Error(validationData.validation?.diagnostics.map((item: { message: string }) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
         }
       }
 
@@ -214,8 +214,8 @@ export default function App() {
         draftData.appearanceValidation?.valid === false
       ) {
         const diagnostics = [
-          ...(draftData.analysis?.diagnostics.map((item) => item.message) ?? []),
-          ...(draftData.navigationValidation?.diagnostics.map((item) => item.message) ?? []),
+          ...(draftData.analysis?.diagnostics.map((item: { message: string }) => item.message) ?? []),
+          ...(draftData.navigationValidation?.diagnostics.map((item: { message: string }) => item.message) ?? []),
           ...(draftData.appearanceValidation?.diagnostics ?? []),
         ];
         throw new Error(diagnostics.join('; ') || draftData.error || 'Не удалось подготовить конфигурацию');
