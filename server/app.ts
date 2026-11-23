@@ -66,6 +66,7 @@ import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
 import { BUILTIN_NAVIGATION_ICON_IDS, getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
+import { createAppearanceStylesheet, DEFAULT_APPEARANCE_TOKENS, validateAppearanceTokens } from '../src/data/appearanceTokens';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -324,6 +325,8 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     const isDesignerConfigurationRoute =
       req.path === '/designer/registry' ||
       req.path === '/designer/navigation/validate' ||
+      req.path === '/designer/appearance/validate' ||
+      req.path === '/designer/theme.css' ||
       req.path === '/designer/configuration' ||
       req.path.startsWith('/designer/configuration/');
     if (apiSession.scope === 'designer' && !isDesignerConfigurationRoute) {
@@ -866,12 +869,40 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       registry: getBuiltInComponentRegistry(),
       navigationIcons: BUILTIN_NAVIGATION_ICON_IDS,
       defaultNavigationLayout,
+      defaultAppearanceTokens: DEFAULT_APPEARANCE_TOKENS,
     });
   });
 
   app.post('/api/designer/navigation/validate', (req, res) => {
     const validation = validateNavigationLayout(req.body?.layout);
     res.json({ ok: true, validation });
+  });
+
+  app.post('/api/designer/appearance/validate', (req, res) => {
+    const validation = validateAppearanceTokens(req.body?.appearance);
+    res.json({
+      ok: true,
+      validation,
+      ...(validation.valid ? { css: createAppearanceStylesheet(req.body.appearance) } : {}),
+    });
+  });
+
+  app.get('/api/designer/theme.css', (req, res) => {
+    try {
+      const configuration = readConfigurationDocument({ type: 'global' });
+      const appearance = configuration?.config.appearance;
+      res.setHeader('Cache-Control', 'no-store');
+      if (appearance === undefined) {
+        res.status(204).end();
+        return;
+      }
+      res.type('text/css').send(createAppearanceStylesheet(appearance));
+    } catch (err) {
+      res.status(400).json({
+        ok: false,
+        error: err instanceof Error ? err.message : 'Не удалось загрузить тему Designer',
+      });
+    }
   });
 
   app.get('/api/designer/configuration', (req, res) => {
@@ -904,7 +935,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const navigationValidation = draft.config.navigation === undefined
         ? null
         : validateNavigationLayout(draft.config.navigation);
-      res.json({ ok: true, draft, analysis, navigationValidation });
+      const appearanceValidation = draft.config.appearance === undefined
+        ? null
+        : validateAppearanceTokens(draft.config.appearance);
+      res.json({ ok: true, draft, analysis, navigationValidation, appearanceValidation });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось создать черновик' });
     }
