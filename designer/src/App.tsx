@@ -20,6 +20,19 @@ interface ApiError {
   error?: string;
 }
 
+async function readApiResponse(response: Response): Promise<any> {
+  const body = await response.text();
+  if (!body.trim()) {
+    throw new Error(`OneCoreAI API вернул пустой ответ (HTTP ${response.status})`);
+  }
+  try {
+    return JSON.parse(body);
+  } catch {
+    const preview = body.slice(0, 180).replace(/\s+/g, ' ');
+    throw new Error(`OneCoreAI API вернул некорректный JSON (HTTP ${response.status}): ${preview}`);
+  }
+}
+
 function normalizeApiUrl(value: string): string {
   const parsed = new URL(value.trim());
   if (parsed.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(parsed.hostname)) {
@@ -68,14 +81,9 @@ export default function App() {
       fetch(new URL('/api/designer/configuration/history?scope=global', activeConnection.apiBaseUrl), { headers }),
       fetch(new URL('/api/designer/registry', activeConnection.apiBaseUrl), { headers }),
     ]);
-    const configurationData = await configurationResponse.json() as ApiError & { configuration?: ConfigurationDocument | null };
-    const historyData = await historyResponse.json() as ApiError & { revisions?: ConfigurationDocument[] };
-    const registryData = await registryResponse.json() as ApiError & {
-      registry?: ComponentRegistry;
-      navigationIcons?: string[];
-      defaultNavigationLayout?: NavigationLayoutConfig;
-      defaultAppearanceTokens?: AppearanceTokens;
-    };
+    const configurationData = await readApiResponse(configurationResponse);
+    const historyData = await readApiResponse(historyResponse);
+    const registryData = await readApiResponse(registryResponse);
     if (!configurationResponse.ok || !configurationData.ok) {
       throw new Error(configurationData.error || 'Не удалось загрузить конфигурацию');
     }
@@ -120,7 +128,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: pairingCode.trim() }),
       });
-      const data = await response.json() as ApiError & { token?: string };
+      const data = await readApiResponse(response);
       if (!response.ok || !data.ok || !data.token) {
         throw new Error(data.error || 'Не удалось связать Designer с OneCoreAI');
       }
@@ -173,8 +181,7 @@ export default function App() {
           headers,
           body: JSON.stringify({ layout: changes.navigation }),
         });
-        const validationData = await validationResponse.json() as ApiError & {
-          validation?: { valid: boolean; diagnostics: Array<{ message: string }> };
+        const validationData = await readApiResponse(validationResponse);
         };
         if (!validationResponse.ok || !validationData.validation?.valid) {
           throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
@@ -187,8 +194,7 @@ export default function App() {
           headers,
           body: JSON.stringify({ appearance: changes.appearance }),
         });
-        const validationData = await validationResponse.json() as ApiError & {
-          validation?: { valid: boolean; diagnostics: string[] };
+        const validationData = await readApiResponse(validationResponse);
         };
         if (!validationResponse.ok || !validationData.validation?.valid) {
           throw new Error(validationData.validation?.diagnostics.join('; ') || validationData.error || 'Настройки оформления не прошли проверку');
@@ -200,9 +206,7 @@ export default function App() {
         headers,
         body: JSON.stringify({ scope: { type: 'global' }, changes }),
       });
-      const draftData = await draftResponse.json() as ApiError & {
-        draft?: unknown;
-        analysis?: { canApply: boolean; diagnostics: Array<{ message: string }> };
+      const draftData = await readApiResponse(draftResponse);
         navigationValidation?: { valid: boolean; diagnostics: Array<{ message: string }> } | null;
         appearanceValidation?: { valid: boolean; diagnostics: string[] } | null;
       };
@@ -227,7 +231,7 @@ export default function App() {
         headers: { ...headers, 'X-OneCore-Approval': 'user-confirmed' },
         body: JSON.stringify({ draft: draftData.draft }),
       });
-      const applyData = await applyResponse.json() as ApiError;
+      const applyData = await readApiResponse(applyResponse);
       if (!applyResponse.ok || !applyData.ok) {
         throw new Error(applyData.error || 'Не удалось сохранить конфигурацию');
       }
@@ -277,8 +281,7 @@ export default function App() {
         },
         body: JSON.stringify({ appearance: appearanceTokens }),
       });
-      const data = await response.json() as ApiError & {
-        validation?: { valid: boolean; diagnostics: string[] };
+      const data = await readApiResponse(response);
         css?: string;
       };
       if (!response.ok || !data.validation?.valid || !data.css) {
@@ -327,7 +330,7 @@ export default function App() {
           expectedCurrentRevision: configuration.revision,
         }),
       });
-      const data = await response.json() as ApiError & { configuration?: ConfigurationDocument };
+      const data = await readApiResponse(response);
       if (!response.ok || !data.ok) throw new Error(data.error || 'Не удалось восстановить ревизию');
       await loadConfiguration(connection);
       setNotice(`Создана новая ревизия на основе версии ${revision}.`);
