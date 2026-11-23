@@ -12,6 +12,28 @@ interface Connection {
   token: string;
 }
 
+interface ComponentRegistry {
+  schemaVersion: number;
+  components: Array<{
+    id: string;
+    label: string;
+    renderer: string;
+    category: string;
+    protected: boolean;
+    protectedReason?: string;
+    supportsPageBlockReorder: boolean;
+    constraints: string[];
+  }>;
+  navigation: Array<{
+    id: string;
+    groupId: string;
+    groupLabel: string;
+    label: string;
+    componentId: string;
+  }>;
+}
+
+
 interface ApiError {
   ok?: boolean;
   error?: string;
@@ -31,26 +53,33 @@ export default function App() {
   const [connection, setConnection] = useState<Connection | null>(null);
   const [configuration, setConfiguration] = useState<ConfigurationDocument | null>(null);
   const [history, setHistory] = useState<ConfigurationDocument[]>([]);
+  const [registry, setRegistry] = useState<ComponentRegistry | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
   const loadConfiguration = async (activeConnection: Connection) => {
     const headers = { Authorization: `Bearer ${activeConnection.token}` };
-    const [configurationResponse, historyResponse] = await Promise.all([
+    const [configurationResponse, historyResponse, registryResponse] = await Promise.all([
       fetch(new URL('/api/designer/configuration?scope=global', activeConnection.apiBaseUrl), { headers }),
       fetch(new URL('/api/designer/configuration/history?scope=global', activeConnection.apiBaseUrl), { headers }),
+      fetch(new URL('/api/designer/registry', activeConnection.apiBaseUrl), { headers }),
     ]);
     const configurationData = await configurationResponse.json() as ApiError & { configuration?: ConfigurationDocument | null };
     const historyData = await historyResponse.json() as ApiError & { revisions?: ConfigurationDocument[] };
+    const registryData = await registryResponse.json() as ApiError & { registry?: ComponentRegistry };
     if (!configurationResponse.ok || !configurationData.ok) {
       throw new Error(configurationData.error || 'Не удалось загрузить конфигурацию');
     }
     if (!historyResponse.ok || !historyData.ok) {
       throw new Error(historyData.error || 'Не удалось загрузить историю конфигураций');
     }
+    if (!registryResponse.ok || !registryData.ok || !registryData.registry) {
+      throw new Error(registryData.error || 'Не удалось загрузить реестр компонентов');
+    }
     setConfiguration(configurationData.configuration ?? null);
     setHistory(historyData.revisions ?? []);
+    setRegistry(registryData.registry);
   };
 
   const connect = async (event: FormEvent<HTMLFormElement>) => {
@@ -133,6 +162,7 @@ export default function App() {
     setConnection(null);
     setConfiguration(null);
     setHistory([]);
+    setRegistry(null);
     setNotice('');
     setError('');
   };
@@ -269,6 +299,28 @@ export default function App() {
                     История пока пуста
                   </p>
                 )}
+              </div>
+              <div className="mt-6 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                <h3 className="text-sm font-semibold">Реестр компонентов</h3>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  {registry?.components.length ?? 0} страниц · {registry?.navigation.length ?? 0} пунктов навигации
+                </p>
+                <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
+                  {registry?.components.map((component) => (
+                    <div key={component.id} className="rounded-lg border border-zinc-200 px-3 py-2 dark:border-zinc-800">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-medium">{component.label}</span>
+                        {component.protected && (
+                          <span className="shrink-0 text-[10px] font-medium text-amber-700 dark:text-amber-400">LOCKED</span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-500">{component.renderer}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  Перемещение пунктов навигации поддерживается реестром. Перестановка страниц как блоков пока заблокирована.
+                </p>
               </div>
             </aside>
           </div>
