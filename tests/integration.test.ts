@@ -258,7 +258,9 @@ test('page-level navigation shares the primary catalog and resolves active desti
     NAV_GROUPS.map((group) => group.label),
     ['Рабочее пространство', 'Контекст', 'AI Инструменты', 'Агенты', 'Библиотека знаний', 'Интеграции', 'Настройки', 'Журналы'],
   );
-  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 2, 4, 5, 5, 5]);
+  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 1, 4, 5, 5, 5]);
+  const agentsGroup = NAV_GROUPS.find((group) => group.id === 'ai-agents');
+  assert.deepEqual(agentsGroup?.items.map((item) => item.label), ['General Agent и роли']);
   for (const group of NAV_GROUPS) {
     assert.ok(group.items.length <= 5, `Group ${group.id} exceeds 5 items`);
   }
