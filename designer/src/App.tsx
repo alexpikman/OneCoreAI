@@ -157,10 +157,26 @@ export default function App() {
     );
     setNavigationLayoutDirty(false);
     const savedDesignerLayout = currentConfiguration?.config.layout;
-    setDesignerLayout(savedDesignerLayout && typeof savedDesignerLayout === 'object' && !Array.isArray(savedDesignerLayout)
+    const requiredDashboardSections = [
+      'dashboard-system',
+      'dashboard-ai',
+      'dashboard-activity',
+      'dashboard-issues',
+    ];
+    const hasDashboardLayout = Boolean(
+      savedDesignerLayout &&
+      typeof savedDesignerLayout === 'object' &&
+      !Array.isArray(savedDesignerLayout) &&
+      (savedDesignerLayout as DesignerLayout).schemaVersion === 1 &&
+      Array.isArray((savedDesignerLayout as DesignerLayout).elements) &&
+      requiredDashboardSections.every((id) =>
+        (savedDesignerLayout as DesignerLayout).elements.some((element) => element.id === id),
+      ),
+    );
+    setDesignerLayout(hasDashboardLayout
       ? savedDesignerLayout as DesignerLayout
       : createDefaultDesignerLayout());
-    setDesignerLayoutDirty(false);
+    setDesignerLayoutDirty(Boolean(savedDesignerLayout && !hasDashboardLayout));
     const savedAppearance = currentConfiguration?.config.appearance;
     setAppearanceTokens(
       savedAppearance && typeof savedAppearance === 'object' && !Array.isArray(savedAppearance)
