@@ -7,10 +7,37 @@ export interface DashboardLayoutElement {
   title?: string;
 }
 
+export interface DashboardCardLayout {
+  id: string;
+  sectionId: 'dashboard-system' | 'dashboard-ai' | 'dashboard-activity';
+  title: string;
+  order: number;
+}
+
 export interface DashboardLayoutConfig {
   schemaVersion: 1;
   grid: { columns: number; rows: number; gap: number };
   elements: DashboardLayoutElement[];
+  cards?: DashboardCardLayout[];
+}
+
+export const DASHBOARD_CARD_DEFINITIONS: readonly DashboardCardLayout[] = [
+  { id: 'cpu', sectionId: 'dashboard-system', title: 'Процессор', order: 1 },
+  { id: 'ram', sectionId: 'dashboard-system', title: 'Оперативная память', order: 2 },
+  { id: 'gpu', sectionId: 'dashboard-system', title: 'Графический процессор', order: 3 },
+  { id: 'disk', sectionId: 'dashboard-system', title: 'Диск', order: 4 },
+  { id: 'models', sectionId: 'dashboard-ai', title: 'Локальные модели', order: 1 },
+  { id: 'providers', sectionId: 'dashboard-ai', title: 'Провайдеры', order: 2 },
+  { id: 'agents', sectionId: 'dashboard-ai', title: 'Агенты', order: 3 },
+  { id: 'inference', sectionId: 'dashboard-ai', title: 'Среда моделей', order: 4 },
+  { id: 'projects', sectionId: 'dashboard-activity', title: 'Проекты', order: 1 },
+  { id: 'tasks', sectionId: 'dashboard-activity', title: 'Задачи в работе', order: 2 },
+  { id: 'processes', sectionId: 'dashboard-activity', title: 'Процессы', order: 3 },
+  { id: 'integrations', sectionId: 'dashboard-activity', title: 'Подключения', order: 4 },
+];
+
+export function createDefaultDashboardCards(): DashboardCardLayout[] {
+  return DASHBOARD_CARD_DEFINITIONS.map((card) => ({ ...card }));
 }
 
 export const REQUIRED_DASHBOARD_SECTION_IDS = [
@@ -80,6 +107,42 @@ export function validateDashboardLayout(value: unknown): {
   for (const id of ids) {
     if (!(REQUIRED_DASHBOARD_SECTION_IDS as readonly string[]).includes(id)) {
       diagnostics.push(`Блок "${id}" не зарегистрирован в runtime дашборда`);
+    }
+  }
+
+  if (layout.cards !== undefined) {
+    if (!Array.isArray(layout.cards)) {
+      diagnostics.push('Список карточек дашборда должен быть массивом');
+    } else {
+      const cardIds = new Set<string>();
+      const cardOrders = new Set<string>();
+      for (const card of layout.cards) {
+        if (!card || typeof card !== 'object' || typeof card.id !== 'string') {
+          diagnostics.push('Карточка дашборда содержит некорректный идентификатор');
+          continue;
+        }
+        const definition = DASHBOARD_CARD_DEFINITIONS.find((item) => item.id === card.id);
+        if (!definition) {
+          diagnostics.push(`Карточка "${card.id}" не зарегистрирована в runtime дашборда`);
+          continue;
+        }
+        if (cardIds.has(card.id)) diagnostics.push(`Карточка "${card.id}" повторяется`);
+        cardIds.add(card.id);
+        if (
+          card.sectionId !== definition.sectionId ||
+          typeof card.title !== 'string' || !card.title.trim() || card.title.length > 80 ||
+          !Number.isInteger(card.order) || card.order < 1 || card.order > 4
+        ) {
+          diagnostics.push(`Карточка "${card.id}" содержит недопустимые свойства`);
+          continue;
+        }
+        const orderKey = `${card.sectionId}:${card.order}`;
+        if (cardOrders.has(orderKey)) diagnostics.push(`Позиция ${card.order} в секции "${card.sectionId}" занята`);
+        cardOrders.add(orderKey);
+      }
+      for (const definition of DASHBOARD_CARD_DEFINITIONS) {
+        if (!cardIds.has(definition.id)) diagnostics.push(`Обязательную карточку "${definition.id}" нельзя удалить`);
+      }
     }
   }
 
