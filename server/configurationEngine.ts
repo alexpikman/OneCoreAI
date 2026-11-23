@@ -122,6 +122,8 @@ export function analyzeConfigurationDependencies(
     });
   }
 
+  const reportedConflicts = new Set<string>();
+
   for (const node of nodes) {
     if (node.parentId && !nodesById.has(node.parentId)) {
       diagnostics.push({
@@ -153,7 +155,9 @@ export function analyzeConfigurationDependencies(
       const conflict = nodesById.get(conflictId);
       if (!conflict || conflict.enabled === false) continue;
       const pair = [node.id, conflictId].sort();
-      if (nodesById.get(pair[0])?.conflictsWith?.includes(pair[1])) {
+      const conflictKey = pair.join('|');
+      if (nodesById.get(pair[0])?.conflictsWith?.includes(pair[1]) && !reportedConflicts.has(conflictKey)) {
+        reportedConflicts.add(conflictKey);
         diagnostics.push({
           code: 'conflicting-nodes',
           message: `Элементы "${pair[0]}" и "${pair[1]}" несовместимы`,
