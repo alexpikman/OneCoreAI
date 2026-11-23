@@ -266,7 +266,8 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       fetchSite &&
       fetchSite !== 'same-origin' &&
       fetchSite !== 'none' &&
-      !isTauriOrigin
+      !isTauriOrigin &&
+      !isDesignerDevOrigin
     ) {
       res.status(403).json({ ok: false, error: 'Cross-site requests are not allowed' });
       return;
