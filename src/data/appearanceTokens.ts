@@ -253,6 +253,7 @@ export function createAppearanceStylesheet(value: unknown): string {
   const lineHeight = tokens.typography.lineHeight;
   const common = [
     `--font-sans: ${fontFamily};`,
+    'font-family: var(--font-sans);',
     '--font-mono: "DM Mono", ui-monospace, monospace;',
     `--text-xs: ${(base * 0.82).toFixed(2)}px;`,
     `--text-sm: ${base.toFixed(2)}px;`,
