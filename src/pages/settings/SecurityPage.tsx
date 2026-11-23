@@ -95,7 +95,7 @@ export const SecurityPage: React.FC = () => {
           ? JSON.parse(responseBody) as typeof data
           : {};
       } catch {
-        const preview = responseBody.slice(0, 240).replace(/\\s+/g, ' ');
+        const preview = responseBody.slice(0, 240).replace(/\s+/g, ' ');
         throw new Error(
           `API подключения Designer вернул некорректный ответ (HTTP ${response.status}): ${preview || 'пустое тело ответа'}`,
         );
