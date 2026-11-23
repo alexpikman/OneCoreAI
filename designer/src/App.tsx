@@ -34,6 +34,7 @@ export default function App() {
   const [configuration, setConfiguration] = useState<ConfigurationDocument | null>(null);
   const [history, setHistory] = useState<ConfigurationDocument[]>([]);
   const [registry, setRegistry] = useState<ComponentRegistry | null>(null);
+  const [navigationIcons, setNavigationIcons] = useState<string[]>([]);
   const [navigationLayout, setNavigationLayout] = useState<NavigationLayoutConfig | null>(null);
   const [navigationLayoutDirty, setNavigationLayoutDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,6 +52,7 @@ export default function App() {
     const historyData = await historyResponse.json() as ApiError & { revisions?: ConfigurationDocument[] };
     const registryData = await registryResponse.json() as ApiError & {
       registry?: ComponentRegistry;
+      navigationIcons?: string[];
       defaultNavigationLayout?: NavigationLayoutConfig;
     };
     if (!configurationResponse.ok || !configurationData.ok) {
@@ -59,12 +61,13 @@ export default function App() {
     if (!historyResponse.ok || !historyData.ok) {
       throw new Error(historyData.error || 'Не удалось загрузить историю конфигураций');
     }
-    if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.defaultNavigationLayout) {
+    if (!registryResponse.ok || !registryData.ok || !registryData.registry || !registryData.navigationIcons || !registryData.defaultNavigationLayout) {
       throw new Error(registryData.error || 'Не удалось загрузить реестр компонентов');
     }
     setConfiguration(configurationData.configuration ?? null);
     setHistory(historyData.revisions ?? []);
     setRegistry(registryData.registry);
+    setNavigationIcons(registryData.navigationIcons);
     const savedNavigationLayout = configurationData.configuration?.config.navigation;
     setNavigationLayout(
       savedNavigationLayout && typeof savedNavigationLayout === 'object' && !Array.isArray(savedNavigationLayout)
@@ -213,6 +216,7 @@ export default function App() {
     setConfiguration(null);
     setHistory([]);
     setRegistry(null);
+    setNavigationIcons([]);
     setNavigationLayout(null);
     setNavigationLayoutDirty(false);
     setNotice('');
@@ -327,6 +331,7 @@ export default function App() {
                   layout={navigationLayout}
                   dirty={navigationLayoutDirty}
                   saving={busy}
+                  icons={navigationIcons}
                   onChange={(nextLayout) => {
                     setNavigationLayout(nextLayout);
                     setNavigationLayoutDirty(true);
