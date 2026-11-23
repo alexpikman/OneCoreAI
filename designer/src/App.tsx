@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AppearanceEditor } from './AppearanceEditor';
 import { NavigationEditor } from './NavigationEditor';
 import type { AppearanceTokens, ComponentRegistry, NavigationLayoutConfig } from './types';
@@ -40,11 +40,28 @@ export default function App() {
   const [navigationLayoutDirty, setNavigationLayoutDirty] = useState(false);
   const [appearanceTokens, setAppearanceTokens] = useState<AppearanceTokens | null>(null);
   const [appearanceDirty, setAppearanceDirty] = useState(false);
+  const [appearancePreviewing, setAppearancePreviewing] = useState(false);
+  const previewLinkRef = useRef<HTMLLinkElement | null>(null);
+  const previewObjectUrlRef = useRef<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
+  const clearAppearancePreview = () => {
+    previewLinkRef.current?.remove();
+    previewLinkRef.current = null;
+    if (previewObjectUrlRef.current) URL.revokeObjectURL(previewObjectUrlRef.current);
+    previewObjectUrlRef.current = null;
+    setAppearancePreviewing(false);
+  };
+
+  useEffect(() => () => {
+    previewLinkRef.current?.remove();
+    if (previewObjectUrlRef.current) URL.revokeObjectURL(previewObjectUrlRef.current);
+  }, []);
+
   const loadConfiguration = async (activeConnection: Connection) => {
+    clearAppearancePreview();
     const headers = { Authorization: `Bearer ${activeConnection.token}` };
     const [configurationResponse, historyResponse, registryResponse] = await Promise.all([
       fetch(new URL('/api/designer/configuration?scope=global', activeConnection.apiBaseUrl), { headers }),
@@ -247,6 +264,46 @@ export default function App() {
     );
   };
 
+  const previewAppearance = async () => {
+    if (!connection || !appearanceTokens) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(new URL('/api/designer/appearance/validate', connection.apiBaseUrl), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${connection.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ appearance: appearanceTokens }),
+      });
+      const data = await response.json() as ApiError & {
+        validation?: { valid: boolean; diagnostics: string[] };
+        css?: string;
+      };
+      if (!response.ok || !data.validation?.valid || !data.css) {
+        throw new Error(data.validation?.diagnostics.join('; ') || data.error || 'Не удалось построить предпросмотр оформления');
+      }
+
+      const nextUrl = URL.createObjectURL(new Blob([data.css], { type: 'text/css' }));
+      const nextLink = document.createElement('link');
+      nextLink.rel = 'stylesheet';
+      nextLink.href = nextUrl;
+      nextLink.dataset.onecoreDesignerPreview = 'true';
+      document.head.appendChild(nextLink);
+
+      previewLinkRef.current?.remove();
+      if (previewObjectUrlRef.current) URL.revokeObjectURL(previewObjectUrlRef.current);
+      previewLinkRef.current = nextLink;
+      previewObjectUrlRef.current = nextUrl;
+      setAppearancePreviewing(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка предпросмотра оформления');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const restore = async (revision: number) => {
     if (!connection || !configuration) return;
     const confirmation = navigationLayoutDirty || appearanceDirty
@@ -417,7 +474,11 @@ export default function App() {
                   tokens={appearanceTokens}
                   dirty={appearanceDirty}
                   saving={busy}
+                  previewing={appearancePreviewing}
+                  onPreview={() => void previewAppearance()}
+                  onClearPreview={clearAppearancePreview}
                   onChange={(nextTokens) => {
+                    clearAppearancePreview();
                     setAppearanceTokens(nextTokens);
                     setAppearanceDirty(true);
                   }}
