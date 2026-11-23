@@ -261,6 +261,11 @@ test('page-level navigation shares the primary catalog and resolves active desti
   assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 1, 4, 5, 5, 5]);
   const agentsGroup = NAV_GROUPS.find((group) => group.id === 'ai-agents');
   assert.deepEqual(agentsGroup?.items.map((item) => item.label), ['General Agent и роли']);
+  assert.deepEqual(
+    agentsGroup?.items[0].children?.map((item) => item.label),
+    ['Роли одной модели', 'Разрешения и указания', 'Субагенты и делегирование'],
+  );
+  assert.equal(getActiveNavigationGroup('models', 'agent-permissions'), 'Агенты');
   for (const group of NAV_GROUPS) {
     assert.ok(group.items.length <= 5, `Group ${group.id} exceeds 5 items`);
   }
