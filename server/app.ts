@@ -66,6 +66,7 @@ import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
 import { BUILTIN_NAVIGATION_ICON_IDS, getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
+import { validateDashboardLayout } from '../src/data/dashboardLayout';
 import { createAppearanceStylesheet, DEFAULT_APPEARANCE_TOKENS, validateAppearanceTokens } from '../src/data/appearanceTokens';
 import {
   analyzeConfigurationDraft,
@@ -938,7 +939,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const appearanceValidation = draft.config.appearance === undefined
         ? null
         : validateAppearanceTokens(draft.config.appearance);
-      res.json({ ok: true, draft, analysis, navigationValidation, appearanceValidation });
+      const layoutValidation = draft.config.layout === undefined
+        ? null
+        : validateDashboardLayout(draft.config.layout);
+      res.json({ ok: true, draft, analysis, navigationValidation, appearanceValidation, layoutValidation });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось создать черновик' });
     }
@@ -947,7 +951,15 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.post('/api/designer/configuration/apply', async (req, res) => {
     if (!requireSideEffectApproval(req, res, 'configuration.apply', 'designer-configuration')) return;
     try {
-      const document = await applyConfigurationDraft(req.body?.draft as ConfigurationDraft);
+      const draft = req.body?.draft as ConfigurationDraft;
+      if (draft?.config?.layout !== undefined) {
+        const layoutValidation = validateDashboardLayout(draft.config.layout);
+        if (!layoutValidation.valid) {
+          res.status(400).json({ ok: false, error: layoutValidation.diagnostics.join('; ') });
+          return;
+        }
+      }
+      const document = await applyConfigurationDraft(draft);
       recordAgentEvent({
         category: 'system',
         level: 'info',
