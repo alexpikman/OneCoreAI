@@ -5,9 +5,9 @@
 ## Этап 0. Каноническая документация
 
 - [x] Создать индекс Intelligence Library.
-- [x] Зафиксировать Ontology v2 как Draft.
-- [x] Зафиксировать Playbook Schema v1.1 с открытыми вопросами.
-- [x] Зафиксировать Execution Model v2 с открытыми вопросами.
+- [x] Зафиксировать Ontology как Draft.
+- [x] Зафиксировать Playbook Schema с открытыми вопросами.
+- [x] Зафиксировать Execution Model с открытыми вопросами.
 - [x] Создать каркас Capability Contract и Decision Trace.
 - [x] Описать read-only Code Audit и последовательность реализации.
 - [x] Добавить модели Delegation, Skill Registry и Task Context Package.
