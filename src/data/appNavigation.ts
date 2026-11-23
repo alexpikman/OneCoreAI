@@ -119,64 +119,17 @@ export const NAV_GROUPS: NavigationGroup[] = [
   },
 ];
 
-export function getActiveNavigationGroup(activeTab: AppTab, settingsSection: SettingsSectionId): string {
-  if (
-    (activeTab === 'models' &&
-      [
-        'providers',
-        'model-manager',
-        'engine-paths',
-        'llama-models',
-        'llama-gguf',
-        'model-search',
-        'llama-paged-attention',
-        'llama-openai-api',
-        'llama-benchmark',
-      ].includes(settingsSection)) ||
-    (activeTab === 'settings' && settingsSection === 'engine-paths')
-  ) {
-    return 'AI Инструменты';
-  }
-  if (activeTab === 'models' && ['roles-pipeline', 'subagents-delegation'].includes(settingsSection)) {
-    return 'Агенты';
-  }
-  if (
-    activeTab === 'skills' ||
-    activeTab === 'instructions' ||
-    activeTab === 'directories' ||
-    (activeTab === 'models' && settingsSection === 'skills-memory')
-  ) {
-    return 'Библиотека знаний';
-  }
-  if (
-    activeTab === 'projects' ||
-    activeTab === 'tasks' ||
-    activeTab === 'processes' ||
-    activeTab === 'files' ||
-    activeTab === 'project-history'
-  ) {
-    return 'Контекст';
-  }
-  if (
-    activeTab === 'operations-log' ||
-    activeTab === 'error-log' ||
-    activeTab === 'agent-journal' ||
-    activeTab === 'memory' ||
-    activeTab === 'tasks-history'
-  ) {
-    return 'Журналы';
-  }
-  if (
-    activeTab === 'mcp' ||
-    activeTab === 'tools-hooks' ||
-    (activeTab === 'settings' && (settingsSection === 'ssh-github' || settingsSection === 'gateway'))
-  ) {
-    return 'Интеграции';
-  }
-  if (activeTab === 'settings' || activeTab === 'system' || activeTab === 'security' || activeTab === 'permissions') {
-    return 'Настройки';
-  }
-  return 'Рабочее пространство';
+export function getActiveNavigationGroup(
+  activeTab: AppTab,
+  settingsSection: SettingsSectionId,
+  groups: readonly NavigationGroup[] = NAV_GROUPS,
+): string {
+  const activeGroup = groups.find((group) =>
+    group.items.some((item) =>
+      isNavigationItemActive(item, activeTab, settingsSection, 'ssh-keys'),
+    ),
+  );
+  return activeGroup?.label ?? groups[0]?.label ?? 'Рабочее пространство';
 }
 
 export function isNavigationItemActive(
