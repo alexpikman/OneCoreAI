@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -17,6 +17,71 @@ import { useOneCoreStore } from '../../store/useOneCoreStore';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
+import { apiFetch } from '../../utils/apiFetch';
+
+interface DashboardLayoutElement {
+  id: string;
+  column: number;
+  row: number;
+  columnSpan: number;
+  rowSpan: number;
+}
+
+interface DashboardLayoutConfig {
+  schemaVersion: 1;
+  grid: { columns: number; rows: number; gap: number };
+  elements: DashboardLayoutElement[];
+}
+
+const gridColumns: Record<number, string> = {
+  1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4',
+  5: 'grid-cols-5', 6: 'grid-cols-6', 7: 'grid-cols-7', 8: 'grid-cols-8',
+  9: 'grid-cols-9', 10: 'grid-cols-10', 11: 'grid-cols-11', 12: 'grid-cols-12',
+};
+const gridGaps: Record<number, string> = {
+  1: 'gap-1', 2: 'gap-2', 3: 'gap-3', 4: 'gap-4', 5: 'gap-5', 6: 'gap-6',
+};
+const gridStarts: Record<number, string> = {
+  1: 'col-start-1', 2: 'col-start-2', 3: 'col-start-3', 4: 'col-start-4',
+  5: 'col-start-5', 6: 'col-start-6', 7: 'col-start-7', 8: 'col-start-8',
+  9: 'col-start-9', 10: 'col-start-10', 11: 'col-start-11', 12: 'col-start-12',
+};
+const gridSpans: Record<number, string> = {
+  1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3', 4: 'col-span-4',
+  5: 'col-span-5', 6: 'col-span-6', 7: 'col-span-7', 8: 'col-span-8',
+  9: 'col-span-9', 10: 'col-span-10', 11: 'col-span-11', 12: 'col-span-12',
+};
+const gridRowStarts: Record<number, string> = {
+  1: 'row-start-1', 2: 'row-start-2', 3: 'row-start-3', 4: 'row-start-4',
+  5: 'row-start-5', 6: 'row-start-6', 7: 'row-start-7', 8: 'row-start-8',
+  9: 'row-start-9', 10: 'row-start-10', 11: 'row-start-11', 12: 'row-start-12',
+};
+const gridRowSpans: Record<number, string> = {
+  1: 'row-span-1', 2: 'row-span-2', 3: 'row-span-3', 4: 'row-span-4',
+  5: 'row-span-5', 6: 'row-span-6', 7: 'row-span-7', 8: 'row-span-8',
+};
+
+const defaultDashboardLayout: DashboardLayoutConfig = {
+  schemaVersion: 1,
+  grid: { columns: 12, rows: 4, gap: 3 },
+  elements: [
+    { id: 'dashboard-system', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-ai', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-activity', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-issues', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
+  ],
+};
+
+const dashboardSectionClass = (layout: DashboardLayoutConfig, id: string): string => {
+  const item = layout.elements.find((element) => element.id === id)
+    ?? defaultDashboardLayout.elements.find((element) => element.id === id)!;
+  return [
+    gridStarts[item.column] ?? 'col-start-1',
+    gridSpans[item.columnSpan] ?? 'col-span-12',
+    gridRowStarts[item.row] ?? 'row-start-1',
+    gridRowSpans[item.rowSpan] ?? 'row-span-1',
+  ].join(' ');
+};
 
 const formatGb = (value?: number) =>
   typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(1)} ГБ` : '—';
@@ -65,6 +130,40 @@ const DashboardCard: React.FC<DashboardCardProps> = ({
 );
 
 export const DashboardPage: React.FC = () => {
+  const [dashboardLayout, setDashboardLayout] = useState<DashboardLayoutConfig>(defaultDashboardLayout);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void apiFetch('/api/designer/configuration?scope=global', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const payload = await response.json() as {
+          configuration?: { config?: { layout?: DashboardLayoutConfig } } | null;
+        };
+        const saved = payload.configuration?.config?.layout;
+        if (
+          saved?.schemaVersion === 1 &&
+          Array.isArray(saved.elements) &&
+          saved.grid &&
+          Number.isInteger(saved.grid.columns) &&
+          saved.grid.columns >= 1 &&
+          saved.grid.columns <= 12 &&
+          Number.isInteger(saved.grid.gap) &&
+          saved.grid.gap >= 1 &&
+          saved.grid.gap <= 6
+        ) {
+          const requiredIds = defaultDashboardLayout.elements.map((item) => item.id);
+          const hasAllDashboardSections = requiredIds.every((id) =>
+            saved.elements.some((item) => item.id === id),
+          );
+          if (hasAllDashboardSections) setDashboardLayout(saved);
+        }
+        return null;
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
   const hardware = useOneCoreStore((state) => state.hardwareProfile);
   const hardwareError = useOneCoreStore((state) => state.hardwareError);
   const hardwareLoading = useOneCoreStore((state) => state.hardwareLoading);
@@ -137,8 +236,8 @@ export const DashboardPage: React.FC = () => {
       </PageHeader>
 
       <PageContent>
-        <div className="flex flex-col gap-6 py-5">
-          <section className="space-y-3">
+        <div className={`grid auto-rows-min ${gridColumns[dashboardLayout.grid.columns] ?? gridColumns[12]} ${gridGaps[dashboardLayout.grid.gap] ?? gridGaps[3]} py-5`}>
+          <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-system')}`}>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Состояние системы</h2>
               <button
@@ -199,7 +298,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="space-y-3">
+          <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-ai')}`}>
             <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">AI-инфраструктура</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
@@ -253,7 +352,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="space-y-3">
+          <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-activity')}`}>
             <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Рабочая активность</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
@@ -291,7 +390,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-zinc-200/80 bg-white/70 p-4 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <section className={`rounded-2xl border border-zinc-200/80 bg-white/70 p-4 dark:border-zinc-800 dark:bg-zinc-900/50 ${dashboardSectionClass(dashboardLayout, 'dashboard-issues')}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className={`h-4 w-4 ${issueCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
