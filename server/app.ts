@@ -65,6 +65,7 @@ import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
 import { getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
+import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -322,6 +323,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
     const isDesignerConfigurationRoute =
       req.path === '/designer/registry' ||
+      req.path === '/designer/navigation/validate' ||
       req.path === '/designer/configuration' ||
       req.path.startsWith('/designer/configuration/');
     if (apiSession.scope === 'designer' && !isDesignerConfigurationRoute) {
@@ -853,7 +855,16 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       return;
     }
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ ok: true, registry: getBuiltInComponentRegistry() });
+    res.json({
+      ok: true,
+      registry: getBuiltInComponentRegistry(),
+      defaultNavigationLayout: createDefaultNavigationLayout(),
+    });
+  });
+
+  app.post('/api/designer/navigation/validate', (req, res) => {
+    const validation = validateNavigationLayout(req.body?.layout);
+    res.json({ ok: true, validation });
   });
 
   app.get('/api/designer/configuration', (req, res) => {
@@ -883,7 +894,10 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const base = current ?? createConfigurationDocument(scope, {});
       const draft = createConfigurationDraft(base, req.body?.changes);
       const analysis = analyzeConfigurationDraft(draft);
-      res.json({ ok: true, draft, analysis });
+      const navigationValidation = draft.config.navigation === undefined
+        ? null
+        : validateNavigationLayout(draft.config.navigation);
+      res.json({ ok: true, draft, analysis, navigationValidation });
     } catch (err) {
       res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось создать черновик' });
     }
