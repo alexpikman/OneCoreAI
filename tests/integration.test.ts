@@ -3159,3 +3159,69 @@ test('configuration documents reject cyclic object graphs before cloning', () =>
     cyclic as never,
   ), /безопасные JSON-значения/);
 });
+
+
+import {
+  applyConfigurationDraft,
+  listConfigurationHistory,
+  readConfigurationDocument,
+  restoreConfigurationRevision,
+} from '../server/configurationManager';
+
+test('configuration manager applies revisions, rejects stale drafts and restores history safely', async () => {
+  const scope = { type: 'project' as const, projectId: `designer-test-${crypto.randomUUID()}` };
+  const scopeKey = crypto.createHash('sha256').update(scope.projectId).digest('hex');
+  const storageRoot = path.join(tempOneCoreHome, 'designer-configurations');
+
+  try {
+    const base = createConfigurationDocument(scope, { layout: { columns: 3 } });
+    const firstDraft = createConfigurationDraft(base, { layout: { columns: 2 } });
+    const first = await applyConfigurationDraft(firstDraft);
+
+    assert.equal(first.revision, 1);
+    assert.deepEqual(readConfigurationDocument(scope)?.config, { layout: { columns: 2 } });
+
+    const staleDraft = createConfigurationDraft(base, { layout: { columns: 1 } });
+    const secondDraft = createConfigurationDraft(first, { layout: { density: 'compact' } });
+    const second = await applyConfigurationDraft(secondDraft);
+
+    assert.equal(second.revision, 2);
+    await assert.rejects(
+      applyConfigurationDraft(staleDraft),
+      /изменена после создания черновика/i,
+    );
+
+    const restored = await restoreConfigurationRevision(scope, 1, 2);
+    assert.equal(restored.revision, 3);
+    assert.deepEqual(restored.config, { layout: { columns: 2 } });
+    assert.deepEqual(
+      listConfigurationHistory(scope).map((item) => item.revision),
+      [3, 2, 1],
+    );
+  } finally {
+    fs.rmSync(path.join(storageRoot, 'current', `${scopeKey}.json`), { force: true });
+    fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
+  }
+});
+
+test('configuration manager serializes concurrent applies against the same base revision', async () => {
+  const scope = { type: 'project' as const, projectId: `designer-race-${crypto.randomUUID()}` };
+  const scopeKey = crypto.createHash('sha256').update(scope.projectId).digest('hex');
+  const storageRoot = path.join(tempOneCoreHome, 'designer-configurations');
+
+  try {
+    const base = createConfigurationDocument(scope, { value: 0 });
+    const drafts = [
+      createConfigurationDraft(base, { value: 1 }),
+      createConfigurationDraft(base, { value: 2 }),
+    ];
+    const results = await Promise.allSettled(drafts.map((draft) => applyConfigurationDraft(draft)));
+
+    assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+    assert.equal(results.filter((result) => result.status === 'rejected').length, 1);
+    assert.equal(readConfigurationDocument(scope)?.revision, 1);
+  } finally {
+    fs.rmSync(path.join(storageRoot, 'current', `${scopeKey}.json`), { force: true });
+    fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
+  }
+});
