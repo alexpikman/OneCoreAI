@@ -182,7 +182,6 @@ export default function App() {
           body: JSON.stringify({ layout: changes.navigation }),
         });
         const validationData = await readApiResponse(validationResponse);
-        };
         if (!validationResponse.ok || !validationData.validation?.valid) {
           throw new Error(validationData.validation?.diagnostics.map((item) => item.message).join('; ') || validationData.error || 'Макет навигации не прошёл проверку');
         }
@@ -195,7 +194,6 @@ export default function App() {
           body: JSON.stringify({ appearance: changes.appearance }),
         });
         const validationData = await readApiResponse(validationResponse);
-        };
         if (!validationResponse.ok || !validationData.validation?.valid) {
           throw new Error(validationData.validation?.diagnostics.join('; ') || validationData.error || 'Настройки оформления не прошли проверку');
         }
@@ -207,9 +205,6 @@ export default function App() {
         body: JSON.stringify({ scope: { type: 'global' }, changes }),
       });
       const draftData = await readApiResponse(draftResponse);
-        navigationValidation?: { valid: boolean; diagnostics: Array<{ message: string }> } | null;
-        appearanceValidation?: { valid: boolean; diagnostics: string[] } | null;
-      };
       if (
         !draftResponse.ok ||
         !draftData.ok ||
@@ -282,8 +277,6 @@ export default function App() {
         body: JSON.stringify({ appearance: appearanceTokens }),
       });
       const data = await readApiResponse(response);
-        css?: string;
-      };
       if (!response.ok || !data.validation?.valid || !data.css) {
         throw new Error(data.validation?.diagnostics.join('; ') || data.error || 'Не удалось построить предпросмотр оформления');
       }
