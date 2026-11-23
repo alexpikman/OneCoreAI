@@ -18,21 +18,7 @@ import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
 import { apiFetch } from '../../utils/apiFetch';
-
-interface DashboardLayoutElement {
-  id: string;
-  column: number;
-  row: number;
-  columnSpan: number;
-  rowSpan: number;
-  title?: string;
-}
-
-interface DashboardLayoutConfig {
-  schemaVersion: 1;
-  grid: { columns: number; rows: number; gap: number };
-  elements: DashboardLayoutElement[];
-}
+import { validateDashboardLayout, type DashboardLayoutConfig } from '../../data/dashboardLayout';
 
 const gridColumns: Record<number, string> = {
   1: 'grid-cols-1 xl:grid-cols-1', 2: 'grid-cols-1 xl:grid-cols-2', 3: 'grid-cols-1 xl:grid-cols-3', 4: 'grid-cols-1 xl:grid-cols-4',
@@ -145,22 +131,8 @@ export const DashboardPage: React.FC = () => {
           configuration?: { config?: { layout?: DashboardLayoutConfig } } | null;
         };
         const saved = payload.configuration?.config?.layout;
-        if (
-          saved?.schemaVersion === 1 &&
-          Array.isArray(saved.elements) &&
-          saved.grid &&
-          Number.isInteger(saved.grid.columns) &&
-          saved.grid.columns >= 1 &&
-          saved.grid.columns <= 12 &&
-          Number.isInteger(saved.grid.gap) &&
-          saved.grid.gap >= 1 &&
-          saved.grid.gap <= 6
-        ) {
-          const requiredIds = defaultDashboardLayout.elements.map((item) => item.id);
-          const hasAllDashboardSections = requiredIds.every((id) =>
-            saved.elements.some((item) => item.id === id),
-          );
-          if (hasAllDashboardSections) setDashboardLayout(saved);
+        if (validateDashboardLayout(saved).valid) {
+          setDashboardLayout(saved);
         }
         return null;
       })
