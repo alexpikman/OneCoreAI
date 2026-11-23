@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { getOneCoreHome } from './paths';
 import { validateNavigationLayout } from '../src/data/navigationLayout';
+import { validateAppearanceTokens } from '../src/data/appearanceTokens';
 import {
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -76,10 +77,17 @@ function readDocument(filePath: string, expectedScope: ConfigurationScope): Conf
 }
 
 function assertDesignerConfigurationValid(config: ConfigurationDocument['config']): void {
-  if (config.navigation === undefined) return;
-  const validation = validateNavigationLayout(config.navigation);
-  if (!validation.valid) {
-    throw new Error(`Макет навигации некорректен: ${validation.diagnostics.map((item) => item.message).join('; ')}`);
+  if (config.navigation !== undefined) {
+    const validation = validateNavigationLayout(config.navigation);
+    if (!validation.valid) {
+      throw new Error(`Макет навигации некорректен: ${validation.diagnostics.map((item) => item.message).join('; ')}`);
+    }
+  }
+  if (config.appearance !== undefined) {
+    const validation = validateAppearanceTokens(config.appearance);
+    if (!validation.valid) {
+      throw new Error(`Настройки оформления некорректны: ${validation.diagnostics.join('; ')}`);
+    }
   }
 }
 
