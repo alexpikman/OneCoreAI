@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AppearanceEditor } from './AppearanceEditor';
 import { NavigationEditor } from './NavigationEditor';
 import { createDefaultDesignerLayout, LayoutEditor, type DesignerLayout } from './LayoutEditor';
+import { validateDashboardLayout } from '../../src/data/dashboardLayout';
 import type { AppearanceTokens, ComponentRegistry, NavigationLayoutConfig } from './types';
 
 interface ConfigurationDocument {
@@ -157,22 +158,7 @@ export default function App() {
     );
     setNavigationLayoutDirty(false);
     const savedDesignerLayout = currentConfiguration?.config.layout;
-    const requiredDashboardSections = [
-      'dashboard-system',
-      'dashboard-ai',
-      'dashboard-activity',
-      'dashboard-issues',
-    ];
-    const hasDashboardLayout = Boolean(
-      savedDesignerLayout &&
-      typeof savedDesignerLayout === 'object' &&
-      !Array.isArray(savedDesignerLayout) &&
-      (savedDesignerLayout as DesignerLayout).schemaVersion === 1 &&
-      Array.isArray((savedDesignerLayout as DesignerLayout).elements) &&
-      requiredDashboardSections.every((id) =>
-        (savedDesignerLayout as DesignerLayout).elements.some((element) => element.id === id),
-      ),
-    );
+    const hasDashboardLayout = validateDashboardLayout(savedDesignerLayout).valid;
     setDesignerLayout(hasDashboardLayout
       ? savedDesignerLayout as DesignerLayout
       : createDefaultDesignerLayout());
@@ -284,12 +270,14 @@ export default function App() {
         !draftData.draft ||
         draftData.analysis?.canApply === false ||
         draftData.navigationValidation?.valid === false ||
-        draftData.appearanceValidation?.valid === false
+        draftData.appearanceValidation?.valid === false ||
+        draftData.layoutValidation?.valid === false
       ) {
         const diagnostics = [
           ...(draftData.analysis?.diagnostics.map((item: { message: string }) => item.message) ?? []),
           ...(draftData.navigationValidation?.diagnostics.map((item: { message: string }) => item.message) ?? []),
           ...(draftData.appearanceValidation?.diagnostics ?? []),
+          ...(draftData.layoutValidation?.diagnostics ?? []),
         ];
         throw new Error(diagnostics.join('; ') || draftData.error || 'Не удалось подготовить конфигурацию');
       }
