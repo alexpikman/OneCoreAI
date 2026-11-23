@@ -40,7 +40,6 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
     ]},
     { id: 'group.ai-agents', label: 'Агенты', children: [
       { id: 'item.agent-roles', label: 'General Agent и роли' },
-      { id: 'item.subagents-delegation', label: 'Субагенты и делегирование' },
     ]},
     { id: 'group.knowledge', label: 'Библиотека знаний', children: [
       { id: 'item.skills', label: 'Библиотека навыков' },
