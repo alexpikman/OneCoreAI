@@ -3341,6 +3341,11 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   });
   assert.equal(authenticated.status, 200);
 
+  const outsideDesigner = await fetch(`${apiBaseUrl}/api/projects`, {
+    headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
+  });
+  assert.equal(outsideDesigner.status, 403);
+
   const reused = await fetch(`${apiBaseUrl}/api/designer/session`, {
     method: 'POST',
     headers: { Origin: 'tauri://localhost', 'Content-Type': 'application/json' },
