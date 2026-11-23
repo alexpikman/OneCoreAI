@@ -63,7 +63,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ children, actions = [], 
 
   return (
     <header className={`sticky top-0 z-30 w-full shrink-0 ${pageSurface}`}>
-      <div className={`${PAGE_CONTAINER_CLASS} flex min-w-0 flex-col justify-center gap-1.5 py-2 ${showSubNavigation ? '' : 'border-b border-zinc-200 dark:border-zinc-800'}`}>
+      <div className={`${PAGE_CONTAINER_CLASS} flex min-w-0 items-center justify-between gap-4 py-2 ${showSubNavigation ? '' : 'border-b border-zinc-200 dark:border-zinc-800'}`}>
+        <div className="min-w-0 flex-1 flex flex-col justify-center gap-1.5">
         {activeGroup && activeSubsection && (
           <div className="flex min-w-0 items-center gap-2 text-xs leading-4">
             <NavTablerIcon name={activeGroup.icon} className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
@@ -72,7 +73,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ children, actions = [], 
             <span className="min-w-0 truncate font-normal text-zinc-600 dark:text-zinc-300">{activeSubsection.label}</span>
           </div>
         )}
-        <div className="min-w-0 flex-1 overflow-hidden [&_h1]:truncate [&_h1]:whitespace-nowrap [&_h1]:text-xs [&_h1]:font-normal [&_h1]:text-zinc-500 dark:[&_h1]:text-zinc-400">{children}</div>
+        <div className="min-w-0 overflow-hidden [&_h1]:truncate [&_h1]:whitespace-nowrap [&_h1]:text-xs [&_h1]:font-normal [&_h1]:text-zinc-500 dark:[&_h1]:text-zinc-400">{children}</div>
+        </div>
         {(status || headerActions.length > 0) && (
             <div className="flex min-w-0 max-w-[48%] shrink-0 flex-nowrap items-center justify-end gap-2 overflow-hidden">
               {status && (
