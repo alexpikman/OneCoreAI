@@ -3533,3 +3533,20 @@ test('configuration manager refuses to persist an invalid navigation layout', as
     fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
   }
 });
+
+
+test('active navigation group follows renamed and rearranged layout groups', () => {
+  const groups = [{
+    id: 'custom-workspace',
+    label: 'Моя рабочая область',
+    icon: 'folder',
+    items: [{
+      id: 'dashboard',
+      label: 'Главная',
+      icon: 'dashboard',
+      tab: 'dashboard' as const,
+    }],
+  }];
+
+  assert.equal(getActiveNavigationGroup('dashboard', 'ui-chat', groups), 'Моя рабочая область');
+});
