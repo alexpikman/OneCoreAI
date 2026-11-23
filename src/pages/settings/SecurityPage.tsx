@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, KeyRound, LockKeyhole, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, KeyRound, Laptop, LockKeyhole, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
@@ -42,6 +42,7 @@ export const SecurityPage: React.FC = () => {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [expandedProviderGroups, setExpandedProviderGroups] = useState<Record<string, boolean>>({});
+  const [designerPairing, setDesignerPairing] = useState<{ code: string; apiBaseUrl: string; expiresAt: string } | null>(null);
 
   const refresh = async () => {
     setLoadingStatus(true);
@@ -65,6 +66,42 @@ export const SecurityPage: React.FC = () => {
   useEffect(() => {
     void refresh().catch(() => undefined);
   }, []);
+
+  const createDesignerPairing = async () => {
+    setBusy('designer-pairing');
+    setError('');
+    setNotice('');
+    setDesignerPairing(null);
+    try {
+      const response = await apiFetch('/api/designer/pairing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OneCore-Approval': 'user-confirmed',
+        },
+        body: JSON.stringify({ approved: true }),
+      });
+      const data = (await response.json()) as {
+        ok?: boolean;
+        code?: string;
+        apiBaseUrl?: string;
+        expiresAt?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.ok || !data.code || !data.apiBaseUrl || !data.expiresAt) {
+        throw new Error(data.error || 'Не удалось создать код подключения Designer');
+      }
+      setDesignerPairing({
+        code: data.code,
+        apiBaseUrl: data.apiBaseUrl,
+        expiresAt: data.expiresAt,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Ошибка подключения Designer');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const credentialId = (provider: ProviderSecret) =>
     `${provider.scope ?? 'primary'}:${provider.roleId ?? ''}:${provider.id}`;
@@ -321,6 +358,38 @@ export const SecurityPage: React.FC = () => {
               <p role="alert" className="mt-2 text-xs text-rose-700 dark:text-rose-300">
                 {statusError}
               </p>
+            )}
+          </section>
+
+          <section className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="flex items-center gap-2">
+              <Laptop className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">OneCore Designer</h2>
+            </div>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              Создайте одноразовый код для подключения отдельного desktop-приложения Designer к этому экземпляру OneCoreAI.
+            </p>
+            <button
+              type="button"
+              disabled={busy === 'designer-pairing'}
+              onClick={() => void createDesignerPairing()}
+              className="mt-4 h-9 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500 disabled:opacity-50 whitespace-nowrap"
+            >
+              {busy === 'designer-pairing' ? 'Создание кода…' : 'Создать код подключения'}
+            </button>
+            {designerPairing && (
+              <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400">Одноразовый код подключения</div>
+                <div className="mt-1 font-mono text-2xl font-semibold tracking-[0.2em] text-zinc-900 dark:text-zinc-100">
+                  {designerPairing.code}
+                </div>
+                <div className="mt-3 break-all text-xs text-zinc-500 dark:text-zinc-400">
+                  API: {designerPairing.apiBaseUrl}
+                </div>
+                <div className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  Действует до {new Date(designerPairing.expiresAt).toLocaleTimeString('ru-RU')}. Использовать можно один раз.
+                </div>
+              </div>
             )}
           </section>
 
