@@ -25,6 +25,7 @@ interface DashboardLayoutElement {
   row: number;
   columnSpan: number;
   rowSpan: number;
+  title?: string;
 }
 
 interface DashboardLayoutConfig {
@@ -65,12 +66,15 @@ const defaultDashboardLayout: DashboardLayoutConfig = {
   schemaVersion: 1,
   grid: { columns: 12, rows: 4, gap: 3 },
   elements: [
-    { id: 'dashboard-system', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
-    { id: 'dashboard-ai', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
-    { id: 'dashboard-activity', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
-    { id: 'dashboard-issues', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-system', title: 'Состояние системы', column: 1, row: 1, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-ai', title: 'AI-инфраструктура', column: 1, row: 2, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-activity', title: 'Рабочая активность', column: 1, row: 3, columnSpan: 12, rowSpan: 1 },
+    { id: 'dashboard-issues', title: 'Требует внимания', column: 1, row: 4, columnSpan: 12, rowSpan: 1 },
   ],
 };
+
+const dashboardSectionTitle = (layout: DashboardLayoutConfig, id: string, fallback: string): string =>
+  layout.elements.find((element) => element.id === id)?.title?.trim() || fallback;
 
 const dashboardSectionClass = (layout: DashboardLayoutConfig, id: string): string => {
   const item = layout.elements.find((element) => element.id === id)
@@ -239,7 +243,7 @@ export const DashboardPage: React.FC = () => {
         <div className={`grid auto-rows-min ${gridColumns[dashboardLayout.grid.columns] ?? gridColumns[12]} ${gridGaps[dashboardLayout.grid.gap] ?? gridGaps[3]} py-5`}>
           <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-system')}`}>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Состояние системы</h2>
+              <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-system', 'Состояние системы')}</h2>
               <button
                 type="button"
                 onClick={openSystem}
@@ -299,7 +303,7 @@ export const DashboardPage: React.FC = () => {
           </section>
 
           <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-ai')}`}>
-            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">AI-инфраструктура</h2>
+            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-ai', 'AI-инфраструктура')}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
                 title="Локальные модели"
@@ -353,7 +357,7 @@ export const DashboardPage: React.FC = () => {
           </section>
 
           <section className={`space-y-3 ${dashboardSectionClass(dashboardLayout, 'dashboard-activity')}`}>
-            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Рабочая активность</h2>
+            <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-activity', 'Рабочая активность')}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <DashboardCard
                 title="Проекты"
@@ -394,7 +398,7 @@ export const DashboardPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className={`h-4 w-4 ${issueCount > 0 ? 'text-amber-500' : 'text-emerald-500'}`} />
-                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Требует внимания</h2>
+                <h2 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{dashboardSectionTitle(dashboardLayout, 'dashboard-issues', 'Требует внимания')}</h2>
               </div>
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
                 {issueCount > 0 ? `${issueCount} проблем` : 'Активных проблем не обнаружено'}
