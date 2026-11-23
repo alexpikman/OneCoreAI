@@ -1,10 +1,12 @@
 import React from 'react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import { getActiveNavigationGroup, isNavigationItemActive, NAV_GROUPS } from '../../data/appNavigation';
+import { getActiveNavigationGroup, isNavigationItemActive } from '../../data/appNavigation';
+import { useDesignerNavigationGroups } from './DesignerNavigationContext';
 import { isNavigationVisibilityEnabled } from '../../data/navigationVisibility';
 import { NavigationRibbon } from './NavigationRibbon';
 
 export const PageSubNavigation: React.FC = () => {
+  const navigationGroups = useDesignerNavigationGroups();
   const {
     activeTab,
     settingsSection,
@@ -19,7 +21,7 @@ export const PageSubNavigation: React.FC = () => {
 
   if (activeTab === 'workstation') return null;
 
-  const group = NAV_GROUPS.find((item) => item.label === getActiveNavigationGroup(activeTab, settingsSection));
+  const group = navigationGroups.find((item) => item.label === getActiveNavigationGroup(activeTab, settingsSection, navigationGroups));
   if (!group || !isNavigationVisibilityEnabled(navigationVisibility, `group.${group.id}`)) {
     return <div className="h-10 shrink-0" aria-hidden="true" />;
   }
