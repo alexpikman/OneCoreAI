@@ -82,15 +82,27 @@ export const SecurityPage: React.FC = () => {
         },
         body: JSON.stringify({ approved: true }),
       });
-      const data = (await response.json()) as {
+      const responseBody = await response.text();
+      let data: {
         ok?: boolean;
         code?: string;
         apiBaseUrl?: string;
         expiresAt?: string;
         error?: string;
       };
+      try {
+        data = responseBody.trim()
+          ? JSON.parse(responseBody) as typeof data
+          : {};
+      } catch {
+        const preview = responseBody.slice(0, 240).replace(/\\s+/g, ' ');
+        throw new Error(
+          `API подключения Designer вернул некорректный ответ (HTTP ${response.status}): ${preview || 'пустое тело ответа'}`,
+        );
+      }
       if (!response.ok || !data.ok || !data.code || !data.apiBaseUrl || !data.expiresAt) {
-        throw new Error(data.error || 'Не удалось создать код подключения Designer');
+        const detail = data.error || (responseBody.trim() ? responseBody.slice(0, 240) : 'API вернул пустое тело ответа');
+        throw new Error(`Не удалось создать код подключения Designer (HTTP ${response.status}). ${detail}`);
       }
       setDesignerPairing({
         code: data.code,
