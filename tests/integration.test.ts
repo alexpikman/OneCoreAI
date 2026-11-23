@@ -3556,6 +3556,16 @@ test('active navigation group follows renamed and rearranged layout groups', () 
   assert.equal(getActiveNavigationGroup('dashboard', 'ui-chat', groups), 'Моя рабочая область');
 });
 
+test('page subnavigation resolves duplicate group labels by stable group ID', () => {
+  const groups = [
+    { id: 'first', label: 'Одинаковое имя', icon: 'folder', items: [{ id: 'dashboard', label: 'Главная', icon: 'dashboard', tab: 'dashboard' as const }] },
+    { id: 'second', label: 'Одинаковое имя', icon: 'folder', items: [{ id: 'browser', label: 'Браузер', icon: 'world', tab: 'browser' as const }] },
+  ];
+
+  assert.equal(getActiveNavigationGroupId('browser', 'ui-chat', groups), 'second');
+});
+
+
 
 test('active navigation group follows the immutable GitHub and SSH target IDs after groups split', () => {
   const groups = [
