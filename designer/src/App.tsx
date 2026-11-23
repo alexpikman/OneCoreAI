@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 
 interface ConfigurationDocument {
   schemaVersion: number;
@@ -53,7 +53,7 @@ export default function App() {
     setHistory(historyData.revisions ?? []);
   };
 
-  const connect = async (event: React.FormEvent<HTMLFormElement>) => {
+  const connect = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy(true);
     setError('');
