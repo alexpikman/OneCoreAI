@@ -44,6 +44,7 @@ export function DesignerNavigationProvider({ children }: { children: ReactNode }
 
   useEffect(() => {
     let active = true;
+    let hasLoadedConfiguration = false;
     let requestSequence = 0;
 
     const loadNavigation = async () => {
@@ -54,9 +55,12 @@ export function DesignerNavigationProvider({ children }: { children: ReactNode }
         const data = await response.json() as NavigationConfigurationResponse;
         const layout = data.configuration?.config?.navigation;
         const nextGroups = layout ? resolveNavigationGroups(layout) : NAV_GROUPS;
-        if (active && sequence === requestSequence) setGroups(nextGroups);
+        if (active && sequence === requestSequence) {
+          setGroups(nextGroups);
+          hasLoadedConfiguration = true;
+        }
       } catch {
-        if (active && sequence === requestSequence) setGroups(NAV_GROUPS);
+        if (active && sequence === requestSequence && !hasLoadedConfiguration) setGroups(NAV_GROUPS);
       }
     };
 
