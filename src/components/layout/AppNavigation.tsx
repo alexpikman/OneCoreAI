@@ -101,7 +101,7 @@ export const AppNavigation: React.FC = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection, navigationGroups));
+    setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection, navigationGroups, sshGithubSection));
   }, [activeTab, settingsSection, navigationGroups]);
 
   const handleSelectNavItem = (item: NavigationItem) => {
