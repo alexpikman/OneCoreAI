@@ -3379,10 +3379,27 @@ test('Designer pairing issues a one-time desktop session only after explicit app
   const registryPayload = await registryResponse.json() as {
     ok: boolean;
     registry: { components: unknown[]; navigation: unknown[] };
+    defaultNavigationLayout: unknown;
   };
   assert.equal(registryPayload.ok, true);
   assert.equal(registryPayload.registry.components.length, 34);
   assert.equal(registryPayload.registry.navigation.length, NAV_GROUPS.reduce((count, group) => count + group.items.length, 0));
+
+  const navigationValidation = await fetch(`${apiBaseUrl}/api/designer/navigation/validate`, {
+    method: 'POST',
+    headers: {
+      Origin: 'tauri://localhost',
+      Authorization: `Bearer ${session.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ layout: registryPayload.defaultNavigationLayout }),
+  });
+  assert.equal(navigationValidation.status, 200);
+  const navigationValidationData = await navigationValidation.json() as {
+    ok: boolean;
+    validation: { valid: boolean };
+  };
+  assert.equal(navigationValidationData.validation.valid, true);
 
   const outsideDesigner = await fetch(`${apiBaseUrl}/api/projects`, {
     headers: { Origin: 'tauri://localhost', Authorization: `Bearer ${session.token}` },
