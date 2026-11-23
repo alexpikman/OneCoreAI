@@ -172,7 +172,7 @@ export default function App() {
       }
 
       await loadConfiguration(connection);
-      setNotice('Макет навигации сохранён в новой ревизии. Runtime OneCoreAI пока использует прежнюю конфигурацию.');
+      setNotice('Макет навигации сохранён. OneCoreAI обновит навигацию при возврате в окно приложения или при следующем запуске.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка сохранения навигации');
     } finally {
@@ -340,7 +340,7 @@ export default function App() {
                 />
               )}
               <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-4 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-                Изменения навигации проверяются и сохраняются как отдельная версия Designer. Runtime OneCoreAI пока не переключается на этот макет. Перестановка внутренних блоков страниц остаётся заблокированной до описания их контрактов и зависимостей.
+                Изменения навигации проверяются и сохраняются как отдельная версия Designer. Runtime OneCoreAI загружает проверенный макет при запуске и возврате в окно приложения. Перестановка внутренних блоков страниц остаётся заблокированной до описания их контрактов и зависимостей.
               </div>
             </section>
 
