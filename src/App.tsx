@@ -163,6 +163,8 @@ export default function App() {
         return <LlamaServerSettingsPage />;
       case 'roles-pipeline':
         return <AgentTeamPage initialSection="roles" />;
+      case 'agent-permissions':
+        return <AgentTeamPage initialSection="permissions" />;
       case 'subagents-delegation':
         return <AgentTeamPage initialSection="pipeline" />;
       case 'skills-memory':
