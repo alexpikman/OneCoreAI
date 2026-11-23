@@ -275,26 +275,26 @@ export default function App() {
     <DesignerNavigationProvider>
       <div
         data-ui-style={uiStyle}
-      className={cn('h-screen w-screen flex flex-col overflow-hidden', tokens.shellBg, theme === 'dark' && 'dark')}
-    >
-      <div className="flex flex-1 min-h-0 gap-3 overflow-hidden px-3 pt-3 pb-3 lg:px-4 lg:pt-4 lg:pb-4">
-        <AppNavigation />
-        <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
-          {renderActivePage()}
-        </main>
-        <PageContextSidebar
-          projectListCount={projectListCount}
-          onOpenPlanModal={() => setProjectPlanModalOpen(true)}
-          onSelectProjectTab={(tab, projectId) => {
-            setProjectEntityFilterId(projectId);
-            setActiveTab(tab);
-          }}
-        />
-      </div>
-      <OfflineIndicator />
-      <ModelSwitcherModal />
-      <DeleteWarningHost />
-      <NotificationHost />
+        className={cn('h-screen w-screen flex flex-col overflow-hidden', tokens.shellBg, theme === 'dark' && 'dark')}
+      >
+        <div className="flex flex-1 min-h-0 gap-3 overflow-hidden px-3 pt-3 pb-3 lg:px-4 lg:pt-4 lg:pb-4">
+          <AppNavigation />
+          <main className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+            {renderActivePage()}
+          </main>
+          <PageContextSidebar
+            projectListCount={projectListCount}
+            onOpenPlanModal={() => setProjectPlanModalOpen(true)}
+            onSelectProjectTab={(tab, projectId) => {
+              setProjectEntityFilterId(projectId);
+              setActiveTab(tab);
+            }}
+          />
+        </div>
+        <OfflineIndicator />
+        <ModelSwitcherModal />
+        <DeleteWarningHost />
+        <NotificationHost />
       </div>
     </DesignerNavigationProvider>
   );
