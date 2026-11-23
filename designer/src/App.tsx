@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AppearanceEditor } from './AppearanceEditor';
 import { NavigationEditor } from './NavigationEditor';
-import { LayoutEditor } from './LayoutEditor';
+import { createDefaultDesignerLayout, LayoutEditor, type DesignerLayout } from './LayoutEditor';
 import type { AppearanceTokens, ComponentRegistry, NavigationLayoutConfig } from './types';
 
 interface ConfigurationDocument {
@@ -52,6 +52,8 @@ export default function App() {
   const [navigationIcons, setNavigationIcons] = useState<string[]>([]);
   const [navigationLayout, setNavigationLayout] = useState<NavigationLayoutConfig | null>(null);
   const [navigationLayoutDirty, setNavigationLayoutDirty] = useState(false);
+  const [designerLayout, setDesignerLayout] = useState<DesignerLayout>(createDefaultDesignerLayout());
+  const [designerLayoutDirty, setDesignerLayoutDirty] = useState(false);
   const [appearanceTokens, setAppearanceTokens] = useState<AppearanceTokens | null>(null);
   const [appearanceDirty, setAppearanceDirty] = useState(false);
   const [appearancePreviewing, setAppearancePreviewing] = useState(false);
@@ -154,6 +156,11 @@ export default function App() {
         : registryData.defaultNavigationLayout,
     );
     setNavigationLayoutDirty(false);
+    const savedDesignerLayout = currentConfiguration?.config.layout;
+    setDesignerLayout(savedDesignerLayout && typeof savedDesignerLayout === 'object' && !Array.isArray(savedDesignerLayout)
+      ? savedDesignerLayout as DesignerLayout
+      : createDefaultDesignerLayout());
+    setDesignerLayoutDirty(false);
     const savedAppearance = currentConfiguration?.config.appearance;
     setAppearanceTokens(
       savedAppearance && typeof savedAppearance === 'object' && !Array.isArray(savedAppearance)
@@ -196,7 +203,7 @@ export default function App() {
 
   const refresh = async () => {
     if (!connection) return;
-    if ((navigationLayoutDirty || appearanceDirty) && !window.confirm('Отменить несохранённые изменения и загрузить сохранённую версию?')) return;
+    if ((navigationLayoutDirty || appearanceDirty || designerLayoutDirty) && !window.confirm('Отменить несохранённые изменения и загрузить сохранённую версию?')) return;
     setBusy(true);
     setError('');
     try {
@@ -283,6 +290,7 @@ export default function App() {
 
       setNavigationLayoutDirty(false);
       setAppearanceDirty(false);
+      setDesignerLayoutDirty(false);
       await loadConfiguration(connection);
       setNotice(successNotice);
     } catch (e) {
@@ -296,6 +304,7 @@ export default function App() {
     const changes: Record<string, unknown> = {};
     if (navigationLayoutDirty && navigationLayout) changes.navigation = navigationLayout;
     if (appearanceDirty && appearanceTokens) changes.appearance = appearanceTokens;
+    if (designerLayoutDirty) changes.layout = designerLayout;
     void saveConfigurationChanges(changes, confirmation, successNotice);
   };
 
@@ -352,7 +361,7 @@ export default function App() {
 
   const restore = async (revision: number) => {
     if (!connection || !configuration) return;
-    const confirmation = navigationLayoutDirty || appearanceDirty
+    const confirmation = navigationLayoutDirty || appearanceDirty || designerLayoutDirty
       ? `Отменить несохранённые изменения и восстановить версию ${revision}?`
       : `Создать новую ревизию на основе версии ${revision}?`;
     if (!window.confirm(confirmation)) return;
@@ -385,7 +394,7 @@ export default function App() {
   };
 
   const disconnect = () => {
-    if ((navigationLayoutDirty || appearanceDirty) && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
+    if ((navigationLayoutDirty || appearanceDirty || designerLayoutDirty) && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
     clearAppearancePreview();
     setConnection(null);
     setConfiguration(null);
@@ -394,6 +403,8 @@ export default function App() {
     setNavigationIcons([]);
     setNavigationLayout(null);
     setNavigationLayoutDirty(false);
+    setDesignerLayout(createDefaultDesignerLayout());
+    setDesignerLayoutDirty(false);
     setAppearanceTokens(null);
     setAppearanceDirty(false);
     setNotice('');
@@ -509,7 +520,20 @@ export default function App() {
                   </button>
                 </div>
                 {activeEditorMode === 'layout' ? (
-                  <LayoutEditor />
+                  <LayoutEditor
+                    layout={designerLayout}
+                    dirty={designerLayoutDirty}
+                    saving={busy}
+                    onChange={(nextLayout) => {
+                      setDesignerLayout(nextLayout);
+                      setDesignerLayoutDirty(true);
+                    }}
+                    onSave={() => saveConfigurationChanges(
+                      { layout: designerLayout },
+                      'Сохранить текущий макет в конфигурации Designer?',
+                      'Макет сохранён в истории конфигураций Designer.',
+                    )}
+                  />
                 ) : (
                   <div className="space-y-6">
                 {navigationLayout && (
