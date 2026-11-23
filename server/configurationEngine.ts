@@ -157,7 +157,10 @@ export function analyzeConfigurationDependencies(
       if (!conflict || conflict.enabled === false) continue;
       const pair = [node.id, conflictId].sort();
       const conflictKey = pair.join('|');
-      if (nodesById.get(pair[0])?.conflictsWith?.includes(pair[1]) && !reportedConflicts.has(conflictKey)) {
+      const conflictIsDeclared =
+        nodesById.get(pair[0])?.conflictsWith?.includes(pair[1]) ||
+        nodesById.get(pair[1])?.conflictsWith?.includes(pair[0]);
+      if (conflictIsDeclared && !reportedConflicts.has(conflictKey)) {
         reportedConflicts.add(conflictKey);
         diagnostics.push({
           code: 'conflicting-nodes',
