@@ -46,22 +46,64 @@ export function DesignerNavigationProvider({ children }: { children: ReactNode }
     let active = true;
     let hasLoadedConfiguration = false;
     let requestSequence = 0;
+    let themeLink: HTMLLinkElement | null = null;
+    let themeObjectUrl: string | null = null;
 
     const loadNavigation = async () => {
       const sequence = ++requestSequence;
-      try {
-        const response = await apiFetch('/api/designer/configuration?scope=global');
-        if (!response.ok) throw new Error('Designer navigation configuration is unavailable');
-        const data = await response.json() as NavigationConfigurationResponse;
-        const layout = data.configuration?.config?.navigation;
-        const nextGroups = layout ? resolveNavigationGroups(layout) : NAV_GROUPS;
-        if (active && sequence === requestSequence) {
-          setGroups(nextGroups);
-          hasLoadedConfiguration = true;
+      const [configurationResult, themeResult] = await Promise.allSettled([
+        apiFetch('/api/designer/configuration?scope=global'),
+        apiFetch('/api/designer/theme.css'),
+      ]);
+
+      if (!active || sequence !== requestSequence) return;
+
+      if (configurationResult.status === 'fulfilled' && configurationResult.value.ok) {
+        try {
+          const data = await configurationResult.value.json() as NavigationConfigurationResponse;
+          const layout = data.configuration?.config?.navigation;
+          const nextGroups = layout ? resolveNavigationGroups(layout) : NAV_GROUPS;
+          if (active && sequence === requestSequence) {
+            setGroups(nextGroups);
+            hasLoadedConfiguration = true;
+          }
+        } catch {
+          if (active && sequence === requestSequence && !hasLoadedConfiguration) setGroups(NAV_GROUPS);
         }
-      } catch {
-        if (active && sequence === requestSequence && !hasLoadedConfiguration) setGroups(NAV_GROUPS);
+      } else if (!hasLoadedConfiguration) {
+        setGroups(NAV_GROUPS);
       }
+
+      if (themeResult.status !== 'fulfilled' || !themeResult.value.ok && themeResult.value.status !== 204) return;
+      if (themeResult.value.status === 204) {
+        themeLink?.remove();
+        themeLink = null;
+        if (themeObjectUrl) URL.revokeObjectURL(themeObjectUrl);
+        themeObjectUrl = null;
+        return;
+      }
+
+      const css = await themeResult.value.text();
+      if (!active || sequence !== requestSequence) return;
+      if (!css.trim()) {
+        themeLink?.remove();
+        themeLink = null;
+        if (themeObjectUrl) URL.revokeObjectURL(themeObjectUrl);
+        themeObjectUrl = null;
+        return;
+      }
+
+      const nextUrl = URL.createObjectURL(new Blob([css], { type: 'text/css' }));
+      const nextLink = document.createElement('link');
+      nextLink.rel = 'stylesheet';
+      nextLink.href = nextUrl;
+      nextLink.dataset.onecoreDesignerTheme = 'true';
+      document.head.appendChild(nextLink);
+
+      themeLink?.remove();
+      if (themeObjectUrl) URL.revokeObjectURL(themeObjectUrl);
+      themeLink = nextLink;
+      themeObjectUrl = nextUrl;
     };
 
     void loadNavigation();
@@ -69,6 +111,8 @@ export function DesignerNavigationProvider({ children }: { children: ReactNode }
     return () => {
       active = false;
       window.removeEventListener('focus', loadNavigation);
+      themeLink?.remove();
+      if (themeObjectUrl) URL.revokeObjectURL(themeObjectUrl);
     };
   }, []);
 
