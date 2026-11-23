@@ -3031,3 +3031,68 @@ test('11. GitHub repository sync checks diffs, pulls updates, pushes changes, an
 });
 
 
+
+
+import {
+  analyzeConfigurationDependencies,
+  mergeConfigurationLayers,
+} from '../server/configurationEngine';
+
+test('configuration layers merge objects, replace arrays and preserve lower layers', () => {
+  const system = { layout: { density: 'comfortable', columns: 3 }, plugins: ['core'] };
+  const global = { layout: { density: 'compact' }, plugins: ['core', 'designer'] };
+  const project = { layout: { columns: 2 }, plugins: null };
+
+  const resolved = mergeConfigurationLayers(system, global, project);
+
+  assert.deepEqual(resolved, {
+    layout: { density: 'compact', columns: 2 },
+    plugins: null,
+  });
+  assert.deepEqual(system, { layout: { density: 'comfortable', columns: 3 }, plugins: ['core'] });
+  assert.deepEqual(global, { layout: { density: 'compact' }, plugins: ['core', 'designer'] });
+});
+
+test('configuration layer merge rejects prototype-pollution keys', () => {
+  const unsafe = JSON.parse('{"__proto__":{"polluted":true}}') as Record<string, never>;
+  assert.throws(() => mergeConfigurationLayers(unsafe), /Недопустимый ключ конфигурации/);
+});
+
+test('configuration dependency analysis accepts a valid hierarchy', () => {
+  const result = analyzeConfigurationDependencies([
+    { id: 'workspace', kind: 'page' },
+    { id: 'toolbar', kind: 'block', parentId: 'workspace' },
+    { id: 'commands', kind: 'service' },
+    { id: 'command-panel', kind: 'block', parentId: 'workspace', requires: ['commands'] },
+  ]);
+
+  assert.equal(result.canApply, true);
+  assert.deepEqual(result.diagnostics, []);
+});
+
+test('configuration dependency analysis blocks missing and disabled dependencies', () => {
+  const result = analyzeConfigurationDependencies([
+    { id: 'workspace', kind: 'page', requires: ['missing-service'] },
+    { id: 'service', kind: 'service', enabled: false },
+    { id: 'panel', kind: 'block', requires: ['service'] },
+  ]);
+
+  assert.equal(result.canApply, false);
+  assert.deepEqual(
+    result.diagnostics.map((item) => item.code).sort(),
+    ['disabled-dependency', 'missing-dependency'],
+  );
+});
+
+test('configuration dependency analysis detects dependency, parent and compatibility cycles', () => {
+  const result = analyzeConfigurationDependencies([
+    { id: 'a', kind: 'page', parentId: 'b', requires: ['b'], conflictsWith: ['b'] },
+    { id: 'b', kind: 'block', parentId: 'a', requires: ['a'], conflictsWith: ['a'] },
+  ]);
+
+  assert.equal(result.canApply, false);
+  assert.deepEqual(
+    result.diagnostics.map((item) => item.code).sort(),
+    ['conflicting-nodes', 'dependency-cycle', 'parent-cycle'],
+  );
+});
