@@ -3055,7 +3055,7 @@ test('configuration layers merge objects, replace arrays and preserve lower laye
 
 test('configuration layer merge rejects prototype-pollution keys', () => {
   const unsafe = JSON.parse('{"__proto__":{"polluted":true}}') as Record<string, never>;
-  assert.throws(() => mergeConfigurationLayers(unsafe), /Недопустимый ключ конфигурации/);
+  assert.throws(() => mergeConfigurationLayers(unsafe), /безопасные JSON-значения/);
 });
 
 test('configuration dependency analysis accepts a valid hierarchy', () => {
