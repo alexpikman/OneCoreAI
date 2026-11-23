@@ -136,7 +136,7 @@ export function getActiveNavigationGroup(activeTab: AppTab, settingsSection: Set
   ) {
     return 'AI Инструменты';
   }
-  if (activeTab === 'models' && settingsSection === 'roles-pipeline') {
+  if (activeTab === 'models' && ['roles-pipeline', 'subagents-delegation'].includes(settingsSection)) {
     return 'Агенты';
   }
   if (
@@ -186,6 +186,9 @@ export function isNavigationItemActive(
   _aiSettingsCategory?: AiProviderCategory,
 ): boolean {
   if (item.id === 'skills' && activeTab === 'models' && settingsSection === 'skills-memory') {
+    return true;
+  }
+  if (item.id === 'agent-roles' && activeTab === 'models' && settingsSection === 'subagents-delegation') {
     return true;
   }
   if (item.id === 'provider-local') {
