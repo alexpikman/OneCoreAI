@@ -1,4 +1,4 @@
-# Code Audit v1 — первый вертикальный сценарий
+# Code Audit — первый вертикальный сценарий
 
 Статус: **Draft / read-only first**.
 
