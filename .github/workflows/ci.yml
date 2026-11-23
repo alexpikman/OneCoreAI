@@ -41,3 +41,28 @@ jobs:
 
       - name: Designer frontend build
         run: npm run designer:build
+
+      - name: Setup Rust toolchain for OneCore Designer
+        if: runner.os == 'Windows'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache OneCore Designer Rust dependencies
+        if: runner.os == 'Windows'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: designer/src-tauri
+
+      - name: Build OneCore Designer Windows installers
+        if: runner.os == 'Windows'
+        run: npm run designer:tauri:build
+
+      - name: Upload OneCore Designer Windows installers
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: onecore-designer-windows
+          path: |
+            designer/src-tauri/target/release/bundle/nsis/*.exe
+            designer/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+          retention-days: 7
