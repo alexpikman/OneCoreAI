@@ -3149,3 +3149,13 @@ test('configuration drafts are isolated, retain base revision and do not apply c
     { id: 'panel', kind: 'block', requires: ['missing-service'] },
   ]).canApply, false);
 });
+
+
+test('configuration documents reject cyclic object graphs before cloning', () => {
+  const cyclic: Record<string, unknown> = {};
+  cyclic.self = cyclic;
+  assert.throws(() => createConfigurationDocument(
+    { type: 'global' },
+    cyclic as never,
+  ), /безопасные JSON-значения/);
+});
