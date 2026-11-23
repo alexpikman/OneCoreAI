@@ -94,10 +94,14 @@ async function withScopeLock<T>(key: string, operation: () => Promise<T>): Promi
 function saveRevision(document: ConfigurationDocument, paths: ReturnType<typeof storagePaths>): void {
   const historyPath = path.join(paths.history, `${document.revision}.json`);
   if (fs.existsSync(historyPath)) {
-    throw new ConfigurationRevisionConflictError('Такая ревизия конфигурации уже существует');
+    const existing = readDocument(historyPath, document.scope);
+    if (!existing || JSON.stringify(existing) !== JSON.stringify(document)) {
+      throw new ConfigurationRevisionConflictError('Такая ревизия конфигурации уже существует');
+    }
+  } else {
+    writeAtomicJson(historyPath, document);
   }
 
-  writeAtomicJson(historyPath, document);
   writeAtomicJson(paths.current, document);
 }
 
