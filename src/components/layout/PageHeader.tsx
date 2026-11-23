@@ -2,10 +2,8 @@ import React from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import { getUiTokens } from '../../utils/uiStyle';
-import { getActiveNavigationGroup, isNavigationItemActive, NAV_GROUPS } from '../../data/appNavigation';
 import { PAGE_CONTAINER_CLASS } from './pageLayout';
 import { PageSubNavigation } from './PageSubNavigation';
-import { NavTablerIcon } from './NavTablerIcon';
 
 export interface PageHeaderAction {
   id: string;
@@ -34,17 +32,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ children, actions = [], 
   const uiStyle = useOneCoreStore((state) => state.uiStyle);
   const settingsSaveStatus = useOneCoreStore((state) => state.settingsSaveStatus);
   const settingsError = useOneCoreStore((state) => state.settingsError);
-  const activeTab = useOneCoreStore((state) => state.activeTab);
-  const settingsSection = useOneCoreStore((state) => state.settingsSection);
-  const sshGithubSection = useOneCoreStore((state) => state.sshGithubSection);
-  const aiSettingsCategory = useOneCoreStore((state) => state.aiSettingsCategory);
   const saveSettings = useOneCoreStore((state) => state.saveSettings);
   const pageSurface = getUiTokens(uiStyle).pageSurface;
-  const activeGroupLabel = getActiveNavigationGroup(activeTab, settingsSection);
-  const activeGroup = NAV_GROUPS.find((group) => group.label === activeGroupLabel);
-  const activeSubsection = activeGroup?.items.find((item) =>
-    isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory),
-  );
 
   const headerActions: PageHeaderAction[] = [
     ...(showSave
@@ -63,18 +52,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ children, actions = [], 
 
   return (
     <header className={`sticky top-0 z-30 w-full shrink-0 ${pageSurface}`}>
-      <div className={`${PAGE_CONTAINER_CLASS} flex min-w-0 items-center justify-between gap-4 py-2 ${showSubNavigation ? '' : 'border-b border-zinc-200 dark:border-zinc-800'}`}>
-        <div className="min-w-0 flex-1 flex flex-col justify-center gap-1.5">
-        {activeGroup && activeSubsection && (
-          <div className="flex min-w-0 items-center gap-2 text-xs leading-4">
-            <NavTablerIcon name={activeGroup.icon} className="h-4 w-4 shrink-0 text-blue-600 dark:text-blue-400" />
-            <span className="shrink-0 font-semibold text-zinc-900 dark:text-zinc-100">{activeGroup.label}</span>
-            <span className="shrink-0 text-zinc-400 dark:text-zinc-600">|</span>
-            <span className="min-w-0 truncate font-normal text-zinc-600 dark:text-zinc-300">{activeSubsection.label}</span>
-          </div>
-        )}
-        <div className="min-w-0 overflow-hidden [&_h1]:truncate [&_h1]:whitespace-nowrap [&_h1]:text-xs [&_h1]:font-normal [&_h1]:text-zinc-500 [&_svg]:hidden dark:[&_h1]:text-zinc-400">{children}</div>
-        </div>
+      <div className={`${PAGE_CONTAINER_CLASS} flex h-12 min-w-0 items-center justify-between gap-4 ${showSubNavigation ? '' : 'border-b border-zinc-200 dark:border-zinc-800'}`}>
+        <div className="min-w-0 flex-1 overflow-hidden [&_h1]:truncate [&_h1]:whitespace-nowrap">{children}</div>
         {(status || headerActions.length > 0) && (
             <div className="flex min-w-0 max-w-[48%] shrink-0 flex-nowrap items-center justify-end gap-2 overflow-hidden">
               {status && (
