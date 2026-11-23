@@ -110,6 +110,7 @@ export default function App() {
 
   const refresh = async () => {
     if (!connection) return;
+    if (navigationLayoutDirty && !window.confirm('Отменить несохранённые изменения навигации и загрузить сохранённую версию?')) return;
     setBusy(true);
     setError('');
     try {
@@ -182,7 +183,10 @@ export default function App() {
 
   const restore = async (revision: number) => {
     if (!connection || !configuration) return;
-    if (!window.confirm(`Создать новую ревизию на основе версии ${revision}?`)) return;
+    const confirmation = navigationLayoutDirty
+      ? `Отменить несохранённые изменения и восстановить версию ${revision}?`
+      : `Создать новую ревизию на основе версии ${revision}?`;
+    if (!window.confirm(confirmation)) return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -212,6 +216,7 @@ export default function App() {
   };
 
   const disconnect = () => {
+    if (navigationLayoutDirty && !window.confirm('Отключить Designer и отменить несохранённые изменения?')) return;
     setConnection(null);
     setConfiguration(null);
     setHistory([]);
