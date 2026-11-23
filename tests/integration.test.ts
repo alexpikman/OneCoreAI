@@ -3225,3 +3225,76 @@ test('configuration manager serializes concurrent applies against the same base 
     fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
   }
 });
+
+
+test('Designer configuration API requires approval and exposes revision history and restore', async () => {
+  const scope = { type: 'project' as const, projectId: `designer-api-${crypto.randomUUID()}` };
+  const scopeKey = crypto.createHash('sha256').update(scope.projectId).digest('hex');
+  const storageRoot = path.join(tempOneCoreHome, 'designer-configurations');
+
+  try {
+    const created = await jsonReq<{
+      ok: boolean;
+      draft: { status: string; baseRevision: number; config: Record<string, unknown> };
+      analysis: { canApply: boolean };
+    }>('/api/designer/configuration/drafts', {
+      method: 'POST',
+      body: JSON.stringify({ scope, changes: { layout: { columns: 3 } } }),
+    });
+    assert.equal(created.status, 200);
+    assert.equal(created.data.analysis.canApply, true);
+    assert.equal(created.data.draft.baseRevision, 0);
+
+    const denied = await jsonReq<{ ok: boolean }>('/api/designer/configuration/apply', {
+      method: 'POST',
+      body: JSON.stringify({ draft: created.data.draft }),
+    });
+    assert.equal(denied.status, 403);
+
+    const first = await jsonReq<{
+      ok: boolean;
+      configuration: { revision: number; config: Record<string, unknown> };
+    }>('/api/designer/configuration/apply', {
+      method: 'POST',
+      headers: { 'X-OneCore-Approval': 'user-confirmed' },
+      body: JSON.stringify({ draft: created.data.draft }),
+    });
+    assert.equal(first.status, 200);
+    assert.equal(first.data.configuration.revision, 1);
+
+    const secondDraft = await jsonReq<{
+      draft: { status: string; baseRevision: number; config: Record<string, unknown> };
+    }>('/api/designer/configuration/drafts', {
+      method: 'POST',
+      body: JSON.stringify({ scope, changes: { layout: { density: 'compact' } } }),
+    });
+    const second = await jsonReq<{ configuration: { revision: number } }>('/api/designer/configuration/apply', {
+      method: 'POST',
+      headers: { 'X-OneCore-Approval': 'user-confirmed' },
+      body: JSON.stringify({ draft: secondDraft.data.draft }),
+    });
+    assert.equal(second.status, 200);
+    assert.equal(second.data.configuration.revision, 2);
+
+    const restored = await jsonReq<{ configuration: { revision: number; config: Record<string, unknown> } }>(
+      '/api/designer/configuration/restore',
+      {
+        method: 'POST',
+        headers: { 'X-OneCore-Approval': 'user-confirmed' },
+        body: JSON.stringify({ scope, targetRevision: 1, expectedCurrentRevision: 2 }),
+      },
+    );
+    assert.equal(restored.status, 200);
+    assert.equal(restored.data.configuration.revision, 3);
+    assert.deepEqual(restored.data.configuration.config, { layout: { columns: 3 } });
+
+    const history = await jsonReq<{ revisions: Array<{ revision: number }> }>(
+      `/api/designer/configuration/history?scope=project&projectId=${encodeURIComponent(scope.projectId)}`,
+    );
+    assert.equal(history.status, 200);
+    assert.deepEqual(history.data.revisions.map((item) => item.revision), [3, 2, 1]);
+  } finally {
+    fs.rmSync(path.join(storageRoot, 'current', `${scopeKey}.json`), { force: true });
+    fs.rmSync(path.join(storageRoot, 'history', scopeKey), { recursive: true, force: true });
+  }
+});
