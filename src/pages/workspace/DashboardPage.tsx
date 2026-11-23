@@ -35,31 +35,31 @@ interface DashboardLayoutConfig {
 }
 
 const gridColumns: Record<number, string> = {
-  1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4',
-  5: 'grid-cols-5', 6: 'grid-cols-6', 7: 'grid-cols-7', 8: 'grid-cols-8',
-  9: 'grid-cols-9', 10: 'grid-cols-10', 11: 'grid-cols-11', 12: 'grid-cols-12',
+  1: 'grid-cols-1 xl:grid-cols-1', 2: 'grid-cols-1 xl:grid-cols-2', 3: 'grid-cols-1 xl:grid-cols-3', 4: 'grid-cols-1 xl:grid-cols-4',
+  5: 'grid-cols-1 xl:grid-cols-5', 6: 'grid-cols-1 xl:grid-cols-6', 7: 'grid-cols-1 xl:grid-cols-7', 8: 'grid-cols-1 xl:grid-cols-8',
+  9: 'grid-cols-1 xl:grid-cols-9', 10: 'grid-cols-1 xl:grid-cols-10', 11: 'grid-cols-1 xl:grid-cols-11', 12: 'grid-cols-1 xl:grid-cols-12',
 };
 const gridGaps: Record<number, string> = {
   1: 'gap-1', 2: 'gap-2', 3: 'gap-3', 4: 'gap-4', 5: 'gap-5', 6: 'gap-6',
 };
 const gridStarts: Record<number, string> = {
-  1: 'col-start-1', 2: 'col-start-2', 3: 'col-start-3', 4: 'col-start-4',
-  5: 'col-start-5', 6: 'col-start-6', 7: 'col-start-7', 8: 'col-start-8',
-  9: 'col-start-9', 10: 'col-start-10', 11: 'col-start-11', 12: 'col-start-12',
+  1: 'xl:col-start-1', 2: 'xl:col-start-2', 3: 'xl:col-start-3', 4: 'xl:col-start-4',
+  5: 'xl:col-start-5', 6: 'xl:col-start-6', 7: 'xl:col-start-7', 8: 'xl:col-start-8',
+  9: 'xl:col-start-9', 10: 'xl:col-start-10', 11: 'xl:col-start-11', 12: 'xl:col-start-12',
 };
 const gridSpans: Record<number, string> = {
-  1: 'col-span-1', 2: 'col-span-2', 3: 'col-span-3', 4: 'col-span-4',
-  5: 'col-span-5', 6: 'col-span-6', 7: 'col-span-7', 8: 'col-span-8',
-  9: 'col-span-9', 10: 'col-span-10', 11: 'col-span-11', 12: 'col-span-12',
+  1: 'xl:col-span-1', 2: 'xl:col-span-2', 3: 'xl:col-span-3', 4: 'xl:col-span-4',
+  5: 'xl:col-span-5', 6: 'xl:col-span-6', 7: 'xl:col-span-7', 8: 'xl:col-span-8',
+  9: 'xl:col-span-9', 10: 'xl:col-span-10', 11: 'xl:col-span-11', 12: 'xl:col-span-12',
 };
 const gridRowStarts: Record<number, string> = {
-  1: 'row-start-1', 2: 'row-start-2', 3: 'row-start-3', 4: 'row-start-4',
-  5: 'row-start-5', 6: 'row-start-6', 7: 'row-start-7', 8: 'row-start-8',
-  9: 'row-start-9', 10: 'row-start-10', 11: 'row-start-11', 12: 'row-start-12',
+  1: 'xl:row-start-1', 2: 'xl:row-start-2', 3: 'xl:row-start-3', 4: 'xl:row-start-4',
+  5: 'xl:row-start-5', 6: 'xl:row-start-6', 7: 'xl:row-start-7', 8: 'xl:row-start-8',
+  9: 'xl:row-start-9', 10: 'xl:row-start-10', 11: 'xl:row-start-11', 12: 'xl:row-start-12',
 };
 const gridRowSpans: Record<number, string> = {
-  1: 'row-span-1', 2: 'row-span-2', 3: 'row-span-3', 4: 'row-span-4',
-  5: 'row-span-5', 6: 'row-span-6', 7: 'row-span-7', 8: 'row-span-8',
+  1: 'xl:row-span-1', 2: 'xl:row-span-2', 3: 'xl:row-span-3', 4: 'xl:row-span-4',
+  5: 'xl:row-span-5', 6: 'xl:row-span-6', 7: 'xl:row-span-7', 8: 'xl:row-span-8',
 };
 
 const defaultDashboardLayout: DashboardLayoutConfig = {
@@ -80,10 +80,10 @@ const dashboardSectionClass = (layout: DashboardLayoutConfig, id: string): strin
   const item = layout.elements.find((element) => element.id === id)
     ?? defaultDashboardLayout.elements.find((element) => element.id === id)!;
   return [
-    gridStarts[item.column] ?? 'col-start-1',
-    gridSpans[item.columnSpan] ?? 'col-span-12',
-    gridRowStarts[item.row] ?? 'row-start-1',
-    gridRowSpans[item.rowSpan] ?? 'row-span-1',
+    gridStarts[item.column] ?? 'xl:col-start-1',
+    gridSpans[item.columnSpan] ?? 'xl:col-span-12',
+    gridRowStarts[item.row] ?? 'xl:row-start-1',
+    gridRowSpans[item.rowSpan] ?? 'xl:row-span-1',
   ].join(' ');
 };
 
