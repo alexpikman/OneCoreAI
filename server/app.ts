@@ -158,7 +158,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   const tauriOrigins = new Set(['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost']);
   const designerDevOrigins = new Set(['http://127.0.0.1:4174']);
   const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1']);
-  const apiSessions = new Map<string, number>();
+  const apiSessions = new Map<string, { expiresAt: number; scope: 'full' | 'designer' }>();
   const designerPairingCodes = new Map<string, number>();
   const designerPairingAttempts = new Map<string, { count: number; resetAt: number }>();
   const API_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
@@ -305,21 +305,22 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       crypto.timingSafeEqual(Buffer.from(token), Buffer.from(configuredApiToken)),
     );
     const tokenHash = token ? hashApiSession(token) : '';
-    const expiresAt = tokenHash ? apiSessions.get(tokenHash) : undefined;
-    const tokenMatchesDesignerSession = Boolean(expiresAt && expiresAt > Date.now());
+    const apiSession = tokenHash ? apiSessions.get(tokenHash) : undefined;
+    const sessionIsValid = Boolean(apiSession && apiSession.expiresAt > Date.now());
 
-    if (configuredApiToken) {
-      if (!tokenMatchesConfiguredSecret && !tokenMatchesDesignerSession) {
-        res.status(401).json({ ok: false, error: 'Требуется доверенный токен или связанная сессия Designer' });
-        return;
-      }
+    if (configuredApiToken && tokenMatchesConfiguredSecret) {
       next();
       return;
     }
 
-    if (!tokenMatchesDesignerSession) {
-      if (tokenHash) apiSessions.delete(tokenHash);
+    if (!sessionIsValid || !apiSession) {
+      if (tokenHash && apiSession) apiSessions.delete(tokenHash);
       res.status(401).json({ ok: false, error: 'Требуется действующая сессия OneCoreAI' });
+      return;
+    }
+
+    if (apiSession.scope === 'designer' && !req.path.startsWith('/designer/')) {
+      res.status(403).json({ ok: false, error: 'Сессия Designer не имеет доступа к этому API-разделу' });
       return;
     }
     next();
@@ -357,7 +358,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     designerPairingAttempts.delete(clientKey);
     const token = crypto.randomBytes(32).toString('base64url');
     const sessionExpiresAt = now + API_SESSION_TTL_MS;
-    apiSessions.set(hashApiSession(token), sessionExpiresAt);
+    apiSessions.set(hashApiSession(token), { expiresAt: sessionExpiresAt, scope: 'designer' });
     while (apiSessions.size > 256) {
       const oldest = apiSessions.keys().next().value;
       if (!oldest) break;
@@ -379,13 +380,13 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
 
     const now = Date.now();
-    for (const [sessionHash, expiresAt] of apiSessions) {
-      if (expiresAt <= now) apiSessions.delete(sessionHash);
+    for (const [sessionHash, session] of apiSessions) {
+      if (session.expiresAt <= now) apiSessions.delete(sessionHash);
     }
 
     const token = crypto.randomBytes(32).toString('base64url');
     const expiresAt = now + API_SESSION_TTL_MS;
-    apiSessions.set(hashApiSession(token), expiresAt);
+    apiSessions.set(hashApiSession(token), { expiresAt, scope: 'full' });
     while (apiSessions.size > 256) {
       const oldest = apiSessions.keys().next().value;
       if (!oldest) break;
