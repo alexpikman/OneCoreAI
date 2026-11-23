@@ -149,7 +149,7 @@ export function isNavigationItemActive(
   if (item.id === 'llama-settings') {
     return (
       (activeTab === 'models' || activeTab === 'settings') &&
-      ['engine-paths', 'llama-paged-attention', 'llama-openai-api', 'llama-benchmark'].includes(settingsSection)
+      ['engine-paths', 'llama-models', 'llama-paged-attention', 'llama-openai-api', 'llama-benchmark'].includes(settingsSection)
     );
   }
   if (item.id === 'llama-gguf') {
