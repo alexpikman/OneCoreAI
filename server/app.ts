@@ -158,7 +158,11 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   const tauriOrigins = new Set(['tauri://localhost', 'http://tauri.localhost', 'https://tauri.localhost']);
   const loopbackHosts = new Set(['localhost', '127.0.0.1', '::1']);
   const apiSessions = new Map<string, number>();
+  const designerPairingCodes = new Map<string, number>();
+  const designerPairingAttempts = new Map<string, { count: number; resetAt: number }>();
   const API_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+  const DESIGNER_PAIRING_TTL_MS = 2 * 60 * 1000;
+  const DESIGNER_PAIRING_MAX_ATTEMPTS = 5;
   const configuredApiToken = process.env.ONECORE_API_TOKEN?.trim() || undefined;
   const requireSideEffectApproval = (
     req: express.Request,
@@ -285,7 +289,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
   app.use(express.json({ limit: '5mb' }));
 
   app.use('/api', (req, res, next) => {
-    if (req.path === '/auth/session' || req.path === '/health') {
+    if (req.path === '/auth/session' || req.path === '/designer/session' || req.path === '/health') {
       next();
       return;
     }
@@ -297,23 +301,68 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       token.length === configuredApiToken.length &&
       crypto.timingSafeEqual(Buffer.from(token), Buffer.from(configuredApiToken)),
     );
+    const tokenHash = token ? hashApiSession(token) : '';
+    const expiresAt = tokenHash ? apiSessions.get(tokenHash) : undefined;
+    const tokenMatchesDesignerSession = Boolean(expiresAt && expiresAt > Date.now());
+
     if (configuredApiToken) {
-      if (!tokenMatchesConfiguredSecret) {
-        res.status(401).json({ ok: false, error: 'Требуется доверенный токен локального приложения' });
+      if (!tokenMatchesConfiguredSecret && !tokenMatchesDesignerSession) {
+        res.status(401).json({ ok: false, error: 'Требуется доверенный токен или связанная сессия Designer' });
         return;
       }
       next();
       return;
     }
 
-    const tokenHash = token ? hashApiSession(token) : '';
-    const expiresAt = tokenHash ? apiSessions.get(tokenHash) : undefined;
-    if (!expiresAt || expiresAt <= Date.now()) {
+    if (!tokenMatchesDesignerSession) {
       if (tokenHash) apiSessions.delete(tokenHash);
       res.status(401).json({ ok: false, error: 'Требуется действующая сессия OneCoreAI' });
       return;
     }
     next();
+  });
+
+  app.post('/api/designer/session', (req, res) => {
+    const origin = req.header('Origin');
+    if (!origin || !tauriOrigins.has(origin) || res.locals.oneCoreTrustedClient !== true) {
+      res.status(403).json({ ok: false, error: 'Связать Designer можно только из доверенного desktop-приложения' });
+      return;
+    }
+
+    const clientKey = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const attempts = designerPairingAttempts.get(clientKey);
+    if (attempts && attempts.resetAt > now && attempts.count >= DESIGNER_PAIRING_MAX_ATTEMPTS) {
+      res.status(429).json({ ok: false, error: 'Превышен лимит попыток подключения Designer' });
+      return;
+    }
+
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    const codeHash = /^\d{8}$/.test(code) ? hashApiSession(code) : '';
+    const expiresAt = codeHash ? designerPairingCodes.get(codeHash) : undefined;
+    if (!expiresAt || expiresAt <= now) {
+      if (codeHash) designerPairingCodes.delete(codeHash);
+      const nextAttempts = attempts && attempts.resetAt > now
+        ? { count: attempts.count + 1, resetAt: attempts.resetAt }
+        : { count: 1, resetAt: now + DESIGNER_PAIRING_TTL_MS };
+      designerPairingAttempts.set(clientKey, nextAttempts);
+      res.status(401).json({ ok: false, error: 'Код подключения недействителен или истёк' });
+      return;
+    }
+
+    designerPairingCodes.delete(codeHash);
+    designerPairingAttempts.delete(clientKey);
+    const token = crypto.randomBytes(32).toString('base64url');
+    const sessionExpiresAt = now + API_SESSION_TTL_MS;
+    apiSessions.set(hashApiSession(token), sessionExpiresAt);
+    while (apiSessions.size > 256) {
+      const oldest = apiSessions.keys().next().value;
+      if (!oldest) break;
+      apiSessions.delete(oldest);
+    }
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ok: true, token, expiresAt: new Date(sessionExpiresAt).toISOString() });
   });
 
   app.get('/api/auth/session', (_req, res) => {
@@ -762,6 +811,31 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
     throw new Error('Укажите область global либо project с projectId');
   };
+
+  app.post('/api/designer/pairing', (req, res) => {
+    if (!requireSideEffectApproval(req, res, 'configuration.pair', 'designer-pairing')) return;
+    const now = Date.now();
+    for (const [codeHash, expiresAt] of designerPairingCodes) {
+      if (expiresAt <= now) designerPairingCodes.delete(codeHash);
+    }
+
+    let code = '';
+    let codeHash = '';
+    do {
+      code = crypto.randomInt(0, 100000000).toString().padStart(8, '0');
+      codeHash = hashApiSession(code);
+    } while (designerPairingCodes.has(codeHash));
+
+    const expiresAt = now + DESIGNER_PAIRING_TTL_MS;
+    designerPairingCodes.set(codeHash, expiresAt);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      code,
+      apiBaseUrl: `http://127.0.0.1:${req.socket.localPort}`,
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  });
 
   app.get('/api/designer/configuration', (req, res) => {
     try {
