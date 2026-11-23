@@ -43,6 +43,7 @@ import {
   createConfigurationDocument,
   createConfigurationDraft,
   mergeConfigurationLayers,
+  type ConfigurationObject,
   validateConfigurationDocument,
 } from '../server/configurationEngine';
 import {
@@ -3557,7 +3558,7 @@ test('configuration manager refuses to persist invalid appearance tokens', async
     opacity: { ...DEFAULT_APPEARANCE_TOKENS.opacity, panel: 2 },
   };
   const draft = createConfigurationDraft(createConfigurationDocument(scope, {}), {
-    appearance: invalidAppearance,
+    appearance: invalidAppearance as unknown as ConfigurationObject,
   });
 
   try {
