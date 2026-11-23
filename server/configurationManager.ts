@@ -71,6 +71,7 @@ function readDocument(filePath: string, expectedScope: ConfigurationScope): Conf
   ) {
     throw new Error('Область сохранённой конфигурации не совпадает с запрошенной');
   }
+  assertDesignerConfigurationValid(document.config);
   return document;
 }
 
