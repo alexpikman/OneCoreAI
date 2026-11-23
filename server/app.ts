@@ -980,9 +980,18 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     if (!requireSideEffectApproval(req, res, 'configuration.apply', 'designer-configuration-restore')) return;
     try {
       const scope = parseDesignerScope(req.body?.scope?.type, req.body?.scope?.projectId);
+      const targetRevision = req.body?.targetRevision;
+      const targetDocument = listConfigurationHistory(scope).find((item) => item.revision === targetRevision);
+      if (targetDocument?.config.layout !== undefined) {
+        const layoutValidation = validateDashboardLayout(targetDocument.config.layout);
+        if (!layoutValidation.valid) {
+          res.status(400).json({ ok: false, error: layoutValidation.diagnostics.join('; ') });
+          return;
+        }
+      }
       const document = await restoreConfigurationRevision(
         scope,
-        req.body?.targetRevision,
+        targetRevision,
         req.body?.expectedCurrentRevision,
       );
       recordAgentEvent({
