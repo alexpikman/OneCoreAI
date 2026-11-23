@@ -1,168 +1,141 @@
 import { useState } from 'react';
 
-type WindowId = 'navigation' | 'workspace' | 'inspector';
-type SectionId = 'system' | 'infrastructure' | 'activity' | 'attention';
-
-const initialWindows: WindowId[] = ['navigation', 'workspace', 'inspector'];
-const initialSections: SectionId[] = ['system', 'infrastructure', 'activity', 'attention'];
-
-const windowLabels: Record<WindowId, string> = {
-  navigation: 'Навигация',
-  workspace: 'Рабочая область',
-  inspector: 'Инспектор',
-};
-
-const sectionLabels: Record<SectionId, string> = {
-  system: 'Состояние системы',
-  infrastructure: 'AI-инфраструктура',
-  activity: 'Рабочая активность',
-  attention: 'Требует внимания',
-};
-
-function moveItem<T>(items: T[], source: T, target: T): T[] {
-  const next = [...items];
-  const from = next.indexOf(source);
-  const to = next.indexOf(target);
-  if (from < 0 || to < 0 || from === to) return items;
-  next.splice(from, 1);
-  next.splice(to, 0, source);
-  return next;
+export type DesignerElementType = 'section' | 'card' | 'heading' | 'text' | 'button' | 'indicator';
+export interface DesignerElement {
+  id: string; type: DesignerElementType; title: string; content: string;
+  column: number; row: number; columnSpan: number; rowSpan: number;
 }
+export interface DesignerLayout {
+  schemaVersion: 1;
+  grid: { columns: number; rows: number; gap: number; snap: boolean };
+  elements: DesignerElement[];
+}
+interface Props {
+  layout: DesignerLayout; dirty: boolean; saving: boolean;
+  onChange: (layout: DesignerLayout) => void; onSave: () => void;
+}
+const labels: Record<DesignerElementType, string> = {
+  section: 'Секция', card: 'Карточка', heading: 'Заголовок',
+  text: 'Текст', button: 'Кнопка', indicator: 'Индикатор',
+};
+const columns: Record<number, string> = {
+  1:'grid-cols-1',2:'grid-cols-2',3:'grid-cols-3',4:'grid-cols-4',5:'grid-cols-5',6:'grid-cols-6',
+  7:'grid-cols-7',8:'grid-cols-8',9:'grid-cols-9',10:'grid-cols-10',11:'grid-cols-11',12:'grid-cols-12',
+};
+const spans: Record<number, string> = {
+  1:'col-span-1',2:'col-span-2',3:'col-span-3',4:'col-span-4',5:'col-span-5',6:'col-span-6',
+  7:'col-span-7',8:'col-span-8',9:'col-span-9',10:'col-span-10',11:'col-span-11',12:'col-span-12',
+};
+const starts: Record<number, string> = {
+  1:'col-start-1',2:'col-start-2',3:'col-start-3',4:'col-start-4',5:'col-start-5',6:'col-start-6',
+  7:'col-start-7',8:'col-start-8',9:'col-start-9',10:'col-start-10',11:'col-start-11',12:'col-start-12',
+};
+const rowStarts: Record<number, string> = {
+  1:'row-start-1',2:'row-start-2',3:'row-start-3',4:'row-start-4',5:'row-start-5',6:'row-start-6',
+  7:'row-start-7',8:'row-start-8',9:'row-start-9',10:'row-start-10',11:'row-start-11',12:'row-start-12',
+};
+const rowSpans: Record<number, string> = {
+  1:'row-span-1',2:'row-span-2',3:'row-span-3',4:'row-span-4',
+  5:'row-span-5',6:'row-span-6',7:'row-span-7',8:'row-span-8',
+};
+const gaps: Record<number, string> = {1:'gap-1',2:'gap-2',3:'gap-3',4:'gap-4',5:'gap-5',6:'gap-6'};
 
-export function LayoutEditor() {
-  const [windows, setWindows] = useState(initialWindows);
-  const [sections, setSections] = useState(initialSections);
-  const [draggedWindow, setDraggedWindow] = useState<WindowId | null>(null);
-  const [draggedSection, setDraggedSection] = useState<SectionId | null>(null);
-  const [selected, setSelected] = useState<WindowId | SectionId>('workspace');
-
-  const handleWindowDrop = (target: WindowId) => {
-    if (draggedWindow) setWindows((current) => moveItem(current, draggedWindow, target));
-    setDraggedWindow(null);
+export function createDefaultDesignerLayout(): DesignerLayout {
+  return {
+    schemaVersion: 1, grid: { columns: 12, rows: 8, gap: 3, snap: true },
+    elements: [
+      {id:'section-overview',type:'section',title:'Обзор системы',content:'Состояние и основные показатели',column:1,row:1,columnSpan:12,rowSpan:2},
+      {id:'card-cpu',type:'card',title:'Процессор',content:'Загрузка процессора · 24%',column:1,row:3,columnSpan:3,rowSpan:2},
+      {id:'card-memory',type:'card',title:'Память',content:'Использовано · 18 из 32 ГБ',column:4,row:3,columnSpan:3,rowSpan:2},
+      {id:'card-agents',type:'card',title:'AI-агенты',content:'Активно · 6',column:7,row:3,columnSpan:3,rowSpan:2},
+      {id:'card-status',type:'indicator',title:'Статус',content:'Все системы работают штатно',column:10,row:3,columnSpan:3,rowSpan:2},
+      {id:'section-activity',type:'section',title:'Последняя активность',content:'Задачи, процессы и подключения',column:1,row:5,columnSpan:12,rowSpan:2},
+    ],
   };
-
-  const handleSectionDrop = (target: SectionId) => {
-    if (draggedSection) setSections((current) => moveItem(current, draggedSection, target));
-    setDraggedSection(null);
+}
+function validate(layout: DesignerLayout): boolean {
+  const ids = new Set<string>();
+  for (const item of layout.elements) {
+    if (ids.has(item.id) || item.column < 1 || item.row < 1 || item.columnSpan < 1 || item.rowSpan < 1 ||
+      item.column + item.columnSpan - 1 > layout.grid.columns ||
+      item.row + item.rowSpan - 1 > layout.grid.rows) return false;
+    ids.add(item.id);
+  }
+  return true;
+}
+export function LayoutEditor({layout,dirty,saving,onChange,onSave}: Props) {
+  const [selectedId,setSelectedId] = useState(layout.elements[0]?.id ?? '');
+  const [draggedId,setDraggedId] = useState<string | null>(null);
+  const [error,setError] = useState('');
+  const selected = layout.elements.find(item => item.id === selectedId) ?? null;
+  const change = (next: DesignerLayout) => {
+    if (!validate(next)) { setError('Элемент выходит за границы сетки. Изменение отменено.'); return; }
+    setError(''); onChange(next);
   };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold">Макет интерфейса</h3>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Перетаскивайте окна и секции за заголовки. Это локальный экспериментальный макет — рабочие страницы не изменяются.</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setWindows(initialWindows);
-            setSections(initialSections);
-            setSelected('workspace');
-          }}
-          className="h-9 rounded-lg border border-zinc-300 px-3 text-xs font-medium hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-        >
-          Сбросить макет
-        </button>
-      </div>
-
-      <div className="grid min-h-[620px] grid-cols-1 gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-100/70 p-3 dark:border-zinc-700 dark:bg-zinc-950/60 lg:grid-cols-[minmax(10rem,0.8fr)_minmax(24rem,2fr)_minmax(12rem,0.9fr)]">
-        {windows.map((windowId) => (
-          <section
-            key={windowId}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => handleWindowDrop(windowId)}
-            onClick={() => setSelected(windowId)}
-            className={`min-w-0 rounded-xl border bg-white dark:bg-zinc-900 ${selected === windowId ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-800'} ${windowId === 'workspace' ? 'lg:row-span-2' : ''}`}
-          >
-            <div
-              draggable
-              onDragStart={() => setDraggedWindow(windowId)}
-              onDragEnd={() => setDraggedWindow(null)}
-              className="flex h-11 cursor-grab items-center justify-between gap-2 rounded-t-xl border-b border-zinc-200 bg-zinc-50 px-3 active:cursor-grabbing dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <span className="truncate text-xs font-semibold">{windowLabels[windowId]}</span>
-              <span className="text-[10px] text-zinc-400">↕ переместить</span>
-            </div>
-
-            {windowId === 'navigation' && (
-              <div className="space-y-2 p-3">
-                {['Дашборд', 'Рабочая станция', 'Терминал', 'Браузер', 'Заметки', 'Проекты', 'Настройки'].map((item, index) => (
-                  <div key={item} className={`rounded-lg px-3 py-2 text-xs ${index === 0 ? 'bg-blue-50 font-medium text-blue-700 dark:bg-blue-950/50 dark:text-blue-300' : 'text-zinc-600 dark:text-zinc-400'}`}>{item}</div>
-                ))}
-              </div>
-            )}
-
-            {windowId === 'workspace' && (
-              <div className="space-y-3 p-3">
-                <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                  <p className="text-[10px] font-medium uppercase tracking-wide text-blue-600 dark:text-blue-400">OneCoreAI / Dashboard</p>
-                  <p className="mt-1 text-sm font-semibold">Дашборд</p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Предпросмотр структуры страницы</p>
-                </div>
-                {sections.map((sectionId) => (
-                  <div
-                    key={sectionId}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => {
-                      event.stopPropagation();
-                      handleSectionDrop(sectionId);
-                    }}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSelected(sectionId);
-                    }}
-                    className={`rounded-xl border bg-white dark:bg-zinc-900 ${selected === sectionId ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-200 dark:border-zinc-800'}`}
-                  >
-                    <div
-                      draggable
-                      onDragStart={(event) => {
-                        event.stopPropagation();
-                        setDraggedSection(sectionId);
-                      }}
-                      onDragEnd={() => setDraggedSection(null)}
-                      className="flex cursor-grab items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2 active:cursor-grabbing dark:border-zinc-800"
-                    >
-                      <span className="text-xs font-semibold">{sectionLabels[sectionId]}</span>
-                      <span className="text-[10px] text-zinc-400">↕ секция</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 p-3">
-                      {(sectionId === 'system'
-                        ? ['Процессор', 'Память', 'Графика', 'Диск']
-                        : sectionId === 'infrastructure'
-                          ? ['Модели', 'Провайдеры', 'Агенты', 'Inference']
-                          : sectionId === 'activity'
-                            ? ['Проекты', 'Задачи', 'Процессы', 'Подключения']
-                            : ['Статус системы', 'Журнал операций']
-                      ).map((label, index) => (
-                        <div key={label} className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-                          <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{label}</p>
-                          <p className="mt-2 text-sm font-semibold tabular-nums">{sectionId === 'attention' ? (index === 0 ? 'В норме' : 'Открыть') : ['8 ядер', '32 ГБ', '12 ГБ', '240 ГБ'][index]}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {windowId === 'inspector' && (
-              <div className="space-y-3 p-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Выбранный элемент</p>
-                  <p className="mt-1 text-sm font-semibold">{selected in sectionLabels ? sectionLabels[selected as SectionId] : windowLabels[selected as WindowId]}</p>
-                </div>
-                <div className="rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-                  <p className="text-xs font-medium">Позиция в макете</p>
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Порядок окна: {windows.indexOf(selected as WindowId) + 1 || '—'}</p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Порядок секции: {sections.indexOf(selected as SectionId) + 1 || '—'}</p>
-                </div>
-                <p className="text-[11px] leading-5 text-zinc-500 dark:text-zinc-400">Перемещение выполняется перетаскиванием. Настройки геометрии и сохранение будут подключены после утверждения контракта макета.</p>
-              </div>
-            )}
-          </section>
-        ))}
-      </div>
+  const update = (patch: Partial<DesignerElement>) => {
+    if (selected) change({...layout,elements:layout.elements.map(item => item.id === selected.id ? {...item,...patch} : item)});
+  };
+  const add = (type: DesignerElementType) => {
+    let position = {column:1,row:1};
+    outer: for (let row=1;row<=layout.grid.rows;row++) for (let column=1;column<=layout.grid.columns;column++) {
+      const used = layout.elements.some(item => column>=item.column && column<item.column+item.columnSpan && row>=item.row && row<item.row+item.rowSpan);
+      if (!used) { position={column,row}; break outer; }
+    }
+    const id = `${type}-${Date.now()}`;
+    const item: DesignerElement = {id,type,title:labels[type],content:'Содержимое элемента',...position,columnSpan:Math.min(type==='section'?layout.grid.columns:3,layout.grid.columns),rowSpan:1};
+    change({...layout,elements:[...layout.elements,item]}); setSelectedId(id);
+  };
+  const drop = (targetId: string) => {
+    if (!draggedId || draggedId===targetId) return;
+    const source=layout.elements.find(item=>item.id===draggedId);
+    const target=layout.elements.find(item=>item.id===targetId);
+    if (!source || !target) return;
+    change({...layout,elements:layout.elements.map(item=>item.id===source.id?{...item,column:target.column,row:target.row}:item.id===target.id?{...item,column:source.column,row:source.row}:item)});
+    setDraggedId(null);
+  };
+  const remove = () => {
+    if (!selected) return;
+    const next=layout.elements.filter(item=>item.id!==selected.id);
+    onChange({...layout,elements:next}); setSelectedId(next[0]?.id ?? '');
+  };
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div><h3 className="text-base font-semibold">Визуальный конструктор</h3><p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">CSS Grid · {layout.elements.length} элементов · {dirty?'есть несохранённые изменения':'сохранённая версия'}</p></div>
+      <button type="button" onClick={onSave} disabled={!dirty||saving} className="h-9 rounded-lg bg-blue-600 px-4 text-xs font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50">{saving?'Сохранение…':'Сохранить макет'}</button>
     </div>
-  );
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
+      <section className="min-w-0 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold">Холст</span><div className="flex flex-wrap gap-1">{(Object.keys(labels) as DesignerElementType[]).map(type=><button key={type} type="button" onClick={()=>add(type)} className="h-7 rounded-md border border-zinc-300 px-2 text-[10px] hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">+ {labels[type]}</button>)}</div></div>
+        <div className={`grid min-h-[34rem] auto-rows-[minmax(5rem,auto)] content-start ${columns[layout.grid.columns]} ${gaps[layout.grid.gap]} rounded-lg border border-dashed border-zinc-300 bg-zinc-100 p-3 dark:border-zinc-700 dark:bg-zinc-950`}>
+          {layout.elements.map(item=><article key={item.id} draggable onDragStart={()=>setDraggedId(item.id)} onDragEnd={()=>setDraggedId(null)} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();drop(item.id);}} onClick={()=>setSelectedId(item.id)} className={`relative min-w-0 cursor-grab overflow-hidden rounded-lg border p-3 text-left active:cursor-grabbing ${starts[item.column]??'col-start-1'} ${spans[item.columnSpan]??'col-span-1'} ${rowStarts[item.row]??'row-start-1'} ${rowSpans[item.rowSpan]??'row-span-1'} ${selectedId===item.id?'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20 dark:bg-blue-950/40':'border-zinc-300 bg-white hover:border-blue-400 dark:border-zinc-700 dark:bg-zinc-900'}`}>
+            <div className="flex items-center justify-between gap-2"><span className="truncate text-xs font-semibold">{item.title}</span><span className="text-[9px] text-zinc-500 dark:text-zinc-400">{labels[item.type]}</span></div>
+            <p className="mt-2 line-clamp-2 text-[11px] text-zinc-600 dark:text-zinc-400">{item.content}</p>
+            <span className="absolute bottom-1 right-2 text-[9px] text-zinc-400">{item.column}:{item.row} · {item.columnSpan}×{item.rowSpan}</span>
+          </article>)}
+        </div>
+        <p className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400">Перетаскивание между элементами меняет их позиции. Точная геометрия задаётся в инспекторе.</p>
+        {error&&<p role="alert" className="mt-2 text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      </section>
+      <aside className="space-y-4 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div><h4 className="text-sm font-semibold">Параметры сетки</h4><div className="mt-3 space-y-3">
+          <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Колонки</span><select value={layout.grid.columns} onChange={event=>{const columnsCount=Number(event.target.value);change({...layout,grid:{...layout.grid,columns:columnsCount},elements:layout.elements.map(item=>({...item,column:Math.min(item.column,columnsCount),columnSpan:Math.min(item.columnSpan,columnsCount)}))});}} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Array.from({length:12},(_,i)=>i+1).map(value=><option key={value}>{value}</option>)}</select></label>
+          <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Строки</span><select value={layout.grid.rows} onChange={event=>{const rows=Number(event.target.value);change({...layout,grid:{...layout.grid,rows},elements:layout.elements.map(item=>({...item,row:Math.min(item.row,rows),rowSpan:Math.min(item.rowSpan,rows)}))});}} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Array.from({length:12},(_,i)=>i+1).map(value=><option key={value}>{value}</option>)}</select></label>
+          <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Интервал</span><select value={layout.grid.gap} onChange={event=>change({...layout,grid:{...layout.grid,gap:Number(event.target.value)}})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{[1,2,3,4,5,6].map(value=><option key={value} value={value}>{value*4} px</option>)}</select></label>
+          <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={layout.grid.snap} onChange={event=>change({...layout,grid:{...layout.grid,snap:event.target.checked}})}/>Привязка к сетке</label>
+        </div></div>
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><h4 className="text-sm font-semibold">Инспектор свойств</h4>
+          {selected?<div className="mt-3 space-y-3">
+            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Тип</span><select value={selected.type} onChange={event=>update({type:event.target.value as DesignerElementType})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Object.entries(labels).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Заголовок</span><input value={selected.title} onChange={event=>update({title:event.target.value})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
+            <label className="block space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">Содержимое</span><textarea rows={3} value={selected.content} onChange={event=>update({content:event.target.value})} className="w-full rounded-lg border border-zinc-300 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-950"/></label>
+            <div className="grid grid-cols-2 gap-2">
+              {([['column','Колонка',layout.grid.columns],['row','Строка',layout.grid.rows],['columnSpan','Ширина',layout.grid.columns],['rowSpan','Высота',8]] as const).map(([key,label,max])=><label key={key} className="space-y-1 text-xs"><span className="text-zinc-500 dark:text-zinc-400">{label}</span><select value={selected[key]} onChange={event=>update({[key]:Number(event.target.value)})} className="h-9 w-full rounded-lg border border-zinc-300 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-950">{Array.from({length:max},(_,i)=>i+1).map(value=><option key={value}>{value}</option>)}</select></label>)}
+            </div>
+            <button type="button" onClick={remove} className="h-9 w-full rounded-lg border border-rose-300 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950/30">Удалить элемент</button>
+          </div>:<p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">Выбери элемент на холсте.</p>}
+        </div>
+        <div className="border-t border-zinc-200 pt-4 dark:border-zinc-800"><p className="text-[10px] text-zinc-500 dark:text-zinc-400">Этот макет сохраняется в конфигурации Designer. Подключение макета к рендерерам страниц OneCoreAI требует отдельного runtime-адаптера.</p><button type="button" onClick={()=>onChange(createDefaultDesignerLayout())} className="mt-3 h-8 w-full rounded-lg border border-zinc-300 text-xs hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">Сбросить макет</button></div>
+      </aside>
+    </div>
+  </div>;
 }
