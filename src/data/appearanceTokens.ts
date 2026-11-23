@@ -236,6 +236,7 @@ function paletteCss(
       ? [`${modeSelector} .bg-zinc-100 { background-color: var(--designer-surface-raised) !important; }`]
       : []),
     `${modeSelector} .bg-black { background-color: var(--designer-overlay) !important; }`,
+    `${modeSelector} [class*="bg-black/"] { background-color: var(--designer-overlay) !important; }`,
   ].join('\n');
 }
 
