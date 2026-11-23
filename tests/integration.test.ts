@@ -3089,6 +3089,18 @@ test('configuration layer merge rejects prototype-pollution keys', () => {
   assert.throws(() => mergeConfigurationLayers(unsafe), /безопасные JSON-значения/);
 });
 
+test('configuration storage rejects secret-bearing property names', () => {
+  assert.throws(
+    () => mergeConfigurationLayers({ providerApiKey: 'must-not-persist' }),
+    /безопасные JSON-значения/,
+  );
+  assert.throws(
+    () => mergeConfigurationLayers({ githubToken: 'must-not-persist' }),
+    /безопасные JSON-значения/,
+  );
+});
+
+
 test('configuration dependency analysis accepts a valid hierarchy', () => {
   const result = analyzeConfigurationDependencies([
     { id: 'workspace', kind: 'page' },
