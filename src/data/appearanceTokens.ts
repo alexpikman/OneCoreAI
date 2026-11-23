@@ -270,7 +270,7 @@ export function createAppearanceStylesheet(value: unknown): string {
     `--radius-md: ${tokens.shape.radiusMdPx}px;`,
     `--radius-lg: ${tokens.shape.radiusLgPx}px;`,
     `--radius-xl: ${tokens.shape.radiusXlPx}px;`,
-    `--radius-2xl: ${(tokens.shape.radiusXlPx + 4)}px;`,
+    `--radius-2xl: ${Math.min(32, tokens.shape.radiusXlPx + 4)}px;`,
   ].join('\n');
 
   return [
