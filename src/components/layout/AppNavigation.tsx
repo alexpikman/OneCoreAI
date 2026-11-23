@@ -102,7 +102,7 @@ export const AppNavigation: React.FC = () => {
 
   useEffect(() => {
     setActiveNavGroup(getActiveNavigationGroup(activeTab, settingsSection, navigationGroups, sshGithubSection));
-  }, [activeTab, settingsSection, navigationGroups]);
+  }, [activeTab, settingsSection, navigationGroups, sshGithubSection]);
 
   const handleSelectNavItem = (item: NavigationItem) => {
     if (item.section) setSettingsSection(item.section);
