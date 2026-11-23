@@ -13,6 +13,7 @@ const tempOneCoreHome = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-test-home
 process.env.ONECORE_HOME = tempOneCoreHome;
 process.env.HOME = tempOneCoreHome;
 process.env.USERPROFILE = tempOneCoreHome;
+process.env.ONECORE_TEST_DISABLE_OS_KEYCHAIN = '1';
 
 import { createApiApp } from '../server/app';
 import { warmOllamaModel } from '../server/ollamaRuntime';
@@ -255,13 +256,15 @@ test('page-level navigation shares the primary catalog and resolves active desti
   assert.ok(NAV_GROUPS.length <= 10);
   assert.deepEqual(
     NAV_GROUPS.map((group) => group.label),
-    ['Рабочее пространство', 'Контекст', 'AI Инструменты', 'Агенты и знания', 'Интеграции', 'Настройки', 'Журналы'],
+    ['Рабочее пространство', 'Контекст', 'AI Инструменты', 'Агенты', 'Библиотека знаний', 'Интеграции', 'Настройки', 'Журналы'],
   );
-  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 4, 5, 5, 5]);
+  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 2, 4, 5, 5, 5]);
   for (const group of NAV_GROUPS) {
     assert.ok(group.items.length <= 5, `Group ${group.id} exceeds 5 items`);
   }
-  assert.equal(getActiveNavigationGroup('directories', 'ui-chat'), 'Агенты и знания');
+  assert.equal(getActiveNavigationGroup('directories', 'ui-chat'), 'Библиотека знаний');
+  assert.equal(getActiveNavigationGroup('models', 'roles-pipeline'), 'Агенты');
+  assert.equal(getActiveNavigationGroup('instructions', 'intelligence-library'), 'Библиотека знаний');
   assert.equal(getActiveNavigationGroup('settings', 'gateway'), 'Интеграции');
   assert.equal(getActiveNavigationGroup('system', 'ui-chat'), 'Настройки');
   assert.equal(getActiveNavigationGroup('settings', 'engine-paths'), 'AI Инструменты');
@@ -456,7 +459,8 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
 
   const navigationSource = readSource('src/data/appNavigation.ts');
   assert.match(navigationSource, /label: 'AI Инструменты'/);
-  assert.match(navigationSource, /label: 'Агенты и знания'/);
+  assert.match(navigationSource, /label: 'Агенты'/);
+  assert.match(navigationSource, /label: 'Библиотека знаний'/);
   assert.match(navigationSource, /label: 'Провайдеры'/);
   assert.match(navigationSource, /label: 'LlamaServer'/);
   assert.match(navigationSource, /label: 'Центр GGUF'/);
