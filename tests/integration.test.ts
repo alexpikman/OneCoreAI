@@ -33,6 +33,11 @@ import { getActiveNavigationGroup, getActiveNavigationGroupId, isNavigationItemA
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
 import {
+  createAppearanceStylesheet,
+  DEFAULT_APPEARANCE_TOKENS,
+  validateAppearanceTokens,
+} from '../src/data/appearanceTokens';
+import {
   analyzeConfigurationDependencies,
   analyzeConfigurationDraft,
   createConfigurationDocument,
@@ -3585,4 +3590,26 @@ test('active navigation group follows the immutable GitHub and SSH target IDs af
 
   assert.equal(getActiveNavigationGroup('settings', 'ssh-github', groups, 'github'), 'Git hosting');
   assert.equal(getActiveNavigationGroup('settings', 'ssh-github', groups, 'ssh-keys'), 'Remote access');
+});
+
+
+test('appearance tokens validate typography, geometry, opacity and both color schemes', () => {
+  assert.equal(validateAppearanceTokens(DEFAULT_APPEARANCE_TOKENS).valid, true);
+
+  const invalid = structuredClone(DEFAULT_APPEARANCE_TOKENS);
+  invalid.typography.baseFontSizePx = 40;
+  invalid.colors.dark.accent = 'red';
+  invalid.opacity.panel = 0.1;
+  const validation = validateAppearanceTokens(invalid);
+  assert.equal(validation.valid, false);
+  assert.ok(validation.diagnostics.length >= 3);
+});
+
+test('appearance stylesheet emits validated Tailwind theme variables for light and dark modes', () => {
+  const css = createAppearanceStylesheet(DEFAULT_APPEARANCE_TOKENS);
+  assert.match(css, /\[data-ui-style\]:not\(\.dark\)/);
+  assert.match(css, /\[data-ui-style\]\.dark/);
+  assert.match(css, /--font-sans:/);
+  assert.match(css, /--designer-overlay:/);
+  assert.match(css, /--radius-xl: 16px/);
 });
