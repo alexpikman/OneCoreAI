@@ -44,7 +44,8 @@ export type SideEffectPermissionScope =
   | 'project.terminal'
   | 'project.git.mutate'
   | 'project.undo'
-  | 'agent.team-run';
+  | 'agent.team-run'
+  | 'configuration.apply';
 
 export interface PermissionDecision {
   allowed: boolean;
