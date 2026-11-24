@@ -287,58 +287,120 @@ test('page-level navigation shares the primary catalog and resolves active desti
   assert.ok(NAV_GROUPS.length <= 10);
   assert.deepEqual(
     NAV_GROUPS.map((group) => group.label),
-    ['Рабочее пространство', 'Контекст', 'AI Инструменты', 'Агенты', 'Библиотека знаний', 'Интеграции', 'Настройки', 'Журналы'],
+    [
+      'Чат',
+      'Инструменты',
+      'Контекст',
+      'Провайдеры',
+      'Агенты OneCore',
+      'Центр GGUF',
+      'Библиотека знаний',
+      'Интеграции',
+      'Настройки',
+      'Журналы',
+    ],
   );
-  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [5, 5, 3, 2, 4, 5, 5, 5]);
+  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [1, 3, 5, 2, 2, 2, 4, 6, 5, 5]);
   for (const group of NAV_GROUPS) {
-    assert.ok(group.items.length <= 5, `Group ${group.id} exceeds 5 items`);
+    assert.ok(group.items.length <= 6, `Group ${group.id} exceeds 6 items`);
   }
   assert.equal(getActiveNavigationGroup('directories', 'ui-chat'), 'Библиотека знаний');
-  assert.equal(getActiveNavigationGroup('models', 'roles-pipeline'), 'Агенты');
+  assert.equal(getActiveNavigationGroup('models', 'roles-pipeline'), 'Агенты OneCore');
+  assert.equal(getActiveNavigationGroup('models', 'subagents-delegation'), 'Агенты OneCore');
+  assert.equal(getActiveNavigationGroup('models', 'llama-gguf'), 'Центр GGUF');
+  assert.equal(getActiveNavigationGroup('models', 'model-search'), 'Центр GGUF');
+  assert.equal(getActiveNavigationGroup('models', 'llama-models'), 'Центр GGUF');
   assert.equal(getActiveNavigationGroup('instructions', 'intelligence-library'), 'Библиотека знаний');
   assert.equal(getActiveNavigationGroup('settings', 'gateway'), 'Интеграции');
+  assert.equal(getActiveNavigationGroup('settings', 'execution-env'), 'Интеграции');
   assert.equal(getActiveNavigationGroup('system', 'ui-chat'), 'Настройки');
-  assert.equal(getActiveNavigationGroup('settings', 'engine-paths'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'engine-paths'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'llama-benchmark'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'llama-paged-attention'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'llama-openai-api'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'model-search'), 'AI Инструменты');
-  assert.equal(getActiveNavigationGroup('models', 'llama-models'), 'AI Инструменты');
-  const aiToolsGroup = NAV_GROUPS.find((group) => group.id === 'ai-tools');
+  assert.equal(getActiveNavigationGroup('settings', 'engine-paths'), 'Провайдеры');
+  assert.equal(getActiveNavigationGroup('models', 'engine-paths'), 'Провайдеры');
+  assert.equal(getActiveNavigationGroup('models', 'llama-benchmark'), 'Провайдеры');
+  assert.equal(getActiveNavigationGroup('models', 'llama-paged-attention'), 'Провайдеры');
+  assert.equal(getActiveNavigationGroup('models', 'llama-openai-api'), 'Провайдеры');
+
+  const providersGroup = NAV_GROUPS.find((group) => group.id === 'providers-group');
   assert.deepEqual(
-    aiToolsGroup?.items.map((item) => item.id),
-    ['provider-local', 'llama-settings', 'llama-gguf'],
+    providersGroup?.items.map((item) => item.id),
+    ['provider-local', 'llama-settings'],
   );
   assert.deepEqual(
-    aiToolsGroup?.items.map((item) => item.label),
-    ['Провайдеры', 'LlamaServer', 'Центр GGUF'],
+    providersGroup?.items.map((item) => item.label),
+    ['Провайдеры', 'LlamaServer'],
   );
+
+  const aiAgentsGroup = NAV_GROUPS.find((group) => group.id === 'ai-agents');
+  assert.deepEqual(
+    aiAgentsGroup?.items.map((item) => item.id),
+    ['agent-roles', 'subagents-delegation'],
+  );
+  assert.deepEqual(
+    aiAgentsGroup?.items.map((item) => item.label),
+    ['General Agent', 'SUB Agents'],
+  );
+
+  const ggufGroup = NAV_GROUPS.find((group) => group.id === 'gguf-center');
+  assert.deepEqual(
+    ggufGroup?.items.map((item) => item.id),
+    ['llama-gguf', 'llama-models'],
+  );
+  assert.deepEqual(
+    ggufGroup?.items.map((item) => item.label),
+    ['Модели', 'LLAMASERVER'],
+  );
+  assert.deepEqual(
+    ggufGroup?.items[0]?.subItems?.map((sub) => sub.label),
+    ['Каталог', 'Библиотека', 'Импорт'],
+  );
+  assert.deepEqual(
+    ggufGroup?.items[1]?.subItems?.map((sub) => sub.label),
+    ['Модели и запуск'],
+  );
+
   const appSourceForRoutes = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
   assert.match(appSourceForRoutes, /case 'model-search':/);
   assert.match(appSourceForRoutes, /case 'llama-models':/);
-  const llamaSettings = aiToolsGroup?.items.find((item) => item.id === 'llama-settings');
-  const llamaGguf = aiToolsGroup?.items.find((item) => item.id === 'llama-gguf');
-  const localProvider = aiToolsGroup?.items.find((item) => item.id === 'provider-local');
+  assert.match(appSourceForRoutes, /case 'subagents-delegation':[\s\S]*<SubAgentsPage \/>/);
+  assert.match(appSourceForRoutes, /case 'execution-env':[\s\S]*<ExecutionEnvPage \/>/);
+  assert.match(appSourceForRoutes, /case 'directories':[\s\S]*<DirectoriesPage \/>/);
+
+  const llamaSettings = providersGroup?.items.find((item) => item.id === 'llama-settings');
+  const llamaGguf = ggufGroup?.items.find((item) => item.id === 'llama-gguf');
+  const llamaModels = ggufGroup?.items.find((item) => item.id === 'llama-models');
+  const localProvider = providersGroup?.items.find((item) => item.id === 'provider-local');
   assert.ok(llamaSettings);
-  assert.ok(llamaGguf);
+  assert.ok(llamaGguf && llamaModels);
   assert.ok(localProvider);
   assert.equal(isNavigationItemActive(llamaSettings, 'models', 'engine-paths', 'ssh-hosts'), true);
   assert.equal(isNavigationItemActive(llamaSettings, 'models', 'llama-paged-attention', 'ssh-hosts'), true);
   assert.equal(isNavigationItemActive(llamaSettings, 'models', 'llama-openai-api', 'ssh-hosts'), true);
   assert.equal(isNavigationItemActive(llamaSettings, 'models', 'llama-benchmark', 'ssh-hosts'), true);
-  assert.equal(isNavigationItemActive(llamaGguf, 'models', 'llama-gguf', 'ssh-hosts'), true);
+  assert.equal(isNavigationItemActive(llamaGguf, 'models', 'llama-gguf', 'ssh-hosts', undefined, undefined, 'search'), true);
+  assert.equal(isNavigationItemActive(llamaGguf, 'models', 'llama-gguf', 'ssh-hosts', undefined, undefined, 'library'), true);
+  assert.equal(isNavigationItemActive(llamaGguf, 'models', 'model-search', 'ssh-hosts', undefined, undefined, 'import'), true);
+  assert.equal(isNavigationItemActive(llamaGguf, 'models', 'llama-models', 'ssh-hosts', undefined, undefined, 'search'), false);
+  assert.equal(isNavigationItemActive(llamaModels, 'models', 'llama-models', 'ssh-hosts', undefined, undefined, 'search'), true);
+  assert.equal(isNavigationItemActive(llamaModels, 'models', 'llama-gguf', 'ssh-hosts', undefined, undefined, 'search'), false);
   assert.equal(isNavigationItemActive(localProvider, 'models', 'providers', 'ssh-hosts', 'local'), true);
   assert.equal(isNavigationItemActive(localProvider, 'models', 'providers', 'ssh-hosts', 'cloud'), true);
 
   const integrations = NAV_GROUPS.find((group) => group.label === 'Интеграции');
-  const github = integrations?.items.find((item) => item.label === 'GitHub');
-  const ssh = integrations?.items.find((item) => item.label === 'SSH');
-  assert.ok(github);
-  assert.ok(ssh);
-  assert.equal(isNavigationItemActive(github, 'settings', 'ssh-github', 'github'), true);
-  assert.equal(isNavigationItemActive(ssh, 'settings', 'ssh-github', 'ssh-hosts'), true);
-  assert.equal(isNavigationItemActive(github, 'settings', 'ssh-github', 'ssh-hosts'), false);
+  assert.deepEqual(
+    integrations?.items.map((item) => item.label),
+    ['Remote connection', 'Messaging Gateway', 'Execution Environments', 'Tools', 'Hooks', 'MCP'],
+  );
+  const remoteConnection = integrations?.items.find((item) => item.id === 'remote-connection');
+  const toolsItem = integrations?.items.find((item) => item.id === 'tools-item');
+  const hooksItem = integrations?.items.find((item) => item.id === 'hooks-item');
+  assert.ok(remoteConnection);
+  assert.ok(toolsItem);
+  assert.ok(hooksItem);
+  assert.equal(isNavigationItemActive(remoteConnection, 'settings', 'ssh-github', 'github'), true);
+  assert.equal(isNavigationItemActive(remoteConnection, 'settings', 'ssh-github', 'ssh-hosts'), true);
+  assert.equal(isNavigationItemActive(toolsItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'tools'), true);
+  assert.equal(isNavigationItemActive(hooksItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'tools'), false);
+  assert.equal(isNavigationItemActive(hooksItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'hooks'), true);
 });
 
 test('navigation visibility catalog exactly matches rendered groups and destinations', () => {
@@ -397,11 +459,60 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
   assert.doesNotMatch(systemSource, /overflow-y-auto|PageSubNavigation|PageTransition/);
 
   const rolesSource = readSource('src/pages/ai-resources/AgentTeamPage.tsx');
-  assert.match(rolesSource, /<PageContent/);
+  assert.match(rolesSource, /<PageContent scrollable=\{false\}/);
   assert.match(rolesSource, /<PageLayout>/);
   assert.doesNotMatch(rolesSource, /PageTransition/);
   assert.equal(rolesSource.includes('PageSubNavigation'), false);
-  assert.match(rolesSource, /runTeamExecution/);
+  assert.match(rolesSource, /PermissionsLibrarySection/);
+  assert.match(rolesSource, /DirectivesPage/);
+  assert.match(rolesSource, /GeneralAgentInstructionsPage/);
+  assert.match(rolesSource, /AgentRolesPage/);
+
+  const subAgentsSource = readSource('src/pages/ai-resources/SubAgentsPage.tsx');
+  assert.match(subAgentsSource, /<PageContent scrollable=\{false\}/);
+  assert.match(subAgentsSource, /<PageLayout>/);
+  assert.match(subAgentsSource, /<SecondaryTabBar/);
+  assert.match(subAgentsSource, /SubAgentsDelegationSection/);
+  assert.match(subAgentsSource, /TeamExecutionPage/);
+
+  const agentRolesPageSource = readSource('src/pages/ai-resources/AgentRolesPage.tsx');
+  assert.match(agentRolesPageSource, /Создание новой роли/);
+  assert.match(agentRolesPageSource, /Доступные роли/);
+  assert.match(agentRolesPageSource, /flex-nowrap/);
+  assert.ok(
+    agentRolesPageSource.indexOf('Создание новой роли') < agentRolesPageSource.indexOf('Доступные роли'),
+    'Создание новой роли should appear before Доступные роли',
+  );
+
+  const generalInstructionsSource = readSource('src/pages/ai-resources/GeneralAgentInstructionsPage.tsx');
+  assert.match(generalInstructionsSource, /Инструкции/);
+  assert.match(generalInstructionsSource, /Схема поведения/);
+  assert.match(generalInstructionsSource, /Системный промпт/);
+  assert.match(generalInstructionsSource, /flex-nowrap/);
+
+  for (const unifiedTabbedPage of [
+    'src/pages/ai-resources/ProvidersPage.tsx',
+    'src/pages/ai-resources/LlamaServerSettingsPage.tsx',
+    'src/pages/ai-resources/LlamaServerModelsPage.tsx',
+    'src/components/models/ModelHubView.tsx',
+    'src/pages/ai-resources/AgentTeamPage.tsx',
+    'src/pages/ai-resources/SubAgentsPage.tsx',
+    'src/pages/ai-resources/SkillsDirectoryPage.tsx',
+    'src/pages/ai-resources/InstructionsCatalogPage.tsx',
+    'src/pages/ai-resources/IntelligenceLibraryPage.tsx',
+    'src/pages/ai-resources/DirectoriesPage.tsx',
+    'src/pages/integrations/SshGithubPage.tsx',
+    'src/pages/integrations/ToolsHooksPage.tsx',
+  ]) {
+    const src = readSource(unifiedTabbedPage);
+    assert.match(src, /<PageContent scrollable=\{false\}/);
+    assert.doesNotMatch(src, /PageTransition|<main\b|className="px-5 pt-4"|overflow-y-auto px-6/);
+  }
+
+  const teamExecutionSource = readSource('src/pages/ai-resources/TeamExecutionPage.tsx');
+  assert.match(teamExecutionSource, /runTeamExecution/);
+  assert.match(teamExecutionSource, /Командное выполнение/);
+  assert.match(teamExecutionSource, /Отчёт о выполнении и контроль/);
 
   const appSource = readSource('src/App.tsx');
   assert.doesNotMatch(appSource, /PlaceholderPage/);
@@ -411,7 +522,7 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
   const providerSource = readSource('src/pages/ai-resources/ProvidersPage.tsx');
   assert.match(providerSource, /<PageHeader showSave=\{false\}>/);
   assert.match(providerSource, /<PageLayout>/);
-  assert.match(providerSource, /CATEGORY_ORDER: AiProviderCategory\[\] = \['local', 'cloud', 'compatible', 'llama-server'\]/);
+  assert.match(providerSource, /CATEGORY_ORDER: ProviderTabCategory\[\] = \['local', 'cloud', 'compatible'\]/);
   const providerCategorySource = readSource('src/utils/providerCategories.ts');
   assert.match(providerCategorySource, /kind === 'custom'\) return 'compatible'/);
   assert.match(providerCategorySource, /kind === 'llama-cpp'\) return 'llama-server'/);
@@ -439,10 +550,13 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
   assert.match(storeSource, /normalizeProviderCategory\(/);
   assert.doesNotMatch(providerSource, /aiSettingsModalOpen|closeAiSettingsModal/);
   assert.doesNotMatch(providerSource, /toggleAgentRole|enabledRoleIds/);
-  assert.match(providerSource, /<ProviderCategoryWorkspace category=\{aiSettingsCategory\} \/>/);
+  assert.match(providerSource, /<ProviderCategoryWorkspace category=\{selectedCategory\} \/>/);
   assert.match(providerSource, />Провайдеры</);
   assert.match(providerSource, /<SecondaryTabBar/);
-  assert.match(providerSource, /<LlamaServerWorkspace \/>/);
+  assert.doesNotMatch(providerSource, /<LlamaServerWorkspace/);
+  const llamaModelsSource = readSource('src/pages/ai-resources/LlamaServerModelsPage.tsx');
+  assert.match(llamaModelsSource, />Модели и запуск</);
+  assert.match(llamaModelsSource, /<LlamaServerWorkspace \/>/);
   assert.match(storeSource, /addFreeProvider: \(provider: FreeProviderProfile\) => void/);
   assert.match(storeSource, /deleteFreeProvider: \(providerId: string\) => void/);
   assert.match(storeSource, /assignProviderModelToRole:/);
@@ -489,17 +603,24 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
   assert.match(appSource, /<ModelHubView title="Центр GGUF" \/>/);
 
   const navigationSource = readSource('src/data/appNavigation.ts');
-  assert.match(navigationSource, /label: 'AI Инструменты'/);
-  assert.match(navigationSource, /label: 'Агенты'/);
-  assert.match(navigationSource, /label: 'Библиотека знаний'/);
   assert.match(navigationSource, /label: 'Провайдеры'/);
-  assert.match(navigationSource, /label: 'LlamaServer'/);
+  assert.match(navigationSource, /label: 'Агенты OneCore'/);
   assert.match(navigationSource, /label: 'Центр GGUF'/);
+  assert.match(navigationSource, /label: 'Библиотека знаний'/);
+  assert.match(navigationSource, /label: 'LlamaServer'/);
+  assert.match(navigationSource, /label: 'General Agent'/);
+  assert.match(navigationSource, /label: 'SUB Agents'/);
   const navigationVisibilitySource = readSource('src/data/navigationVisibility.ts');
-  assert.match(navigationVisibilitySource, /group\.ai-tools', label: 'AI Инструменты'/);
+  assert.match(navigationVisibilitySource, /group\.providers-group', label: 'Провайдеры'/);
+  assert.match(navigationVisibilitySource, /group\.ai-agents', label: 'Агенты OneCore'/);
+  assert.match(navigationVisibilitySource, /group\.gguf-center', label: 'Центр GGUF'/);
+  assert.match(navigationVisibilitySource, /group\.knowledge', label: 'Библиотека знаний'/);
   assert.match(navigationVisibilitySource, /item\.provider-local', label: 'Провайдеры'/);
   assert.match(navigationVisibilitySource, /item\.llama-settings', label: 'LlamaServer'/);
-  assert.match(navigationVisibilitySource, /item\.llama-gguf', label: 'Центр GGUF'/);
+  assert.match(navigationVisibilitySource, /item\.agent-roles', label: 'General Agent'/);
+  assert.match(navigationVisibilitySource, /item\.subagents-delegation', label: 'SUB Agents'/);
+  assert.match(navigationVisibilitySource, /item\.llama-gguf', label: 'Модели'/);
+  assert.match(navigationVisibilitySource, /item\.llama-models', label: 'LLAMASERVER'/);
 
   const modelSearchSource = readSource('src/components/models/ModelHubView.tsx');
   assert.match(modelSearchSource, /Папка сохранения моделей/);
@@ -547,9 +668,15 @@ test('shared navigation ribbon uses a single-row neutral track and pages share u
   for (const tabbedPage of [
     'src/pages/ai-resources/ProvidersPage.tsx',
     'src/pages/ai-resources/LlamaServerSettingsPage.tsx',
+    'src/pages/ai-resources/LlamaServerModelsPage.tsx',
     'src/pages/ai-resources/AgentTeamPage.tsx',
+    'src/pages/ai-resources/SubAgentsPage.tsx',
+    'src/pages/ai-resources/SkillsDirectoryPage.tsx',
     'src/pages/ai-resources/InstructionsCatalogPage.tsx',
+    'src/pages/ai-resources/IntelligenceLibraryPage.tsx',
+    'src/pages/ai-resources/DirectoriesPage.tsx',
     'src/pages/integrations/SshGithubPage.tsx',
+    'src/pages/integrations/ToolsHooksPage.tsx',
     'src/pages/settings/SystemPage.tsx',
   ]) {
     assert.match(readSource(tabbedPage), /<SecondaryTabBar/);
@@ -573,10 +700,14 @@ test('shared navigation ribbon uses a single-row neutral track and pages share u
     'src/pages/ai-resources/LlamaServerModelsPage.tsx',
     'src/pages/ai-resources/LlamaServerSettingsPage.tsx',
     'src/pages/ai-resources/AgentTeamPage.tsx',
+    'src/pages/ai-resources/SubAgentsPage.tsx',
     'src/pages/ai-resources/SkillsDirectoryPage.tsx',
     'src/pages/ai-resources/InstructionsCatalogPage.tsx',
+    'src/pages/ai-resources/IntelligenceLibraryPage.tsx',
+    'src/pages/ai-resources/DirectoriesPage.tsx',
     'src/pages/integrations/SshGithubPage.tsx',
     'src/pages/integrations/GatewayPage.tsx',
+    'src/pages/integrations/ExecutionEnvPage.tsx',
     'src/pages/integrations/McpPage.tsx',
     'src/pages/integrations/ToolsHooksPage.tsx',
     'src/pages/settings/InterfaceSettingsPage.tsx',
@@ -617,6 +748,7 @@ test('integration navigation has no legacy settings submenu and all 25 tabs rout
   assert.match(appSource, /case 'error-log':[\s\S]*<ErrorLogPage \/>/);
   assert.match(appSource, /case 'memory':[\s\S]*<MemoryPage \/>/);
   assert.match(appSource, /case 'tasks-history':[\s\S]*<TasksHistoryPage \/>/);
+  assert.match(appSource, /case 'directories':[\s\S]*<DirectoriesPage \/>/);
   assert.match(appSource, /case 'instructions':[\s\S]*<InstructionsCatalogPage defaultTab="knowledge" \/>/);
 });
 
@@ -3406,7 +3538,7 @@ test('Designer pairing issues a one-time desktop session only after explicit app
     defaultNavigationLayout: unknown;
   };
   assert.equal(registryPayload.ok, true);
-  assert.equal(registryPayload.registry.components.length, 34);
+  assert.equal(registryPayload.registry.components.length, BUILTIN_COMPONENT_REGISTRY.length);
   assert.equal(registryPayload.registry.navigation.length, NAV_GROUPS.reduce((count, group) => count + group.items.length, 0));
 
   const navigationValidation = await fetch(`${apiBaseUrl}/api/designer/navigation/validate`, {

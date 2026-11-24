@@ -32,6 +32,7 @@ import type {
   AgentActivity,
   AgentMode,
   AgentSkill,
+  AgentTeamFocusId,
   AiProviderCategory,
   AppHookConfig,
   AppUpdateRelease,
@@ -41,15 +42,21 @@ import type {
   ChatVisibilitySettings,
   NavigationVisibilitySettings,
   Checkpoint,
+  DirectoriesSectionId,
   ExecutionEnvConfig,
   ExecutionEnvKind,
   FreeProviderProfile,
   GatewayChannelConfig,
   GatewayPlatform,
+  GeneralAgentTabId,
+  GgufHubTabId,
   GitHubAccessSettings,
   GpuBackend,
   HardwareProfile,
   InferenceSettings,
+  InstructionsSectionId,
+  IntelligenceSectionId,
+  LlamaModelsSectionId,
   LocalModel,
   McpServerConfig,
   ModelCatalogItem,
@@ -71,14 +78,17 @@ import type {
   PersistedAppSettings,
   ServerStatus,
   SettingsSectionId,
+  SkillsSectionId,
   SshGithubSectionId,
   SshAlgorithm,
   SshGlobalSettings,
   SshHostEntry,
   SshKeyProfile,
+  SubAgentsTabId,
   SubagentConfig,
   SubagentProviderSettings,
   TeamExecutionResult,
+  ToolsHooksSectionId,
   UpdateCheckStatus,
   SubagentRun,
   TrayNotification,
@@ -140,7 +150,19 @@ interface OneCoreStore {
   uiStyle: UiStylePreset;
   settingsSection: SettingsSectionId;
   sshGithubSection: SshGithubSectionId;
-  agentTeamSection: 'roles' | 'permissions' | 'pipeline';
+  agentTeamSection: 'roles' | 'permissions' | 'directives' | 'instructions' | 'pipeline' | 'delegation' | 'team-execution';
+  generalAgentTab: GeneralAgentTabId;
+  subAgentsTab: SubAgentsTabId;
+  activeNavSubItemId: string | null;
+  agentTeamFocus: AgentTeamFocusId;
+  ggufHubTab: GgufHubTabId;
+  llamaModelsSection: LlamaModelsSectionId;
+  skillsSection: SkillsSectionId;
+  instructionsSection: InstructionsSectionId;
+  intelligenceSection: IntelligenceSectionId;
+  directoriesSection: DirectoriesSectionId;
+  gatewayPlatform: GatewayPlatform;
+  toolsHooksSection: ToolsHooksSectionId;
   appNavigationWidth: number;
   chatVisibility: ChatVisibilitySettings;
   navigationVisibility: NavigationVisibilitySettings;
@@ -285,7 +307,19 @@ interface OneCoreStore {
   openSettingsSection: (section: SettingsSectionId) => void;
   setSettingsSection: (section: SettingsSectionId) => void;
   setSshGithubSection: (section: SshGithubSectionId) => void;
-  setAgentTeamSection: (section: 'roles' | 'permissions' | 'pipeline') => void;
+  setAgentTeamSection: (section: 'roles' | 'permissions' | 'directives' | 'instructions' | 'pipeline' | 'delegation' | 'team-execution') => void;
+  setGeneralAgentTab: (tab: GeneralAgentTabId) => void;
+  setSubAgentsTab: (tab: SubAgentsTabId) => void;
+  setActiveNavSubItemId: (id: string | null) => void;
+  setAgentTeamFocus: (focus: AgentTeamFocusId) => void;
+  setGgufHubTab: (tab: GgufHubTabId) => void;
+  setLlamaModelsSection: (section: LlamaModelsSectionId) => void;
+  setSkillsSection: (section: SkillsSectionId) => void;
+  setInstructionsSection: (section: InstructionsSectionId) => void;
+  setIntelligenceSection: (section: IntelligenceSectionId) => void;
+  setDirectoriesSection: (section: DirectoriesSectionId) => void;
+  setGatewayPlatform: (platform: GatewayPlatform) => void;
+  setToolsHooksSection: (section: ToolsHooksSectionId) => void;
   setAppNavigationWidth: (width: number) => void;
   saveSettings: () => Promise<{ ok: boolean; error?: string }>;
   refreshSettings: () => Promise<void>;
@@ -523,7 +557,19 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   uiStyle: 'mica-windows',
   settingsSection: 'ui-chat',
   sshGithubSection: 'ssh-keys',
-  agentTeamSection: 'roles',
+  agentTeamSection: 'permissions',
+  generalAgentTab: 'permissions',
+  subAgentsTab: 'delegation',
+  activeNavSubItemId: null,
+  agentTeamFocus: 'permissions',
+  ggufHubTab: 'search',
+  llamaModelsSection: 'launch',
+  skillsSection: 'catalog',
+  instructionsSection: 'catalog',
+  intelligenceSection: 'all',
+  directoriesSection: 'data',
+  gatewayPlatform: 'telegram',
+  toolsHooksSection: 'all',
   appNavigationWidth: 260,
   chatVisibility: FULL_CHAT_VISIBILITY,
   navigationVisibility: DEFAULT_NAVIGATION_VISIBILITY,
@@ -1249,6 +1295,18 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   setSettingsSection: (section) => set({ settingsSection: section }),
   setSshGithubSection: (section) => set({ sshGithubSection: section }),
   setAgentTeamSection: (section) => set({ agentTeamSection: section }),
+  setGeneralAgentTab: (tab) => set({ generalAgentTab: tab }),
+  setSubAgentsTab: (tab) => set({ subAgentsTab: tab }),
+  setActiveNavSubItemId: (id) => set({ activeNavSubItemId: id }),
+  setAgentTeamFocus: (focus) => set({ agentTeamFocus: focus }),
+  setGgufHubTab: (tab) => set({ ggufHubTab: tab }),
+  setLlamaModelsSection: (section) => set({ llamaModelsSection: section }),
+  setSkillsSection: (section) => set({ skillsSection: section }),
+  setInstructionsSection: (section) => set({ instructionsSection: section }),
+  setIntelligenceSection: (section) => set({ intelligenceSection: section }),
+  setDirectoriesSection: (section) => set({ directoriesSection: section }),
+  setGatewayPlatform: (platform) => set({ gatewayPlatform: platform }),
+  setToolsHooksSection: (section) => set({ toolsHooksSection: section }),
   setAppNavigationWidth: (width) =>
     set({ appNavigationWidth: Math.max(220, Math.min(380, Math.round(width))) }),
   refreshChatHistory: async () => {

@@ -160,18 +160,21 @@ export const SshGithubPage: React.FC = () => {
           <h1 className="text-xl font-semibold">Настройки доступа по SSH и GitHub</h1>
         </div>
       </PageHeader>
-      <PageContent contentClassName="space-y-6 pb-6 pt-2">
-        <SecondaryTabBar
-          ariaLabel="Внутренние страницы GitHub и SSH"
-          items={[
-            { id: 'ssh-keys', label: 'SSH-ключи', icon: <KeyRound className="h-3.5 w-3.5" /> },
-            { id: 'ssh-hosts', label: 'SSH-хосты', icon: <Server className="h-3.5 w-3.5" /> },
-            { id: 'github', label: 'GitHub', icon: <Github className="h-3.5 w-3.5" /> },
-            { id: 'configuration', label: 'Конфигурация', icon: <Terminal className="h-3.5 w-3.5" /> },
-          ]}
-          selectedId={sshGithubSection}
-          onSelect={(id) => setSshGithubSection(id as SshGithubSectionId)}
-        />
+      <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <SecondaryTabBar
+            ariaLabel="Внутренние страницы GitHub и SSH"
+            items={[
+              { id: 'ssh-keys', label: 'SSH-ключи', icon: <KeyRound className="h-3.5 w-3.5" /> },
+              { id: 'ssh-hosts', label: 'SSH-хосты', icon: <Server className="h-3.5 w-3.5" /> },
+              { id: 'github', label: 'GitHub', icon: <Github className="h-3.5 w-3.5" /> },
+              { id: 'configuration', label: 'Конфигурация', icon: <Terminal className="h-3.5 w-3.5" /> },
+            ]}
+            selectedId={sshGithubSection}
+            onSelect={(id) => setSshGithubSection(id as SshGithubSectionId)}
+          />
+
+          <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
           {(sshGithubSection === 'ssh-keys' || sshGithubSection === 'ssh-hosts') && (
@@ -878,6 +881,8 @@ export const SshGithubPage: React.FC = () => {
               )}
             </div>
           )}
+        </div>
+          </div>
         </div>
       </PageContent>
     </PageLayout>

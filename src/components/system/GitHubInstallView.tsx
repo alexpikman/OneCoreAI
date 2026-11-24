@@ -21,7 +21,7 @@ export const GitHubInstallView: React.FC = () => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5">
+    <div className="w-full space-y-5">
       <div className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

@@ -3,7 +3,6 @@ import { Activity, Archive, Cpu, Download, FileJson, Keyboard, RefreshCw, Server
 import { AIResourcePageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { PageTransition } from '../../components/layout/PageTransition';
 import { SecondaryTabBar } from '../../components/layout/SecondaryTabBar';
 import { LlamaServerApiConsoleView } from '../../components/settings/LlamaServerApiConsoleView';
 import { LlamaServerBenchmarkView } from '../../components/settings/LlamaServerBenchmarkView';
@@ -364,18 +363,17 @@ export const LlamaServerSettingsPage: React.FC = () => {
   };
 
   return (
-    <PageTransition mode="page" className="flex w-full min-h-0 flex-1 flex-col overflow-hidden">
-      <AIResourcePageLayout>
-        <PageHeader showSave={activeSection === 'engine-paths'}>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
-              <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <h1 className="text-xl font-semibold">LlamaServer</h1>
-            </div>
+    <AIResourcePageLayout>
+      <PageHeader showSave={activeSection === 'engine-paths'}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+            <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-xl font-semibold">LlamaServer</h1>
           </div>
-        </PageHeader>
-        <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
-          <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
+        </div>
+      </PageHeader>
+      <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <SecondaryTabBar
               ariaLabel="Разделы LlamaServer"
               items={LLAMA_SECTIONS}
@@ -414,7 +412,7 @@ export const LlamaServerSettingsPage: React.FC = () => {
               }
             />
 
-            <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4">
+            <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
               {activeSection === 'llama-paged-attention' ? (
                 <LlamaServerTelemetryView embedded />
               ) : activeSection === 'llama-openai-api' ? (
@@ -903,10 +901,9 @@ export const LlamaServerSettingsPage: React.FC = () => {
           </div>
                 </div>
               )}
-            </main>
+            </div>
           </div>
         </PageContent>
       </AIResourcePageLayout>
-    </PageTransition>
   );
 };

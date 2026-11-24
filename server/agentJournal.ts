@@ -104,7 +104,7 @@ function persistEventsAsync(): void {
 
       try {
         const journalPath = getJournalPath();
-        const temporaryPath = `${journalPath}.tmp`;
+        const temporaryPath = `${journalPath}.${process.pid}.tmp`;
         const snapshot = JSON.stringify(getEventsCache().slice(-MAX_EVENTS));
         await fs.promises.writeFile(temporaryPath, snapshot, 'utf-8');
         await fs.promises.rename(temporaryPath, journalPath);

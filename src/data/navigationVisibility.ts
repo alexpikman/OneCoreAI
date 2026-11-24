@@ -19,9 +19,10 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
     { id: 'brand.activity', label: 'Подпись активности агента' },
   ]},
   { id: 'navigation-catalog', label: 'Основная навигация', elements: [
-    { id: 'group.workspace', label: 'Рабочее пространство', children: [
-      { id: 'item.dashboard', label: 'Дашборд' },
+    { id: 'group.chat-group', label: 'Чат', children: [
       { id: 'item.chat', label: 'Чат' },
+    ]},
+    { id: 'group.tools', label: 'Инструменты', children: [
       { id: 'item.terminal', label: 'Терминал' },
       { id: 'item.browser', label: 'Браузер' },
       { id: 'item.notes', label: 'Заметки' },
@@ -33,13 +34,17 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
       { id: 'item.files', label: 'Файлы' },
       { id: 'item.project-history', label: 'История проекта' },
     ]},
-    { id: 'group.ai-tools', label: 'AI Инструменты', children: [
+    { id: 'group.providers-group', label: 'Провайдеры', children: [
       { id: 'item.provider-local', label: 'Провайдеры' },
       { id: 'item.llama-settings', label: 'LlamaServer' },
-      { id: 'item.llama-gguf', label: 'Центр GGUF' },
     ]},
-    { id: 'group.ai-agents', label: 'Агенты', children: [
-      { id: 'item.agent-roles', label: 'General Agent и роли' },
+    { id: 'group.ai-agents', label: 'Агенты OneCore', children: [
+      { id: 'item.agent-roles', label: 'General Agent' },
+      { id: 'item.subagents-delegation', label: 'SUB Agents' },
+    ]},
+    { id: 'group.gguf-center', label: 'Центр GGUF', children: [
+      { id: 'item.llama-gguf', label: 'Модели' },
+      { id: 'item.llama-models', label: 'LLAMASERVER' },
     ]},
     { id: 'group.knowledge', label: 'Библиотека знаний', children: [
       { id: 'item.skills', label: 'Библиотека навыков' },
@@ -48,11 +53,12 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
       { id: 'item.directories', label: 'Справочники' },
     ]},
     { id: 'group.integrations', label: 'Интеграции', children: [
-      { id: 'item.github', label: 'GitHub' },
-      { id: 'item.ssh', label: 'SSH' },
-      { id: 'item.messenger-gateway', label: 'Шлюз мессенджеров' },
+      { id: 'item.remote-connection', label: 'Remote connection' },
+      { id: 'item.messenger-gateway', label: 'Messaging Gateway' },
+      { id: 'item.execution-env', label: 'Execution Environments' },
+      { id: 'item.tools-item', label: 'Tools' },
+      { id: 'item.hooks-item', label: 'Hooks' },
       { id: 'item.mcp', label: 'MCP' },
-      { id: 'item.tools-hooks', label: 'Инструменты и Hooks' },
     ]},
     { id: 'group.settings', label: 'Настройки', children: [
       { id: 'item.interface', label: 'Интерфейс' },

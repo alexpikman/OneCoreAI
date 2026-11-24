@@ -1,12 +1,41 @@
-import type { AiProviderCategory, AppTab, SettingsSectionId, SshGithubSectionId } from '../types/onecore';
+import type {
+  AgentTeamFocusId,
+  AgentTeamSectionId,
+  AiProviderCategory,
+  AppTab,
+  DirectoriesSectionId,
+  GatewayPlatform,
+  GeneralAgentTabId,
+  GgufHubTabId,
+  InstructionsSectionId,
+  IntelligenceSectionId,
+  LlamaModelsSectionId,
+  SettingsSectionId,
+  SkillsSectionId,
+  SshGithubSectionId,
+  SubAgentsTabId,
+  ToolsHooksSectionId,
+} from '../types/onecore';
 
 export type NavigationSubItem = {
   id: string;
   label: string;
   tab: AppTab;
   section?: SettingsSectionId;
-  initialSection?: 'roles' | 'permissions' | 'pipeline';
+  initialSection?: AgentTeamSectionId;
+  generalAgentTab?: GeneralAgentTabId;
+  subAgentsTab?: SubAgentsTabId;
+  agentFocus?: AgentTeamFocusId;
   providerCategory?: AiProviderCategory;
+  sshGithubSection?: SshGithubSectionId;
+  ggufTab?: GgufHubTabId;
+  llamaModelsSection?: LlamaModelsSectionId;
+  skillsSection?: SkillsSectionId;
+  instructionsSection?: InstructionsSectionId;
+  intelligenceSection?: IntelligenceSectionId;
+  directoriesSection?: DirectoriesSectionId;
+  gatewayPlatform?: GatewayPlatform;
+  toolsHooksSection?: ToolsHooksSectionId;
 };
 
 export type NavigationItem = {
@@ -16,6 +45,9 @@ export type NavigationItem = {
   tab: AppTab;
   section?: SettingsSectionId;
   providerCategory?: AiProviderCategory;
+  ggufTab?: GgufHubTabId;
+  llamaModelsSection?: LlamaModelsSectionId;
+  toolsHooksSection?: ToolsHooksSectionId;
   subItems?: NavigationSubItem[];
 };
 
@@ -71,9 +103,9 @@ export const NAV_GROUPS: NavigationGroup[] = [
         section: 'providers',
         providerCategory: 'local',
         subItems: [
-          { id: 'sub-prov-local', label: 'LOCAL', tab: 'models', section: 'providers', providerCategory: 'local' },
-          { id: 'sub-prov-cloud', label: 'CLOUD', tab: 'models', section: 'providers', providerCategory: 'cloud' },
-          { id: 'sub-prov-comp', label: 'COMPATIBLE', tab: 'models', section: 'providers', providerCategory: 'compatible' },
+          { id: 'sub-prov-local', label: 'Local', tab: 'models', section: 'providers', providerCategory: 'local' },
+          { id: 'sub-prov-cloud', label: 'Cloud', tab: 'models', section: 'providers', providerCategory: 'cloud' },
+          { id: 'sub-prov-comp', label: 'Compatible', tab: 'models', section: 'providers', providerCategory: 'compatible' },
         ],
       },
       {
@@ -93,31 +125,64 @@ export const NAV_GROUPS: NavigationGroup[] = [
   },
   {
     id: 'ai-agents',
-    label: 'Агенты и Модели',
+    label: 'Агенты OneCore',
     icon: 'robot',
-    description: 'General Agent, роли и Центр GGUF.',
+    description: 'General Agent и SUB Agents.',
     items: [
       {
         id: 'agent-roles',
-        label: 'General Agent и роли',
+        label: 'General Agent',
         icon: 'robot',
         tab: 'models',
         section: 'roles-pipeline',
         subItems: [
-          { id: 'sub-roles', label: 'Роли одной модели', tab: 'models', section: 'roles-pipeline', initialSection: 'roles' },
-          { id: 'sub-permissions', label: 'Разрешения и указания', tab: 'models', section: 'roles-pipeline', initialSection: 'permissions' },
-          { id: 'sub-pipeline', label: 'Субагенты и делегирование', tab: 'models', section: 'roles-pipeline', initialSection: 'pipeline' },
+          { id: 'sub-permissions', label: 'Разрешения', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'permissions', initialSection: 'permissions', agentFocus: 'permissions' },
+          { id: 'sub-directives', label: 'Системные указания', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'directives', initialSection: 'directives', agentFocus: 'directives' },
+          { id: 'sub-instructions', label: 'Инструкции', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'instructions', initialSection: 'instructions', agentFocus: 'general' },
+          { id: 'sub-roles', label: 'Роли', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'roles', initialSection: 'roles', agentFocus: 'roles' },
         ],
       },
       {
+        id: 'subagents-delegation',
+        label: 'SUB Agents',
+        icon: 'workflow',
+        tab: 'models',
+        section: 'subagents-delegation',
+        subItems: [
+          { id: 'sub-pipeline', label: 'Субагенты и делегирование', tab: 'models', section: 'subagents-delegation', subAgentsTab: 'delegation', initialSection: 'delegation', agentFocus: 'pipeline' },
+          { id: 'sub-orchestration', label: 'Командное выполнение', tab: 'models', section: 'subagents-delegation', subAgentsTab: 'team-execution', initialSection: 'team-execution', agentFocus: 'orchestration' },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'gguf-center',
+    label: 'Центр GGUF',
+    icon: 'cpu',
+    description: 'Модели GGUF (каталог, библиотека, импорт) и запуск LLAMASERVER.',
+    items: [
+      {
         id: 'llama-gguf',
-        label: 'Центр GGUF',
+        label: 'Модели',
         icon: 'files',
         tab: 'models',
         section: 'llama-gguf',
+        ggufTab: 'search',
         subItems: [
-          { id: 'sub-gguf-cat', label: 'Каталог', tab: 'models', section: 'llama-gguf' },
-          { id: 'sub-gguf-lib', label: 'Библиотека', tab: 'models', section: 'llama-models' },
+          { id: 'sub-gguf-catalog', label: 'Каталог', tab: 'models', section: 'llama-gguf', ggufTab: 'search' },
+          { id: 'sub-gguf-library', label: 'Библиотека', tab: 'models', section: 'llama-gguf', ggufTab: 'library' },
+          { id: 'sub-gguf-import', label: 'Импорт', tab: 'models', section: 'llama-gguf', ggufTab: 'import' },
+        ],
+      },
+      {
+        id: 'llama-models',
+        label: 'LLAMASERVER',
+        icon: 'cpu',
+        tab: 'models',
+        section: 'llama-models',
+        llamaModelsSection: 'launch',
+        subItems: [
+          { id: 'sub-gguf-launch', label: 'Модели и запуск', tab: 'models', section: 'llama-models', llamaModelsSection: 'launch' },
         ],
       },
     ],
@@ -128,10 +193,58 @@ export const NAV_GROUPS: NavigationGroup[] = [
     icon: 'brain',
     description: 'Навыки, регламенты, схемы, справочники и архитектурные контракты.',
     items: [
-      { id: 'skills', label: 'Библиотека навыков', icon: 'brain', tab: 'skills' },
-      { id: 'instructions', label: 'Регламенты и схемы', icon: 'book', tab: 'instructions', section: 'knowledge' },
-      { id: 'intelligence-library', label: 'Intelligence Library', icon: 'workflow', tab: 'instructions', section: 'intelligence-library' },
-      { id: 'directories', label: 'Справочники', icon: 'clipboard', tab: 'directories' },
+      {
+        id: 'skills',
+        label: 'Библиотека навыков',
+        icon: 'brain',
+        tab: 'skills',
+        subItems: [
+          { id: 'sub-skills-cat', label: 'Каталог', tab: 'skills', skillsSection: 'catalog' },
+          { id: 'sub-skills-check', label: 'Проверка', tab: 'skills', skillsSection: 'check' },
+          { id: 'sub-skills-view', label: 'Просмотр', tab: 'skills', skillsSection: 'view' },
+          { id: 'sub-skills-conn', label: 'Подключение', tab: 'skills', skillsSection: 'connect' },
+        ],
+      },
+      {
+        id: 'instructions',
+        label: 'Регламенты и схемы',
+        icon: 'book',
+        tab: 'instructions',
+        section: 'knowledge',
+        subItems: [
+          { id: 'sub-inst-cat', label: 'Каталог', tab: 'instructions', section: 'knowledge', instructionsSection: 'catalog' },
+          { id: 'sub-inst-view', label: 'Просмотр', tab: 'instructions', section: 'knowledge', instructionsSection: 'view' },
+          { id: 'sub-inst-edit', label: 'Редактирование', tab: 'instructions', section: 'knowledge', instructionsSection: 'edit' },
+        ],
+      },
+      {
+        id: 'intelligence-library',
+        label: 'Intelligence Library',
+        icon: 'workflow',
+        tab: 'instructions',
+        section: 'intelligence-library',
+        subItems: [
+          { id: 'sub-intel-fund', label: 'Фундамент', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'fundament' },
+          { id: 'sub-intel-exec', label: 'Исполнение', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'execution' },
+          { id: 'sub-intel-deleg', label: 'Делегирование', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'delegation' },
+          { id: 'sub-intel-ctx', label: 'Контекст', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'context' },
+          { id: 'sub-intel-rt', label: 'Runtime', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'runtime' },
+          { id: 'sub-intel-impl', label: 'Реализация', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'implementation' },
+          { id: 'sub-intel-src', label: 'Источники', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'sources' },
+        ],
+      },
+      {
+        id: 'directories',
+        label: 'Справочники',
+        icon: 'clipboard',
+        tab: 'directories',
+        subItems: [
+          { id: 'sub-dir-data', label: 'Данные', tab: 'directories', directoriesSection: 'data' },
+          { id: 'sub-dir-terms', label: 'Термины', tab: 'directories', directoriesSection: 'terms' },
+          { id: 'sub-dir-const', label: 'Константы', tab: 'directories', directoriesSection: 'constants' },
+          { id: 'sub-dir-search', label: 'Поиск', tab: 'directories', directoriesSection: 'search' },
+        ],
+      },
     ],
   },
   {
@@ -146,10 +259,10 @@ export const NAV_GROUPS: NavigationGroup[] = [
         tab: 'settings',
         section: 'ssh-github',
         subItems: [
-          { id: 'github', label: 'GitHub', tab: 'settings', section: 'ssh-github' },
-          { id: 'ssh-hosts', label: 'SSH-ХОСТЫ', tab: 'settings', section: 'ssh-github' },
-          { id: 'ssh', label: 'SSH-Ключи', tab: 'settings', section: 'ssh-github' },
-          { id: 'ssh-config', label: 'Configuration', tab: 'settings', section: 'ssh-github' },
+          { id: 'github', label: 'GitHub', tab: 'settings', section: 'ssh-github', sshGithubSection: 'github' },
+          { id: 'ssh-hosts', label: 'SSH-ХОСТЫ', tab: 'settings', section: 'ssh-github', sshGithubSection: 'ssh-hosts' },
+          { id: 'ssh', label: 'SSH-Ключи', tab: 'settings', section: 'ssh-github', sshGithubSection: 'ssh-keys' },
+          { id: 'ssh-config', label: 'Configuration', tab: 'settings', section: 'ssh-github', sshGithubSection: 'configuration' },
         ],
       },
       {
@@ -159,14 +272,14 @@ export const NAV_GROUPS: NavigationGroup[] = [
         tab: 'settings',
         section: 'gateway',
         subItems: [
-          { id: 'tg-gateway', label: 'Telegram', tab: 'settings', section: 'gateway' },
-          { id: 'dc-gateway', label: 'Discord', tab: 'settings', section: 'gateway' },
-          { id: 'slack-gateway', label: 'Slack', tab: 'settings', section: 'gateway' },
+          { id: 'tg-gateway', label: 'Telegram', tab: 'settings', section: 'gateway', gatewayPlatform: 'telegram' },
+          { id: 'dc-gateway', label: 'Discord', tab: 'settings', section: 'gateway', gatewayPlatform: 'discord' },
+          { id: 'slack-gateway', label: 'Slack', tab: 'settings', section: 'gateway', gatewayPlatform: 'slack' },
         ],
       },
       { id: 'execution-env', label: 'Execution Environments', icon: 'cpu', tab: 'settings', section: 'execution-env' },
-      { id: 'tools-item', label: 'Tools', icon: 'tool', tab: 'tools-hooks' },
-      { id: 'hooks-item', label: 'Hooks', icon: 'tool', tab: 'tools-hooks' },
+      { id: 'tools-item', label: 'Tools', icon: 'tool', tab: 'tools-hooks', toolsHooksSection: 'tools' },
+      { id: 'hooks-item', label: 'Hooks', icon: 'tool', tab: 'tools-hooks', toolsHooksSection: 'hooks' },
       { id: 'mcp', label: 'MCP', icon: 'plug', tab: 'mcp' },
     ],
   },
@@ -201,6 +314,9 @@ export function getActiveNavigationGroupId(
   settingsSection: SettingsSectionId,
   groups: readonly NavigationGroup[] = NAV_GROUPS,
   sshGithubSection: SshGithubSectionId = 'ssh-keys',
+  aiSettingsCategory?: AiProviderCategory,
+  toolsHooksSection?: ToolsHooksSectionId,
+  ggufHubTab: GgufHubTabId = 'search',
 ): string | null {
   if (activeTab === 'workstation') {
     const chatGroup = groups.find((group) => group.items.some((item) => item.tab === 'workstation'));
@@ -208,7 +324,7 @@ export function getActiveNavigationGroupId(
   }
   const activeGroup = groups.find((group) =>
     group.items.some((item) =>
-      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),
+      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
     ),
   );
   return activeGroup?.id ?? groups[0]?.id ?? null;
@@ -219,6 +335,9 @@ export function getActiveNavigationGroup(
   settingsSection: SettingsSectionId,
   groups: readonly NavigationGroup[] = NAV_GROUPS,
   sshGithubSection: SshGithubSectionId = 'ssh-keys',
+  aiSettingsCategory?: AiProviderCategory,
+  toolsHooksSection?: ToolsHooksSectionId,
+  ggufHubTab: GgufHubTabId = 'search',
 ): string {
   if (activeTab === 'workstation') {
     const chatGroup = groups.find((group) => group.items.some((item) => item.tab === 'workstation'));
@@ -226,10 +345,10 @@ export function getActiveNavigationGroup(
   }
   const activeGroup = groups.find((group) =>
     group.items.some((item) =>
-      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),
+      isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
     ),
   );
-  return activeGroup?.label ?? groups[0]?.label ?? 'Рабочее пространство';
+  return activeGroup?.label ?? groups[0]?.label ?? 'Чат';
 }
 
 export function isNavigationItemActive(
@@ -238,6 +357,8 @@ export function isNavigationItemActive(
   settingsSection: SettingsSectionId,
   sshGithubSection: SshGithubSectionId,
   _aiSettingsCategory?: AiProviderCategory,
+  toolsHooksSection?: ToolsHooksSectionId,
+  ggufHubTab: GgufHubTabId = 'search',
 ): boolean {
   if (item.id === 'skills' && activeTab === 'models' && settingsSection === 'skills-memory') {
     return true;
@@ -248,11 +369,27 @@ export function isNavigationItemActive(
   if (item.id === 'llama-settings') {
     return (
       (activeTab === 'models' || activeTab === 'settings') &&
-      ['engine-paths', 'llama-models', 'llama-paged-attention', 'llama-openai-api', 'llama-benchmark'].includes(settingsSection)
+      ['engine-paths', 'llama-paged-attention', 'llama-openai-api', 'llama-benchmark'].includes(settingsSection)
     );
   }
   if (item.id === 'llama-gguf') {
     return activeTab === 'models' && (settingsSection === 'llama-gguf' || settingsSection === 'model-search');
+  }
+  if (item.id === 'llama-models') {
+    return activeTab === 'models' && settingsSection === 'llama-models';
+  }
+  if (item.id === 'agent-roles') {
+    return activeTab === 'models' && settingsSection === 'roles-pipeline';
+  }
+  if (item.id === 'subagents-delegation') {
+    return activeTab === 'models' && settingsSection === 'subagents-delegation';
+  }
+  if (item.id === 'remote-connection') {
+    return activeTab === 'settings' && settingsSection === 'ssh-github';
+  }
+  if (item.tab === 'tools-hooks' && activeTab === 'tools-hooks') {
+    if (item.id === 'hooks-item') return toolsHooksSection === 'hooks';
+    if (item.id === 'tools-item') return toolsHooksSection !== 'hooks';
   }
   if (activeTab !== item.tab) return false;
   if (item.section && settingsSection !== item.section) return false;

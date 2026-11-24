@@ -30,6 +30,8 @@ const TABLER_PATHS: Record<string, string> = {
   shield: 'M12 3 20 6v5c0 5-3.4 8-8 10-4.6-2-8-5-8-10V6z M8 12l3 3 5-6',
   lock: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   refresh: 'M20 7v5h-5 M4 17v-5h5 M5.6 9A7 7 0 0 1 18 6l2 6 M4 12l2 6a7 7 0 0 0 12.4-3',
+  search: 'M10 10a7 7 0 1 0 0 .01 M21 21l-6-6',
+  download: 'M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2 M7 11l5 5 5-5 M12 4v12',
   settings: 'M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8 M4 12h2 M18 12h2 M12 4v2 M12 18v2',
 };
 

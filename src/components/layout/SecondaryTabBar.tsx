@@ -26,11 +26,11 @@ export const SecondaryTabBar: React.FC<SecondaryTabBarProps> = ({
   footer,
   className,
 }) => (
-  <div className={cn('shrink-0 border-b border-zinc-200/80 pt-2 dark:border-zinc-800', className)}>
+  <div className={cn('shrink-0 border-b border-zinc-200/80 pt-3 dark:border-zinc-800', className)}>
     <div className="flex items-center justify-between gap-3">
       <nav
         aria-label={ariaLabel}
-        className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-1"
+        className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => {
           const active = item.id === selectedId;

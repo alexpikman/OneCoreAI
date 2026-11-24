@@ -9,17 +9,20 @@ import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
 import { ModelSwitcherModal } from './components/workstation/ModelSwitcherModal';
 import { AgentTeamPage } from './pages/ai-resources/AgentTeamPage';
+import { DirectoriesPage } from './pages/ai-resources/DirectoriesPage';
 import { InstructionsCatalogPage } from './pages/ai-resources/InstructionsCatalogPage';
 import { IntelligenceLibraryPage } from './pages/ai-resources/IntelligenceLibraryPage';
 import { LlamaServerModelsPage } from './pages/ai-resources/LlamaServerModelsPage';
 import { LlamaServerSettingsPage } from './pages/ai-resources/LlamaServerSettingsPage';
 import { ProvidersPage } from './pages/ai-resources/ProvidersPage';
 import { SkillsDirectoryPage } from './pages/ai-resources/SkillsDirectoryPage';
+import { SubAgentsPage } from './pages/ai-resources/SubAgentsPage';
 import { FilesPage } from './pages/context/FilesPage';
 import { ProcessesPage } from './pages/context/ProcessesPage';
 import { ProjectHistoryPage } from './pages/context/ProjectHistoryPage';
 import { ProjectsPage } from './pages/context/ProjectsPage';
 import { TasksPage } from './pages/context/TasksPage';
+import { ExecutionEnvPage } from './pages/integrations/ExecutionEnvPage';
 import { GatewayPage } from './pages/integrations/GatewayPage';
 import { McpPage } from './pages/integrations/McpPage';
 import { SshGithubPage } from './pages/integrations/SshGithubPage';
@@ -58,7 +61,6 @@ export default function App() {
     chatHistoryLoaded,
     checkForUpdates,
     refreshHardwareProfile,
-    agentTeamSection,
   } = useOneCoreStore();
 
   const tokens = getUiTokens(uiStyle);
@@ -164,9 +166,9 @@ export default function App() {
       case 'engine-paths':
         return <LlamaServerSettingsPage />;
       case 'roles-pipeline':
-        return <AgentTeamPage initialSection={agentTeamSection} />;
+        return <AgentTeamPage />;
       case 'subagents-delegation':
-        return <AgentTeamPage initialSection="pipeline" />;
+        return <SubAgentsPage />;
       case 'skills-memory':
         return <SkillsDirectoryPage />;
       case 'providers':
@@ -184,6 +186,8 @@ export default function App() {
         return <SshGithubPage />;
       case 'gateway':
         return <GatewayPage />;
+      case 'execution-env':
+        return <ExecutionEnvPage />;
       case 'engine-paths':
         return <LlamaServerSettingsPage />;
       case 'ui-chat':
@@ -240,7 +244,7 @@ export default function App() {
       case 'models':
         return renderModelsTab();
       case 'directories':
-        return <InstructionsCatalogPage defaultTab="references" />;
+        return <DirectoriesPage />;
       case 'skills':
         return <SkillsDirectoryPage />;
       case 'instructions':

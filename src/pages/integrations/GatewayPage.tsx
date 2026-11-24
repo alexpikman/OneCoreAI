@@ -5,7 +5,6 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
 import { buildGatewayStartScript } from '../../data/oneCoreSeed';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { GatewayPlatform } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getPageUiTokens } from '../../utils/uiStyle';
 
@@ -18,14 +17,15 @@ export const GatewayPage: React.FC = () => {
     gateways,
     updateGateway,
     verifyTelegramGateway,
+    gatewayPlatform,
+    setGatewayPlatform,
   } = useOneCoreStore();
 
   const tokens = getPageUiTokens(uiStyle);
   const activeProvider = freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
-  const [activeGatewayId, setActiveGatewayId] = useState<GatewayPlatform>('telegram');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const activeGateway = gateways.find((g) => g.id === activeGatewayId) ?? gateways[0];
+  const activeGateway = gateways.find((g) => g.id === gatewayPlatform) ?? gateways[0];
   const gatewayScript = useMemo(
     () => buildGatewayStartScript(gateways, activeProvider, executionEnv),
     [gateways, activeProvider, executionEnv],
@@ -77,11 +77,11 @@ export const GatewayPage: React.FC = () => {
                 <button
                   key={gw.id}
                   type="button"
-                  onClick={() => setActiveGatewayId(gw.id)}
+                  onClick={() => setGatewayPlatform(gw.id)}
                   className={cn(
                     'p-3 border text-left transition-colors',
                     tokens.cardRadius,
-                    activeGatewayId === gw.id
+                    gatewayPlatform === gw.id
                       ? tokens.activeHighlight
                       : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60',
                   )}

@@ -23,7 +23,7 @@ const CONTEXT_TITLES: Record<string, string> = {
   files: 'Файлы и поиск',
   'project-history': 'История проектов',
   models: 'Провайдеры / Модели',
-  directories: 'Справочники и регламенты',
+  directories: 'Справочники',
   skills: 'Библиотека навыков',
   instructions: 'Регламенты и схемы',
   mcp: 'Серверы MCP',
@@ -113,7 +113,21 @@ export const PageContextSidebar: React.FC<PageContextSidebarProps> = ({
       <div className="pb-3 border-b border-zinc-200 dark:border-zinc-800">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Контекст</div>
         <h2 className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          {CONTEXT_TITLES[activeTab] ?? 'Параметры приложения'}
+          {activeTab === 'settings' && settingsSection === 'execution-env'
+            ? 'Execution Environments'
+            : activeTab === 'settings' && settingsSection === 'gateway'
+              ? 'Messaging Gateway'
+              : activeTab === 'settings' && settingsSection === 'ssh-github'
+                ? 'Remote connection'
+                : activeTab === 'models' && settingsSection === 'roles-pipeline'
+                  ? 'General Agent'
+                  : activeTab === 'models' && settingsSection === 'subagents-delegation'
+                    ? 'SUB Agents'
+                    : activeTab === 'models' && (settingsSection === 'llama-gguf' || settingsSection === 'model-search' || settingsSection === 'llama-models')
+                      ? 'Центр GGUF'
+                      : activeTab === 'models' && ['engine-paths', 'llama-paged-attention', 'llama-openai-api', 'llama-benchmark'].includes(settingsSection)
+                        ? 'LlamaServer'
+                        : CONTEXT_TITLES[activeTab] ?? 'Параметры приложения'}
         </h2>
       </div>
 

@@ -53,6 +53,30 @@ export const AppNavigation: React.FC = () => {
     projectLogs,
     agentTeamSection,
     setAgentTeamSection,
+    generalAgentTab,
+    setGeneralAgentTab,
+    subAgentsTab,
+    setSubAgentsTab,
+    activeNavSubItemId,
+    setActiveNavSubItemId,
+    agentTeamFocus,
+    setAgentTeamFocus,
+    ggufHubTab,
+    setGgufHubTab,
+    llamaModelsSection,
+    setLlamaModelsSection,
+    skillsSection,
+    setSkillsSection,
+    instructionsSection,
+    setInstructionsSection,
+    intelligenceSection,
+    setIntelligenceSection,
+    directoriesSection,
+    setDirectoriesSection,
+    gatewayPlatform,
+    setGatewayPlatform,
+    toolsHooksSection,
+    setToolsHooksSection,
   } = useOneCoreStore();
 
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -104,14 +128,45 @@ export const AppNavigation: React.FC = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    setActiveNavGroup(getActiveNavigationGroupId(activeTab, settingsSection, navigationGroups, sshGithubSection) ?? 'workspace');
-  }, [activeTab, settingsSection, navigationGroups, sshGithubSection]);
+    setActiveNavGroup(
+      getActiveNavigationGroupId(
+        activeTab,
+        settingsSection,
+        navigationGroups,
+        sshGithubSection,
+        aiSettingsCategory,
+        toolsHooksSection,
+        ggufHubTab,
+      ) ?? 'chat-group',
+    );
+  }, [activeTab, settingsSection, navigationGroups, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab]);
 
   const handleSelectNavItem = (item: NavigationItem) => {
     if (item.section) setSettingsSection(item.section);
     if (item.providerCategory) setAiSettingsCategory(item.providerCategory);
+    if (item.ggufTab) setGgufHubTab(item.ggufTab);
+    if (item.llamaModelsSection) setLlamaModelsSection(item.llamaModelsSection);
+    if (item.tab === 'tools-hooks') setToolsHooksSection(item.toolsHooksSection ?? 'all');
     if (item.id === 'github') setSshGithubSection('github');
     if (item.id === 'ssh') setSshGithubSection('ssh-keys');
+    if (item.id === 'remote-connection') setSshGithubSection('github');
+    if (item.id === 'agent-roles') {
+      setGeneralAgentTab('permissions');
+      setAgentTeamSection('permissions');
+      setAgentTeamFocus('permissions');
+    }
+    if (item.id === 'subagents-delegation') {
+      setSubAgentsTab('delegation');
+      setAgentTeamSection('delegation');
+      setAgentTeamFocus('pipeline');
+    }
+    if (item.id === 'llama-gguf') {
+      setGgufHubTab('search');
+    }
+    if (item.id === 'intelligence-library') {
+      setIntelligenceSection('all');
+    }
+    setActiveNavSubItemId(item.subItems?.[0]?.id ?? null);
     setActiveTab(item.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
@@ -119,9 +174,24 @@ export const AppNavigation: React.FC = () => {
   const handleSelectSubItem = (sub: NavigationSubItem) => {
     if (sub.section) setSettingsSection(sub.section);
     if (sub.initialSection) setAgentTeamSection(sub.initialSection);
+    if (sub.generalAgentTab) setGeneralAgentTab(sub.generalAgentTab);
+    if (sub.subAgentsTab) setSubAgentsTab(sub.subAgentsTab);
+    if (sub.agentFocus) setAgentTeamFocus(sub.agentFocus);
     if (sub.providerCategory) setAiSettingsCategory(sub.providerCategory);
-    if (sub.id === 'github') setSshGithubSection('github');
-    else if (sub.id === 'ssh' || sub.id === 'ssh-hosts' || sub.id === 'ssh-config') setSshGithubSection('ssh-keys');
+    if (sub.sshGithubSection) setSshGithubSection(sub.sshGithubSection);
+    else if (sub.id === 'github') setSshGithubSection('github');
+    else if (sub.id === 'ssh-hosts') setSshGithubSection('ssh-hosts');
+    else if (sub.id === 'ssh-config') setSshGithubSection('configuration');
+    else if (sub.id === 'ssh') setSshGithubSection('ssh-keys');
+    if (sub.ggufTab) setGgufHubTab(sub.ggufTab);
+    if (sub.llamaModelsSection) setLlamaModelsSection(sub.llamaModelsSection);
+    if (sub.skillsSection) setSkillsSection(sub.skillsSection);
+    if (sub.instructionsSection) setInstructionsSection(sub.instructionsSection);
+    if (sub.intelligenceSection) setIntelligenceSection(sub.intelligenceSection);
+    if (sub.directoriesSection) setDirectoriesSection(sub.directoriesSection);
+    if (sub.gatewayPlatform) setGatewayPlatform(sub.gatewayPlatform);
+    if (sub.toolsHooksSection) setToolsHooksSection(sub.toolsHooksSection);
+    setActiveNavSubItemId(sub.id);
     setActiveTab(sub.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
@@ -132,7 +202,7 @@ export const AppNavigation: React.FC = () => {
         .filter((item) => showNav(`item.${item.id}`) && (showNav(`item.${item.id}.icon`) || showNav(`item.${item.id}.label`)))
         .map((item) => ({
           item,
-          active: isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory),
+          active: isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
           showIcon: showNav(`item.${item.id}.icon`),
           showLabel: showNav(`item.${item.id}.label`),
         }))
@@ -256,7 +326,7 @@ export const AppNavigation: React.FC = () => {
                         }
                         const rect = event.currentTarget.getBoundingClientRect();
                         setPopupAnchor({ top: rect.top, left: rect.left, width: rect.width });
-                        setActiveNavGroup(group.label);
+                        setActiveNavGroup(group.id);
                         setPopupGroupId((current) => (current === group.id ? null : group.id));
                       }}
                       title={group.label}
@@ -410,8 +480,20 @@ export const AppNavigation: React.FC = () => {
         onSelectSubItem={handleSelectSubItem}
         onClose={() => setPopupGroupId(null)}
         agentTeamSection={agentTeamSection}
+        generalAgentTab={generalAgentTab}
+        subAgentsTab={subAgentsTab}
         settingsSection={settingsSection}
         aiSettingsCategory={aiSettingsCategory}
+        activeNavSubItemId={activeNavSubItemId}
+        agentTeamFocus={agentTeamFocus}
+        sshGithubSection={sshGithubSection}
+        ggufHubTab={ggufHubTab}
+        llamaModelsSection={llamaModelsSection}
+        skillsSection={skillsSection}
+        instructionsSection={instructionsSection}
+        intelligenceSection={intelligenceSection}
+        directoriesSection={directoriesSection}
+        gatewayPlatform={gatewayPlatform}
       />
 
       <WorkspaceControlsModal

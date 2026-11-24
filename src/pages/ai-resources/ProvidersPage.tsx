@@ -1,16 +1,16 @@
 import React from 'react';
-import { Cloud, Cpu, Plug, Server, Sparkles } from 'lucide-react';
+import { Cloud, Cpu, Plug, Sparkles } from 'lucide-react';
 import { AIResourcePageLayout as PageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { PageTransition } from '../../components/layout/PageTransition';
 import { SecondaryTabBar } from '../../components/layout/SecondaryTabBar';
-import { LlamaServerWorkspace } from '../../components/settings/LlamaServerWorkspace';
 import { ProviderCategoryWorkspace } from '../../components/settings/ProviderCategoryWorkspace';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { AiProviderCategory } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { getProviderCategory } from '../../utils/providerCategories';
+
+type ProviderTabCategory = Exclude<AiProviderCategory, 'llama-server'>;
 
 const CATEGORY_LABELS: Record<AiProviderCategory, string> = {
   local: 'LOCAL',
@@ -19,14 +19,13 @@ const CATEGORY_LABELS: Record<AiProviderCategory, string> = {
   'llama-server': 'LLAMASERVER',
 };
 
-const CATEGORY_ICONS: Record<AiProviderCategory, React.ReactNode> = {
+const CATEGORY_ICONS: Record<ProviderTabCategory, React.ReactNode> = {
   local: <Cpu className="h-3.5 w-3.5" />,
   cloud: <Cloud className="h-3.5 w-3.5" />,
   compatible: <Plug className="h-3.5 w-3.5" />,
-  'llama-server': <Server className="h-3.5 w-3.5" />,
 };
 
-const CATEGORY_ORDER: AiProviderCategory[] = ['local', 'cloud', 'compatible', 'llama-server'];
+const CATEGORY_ORDER: ProviderTabCategory[] = ['local', 'cloud', 'compatible'];
 
 export const ProvidersPage: React.FC = () => {
   const {
@@ -36,6 +35,9 @@ export const ProvidersPage: React.FC = () => {
     activeProviderId,
     serverStatus,
   } = useOneCoreStore();
+
+  const selectedCategory: ProviderTabCategory =
+    aiSettingsCategory === 'llama-server' ? 'local' : aiSettingsCategory;
 
   const activeProvider = freeProviders.find((provider) => provider.id === activeProviderId) ?? null;
   const activeProviderCategory = activeProvider ? getProviderCategory(activeProvider.kind) : null;
@@ -60,16 +62,15 @@ export const ProvidersPage: React.FC = () => {
               : 'Не подключено';
 
   return (
-    <PageTransition mode="page" className="flex w-full min-h-0 flex-1 flex-col overflow-hidden">
-      <PageLayout>
-        <PageHeader showSave={false}>
-          <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
-            <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl font-semibold">Провайдеры</h1>
-          </div>
-        </PageHeader>
-        <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
-          <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
+    <PageLayout>
+      <PageHeader showSave={false}>
+        <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <h1 className="text-xl font-semibold">Провайдеры</h1>
+        </div>
+      </PageHeader>
+      <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
             <SecondaryTabBar
               ariaLabel="Категории провайдеров ИИ"
               items={CATEGORY_ORDER.map((category) => ({
@@ -77,8 +78,8 @@ export const ProvidersPage: React.FC = () => {
                 label: CATEGORY_LABELS[category],
                 icon: CATEGORY_ICONS[category],
               }))}
-              selectedId={aiSettingsCategory}
-              onSelect={(id) => setAiSettingsCategory(id as AiProviderCategory)}
+              selectedId={selectedCategory}
+              onSelect={(id) => setAiSettingsCategory(id as ProviderTabCategory)}
               footer={
                 <div className="mt-2 pb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-zinc-500 dark:text-zinc-400">
                   <span>
@@ -112,16 +113,11 @@ export const ProvidersPage: React.FC = () => {
               }
             />
 
-            <main className="flex min-h-0 flex-1 flex-col px-6 pb-6 pt-4">
-              {aiSettingsCategory === 'llama-server' ? (
-                <LlamaServerWorkspace />
-              ) : (
-                <ProviderCategoryWorkspace category={aiSettingsCategory} />
-              )}
-            </main>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto py-5 lg:overflow-hidden">
+            <ProviderCategoryWorkspace category={selectedCategory} />
           </div>
-        </PageContent>
-      </PageLayout>
-    </PageTransition>
+        </div>
+      </PageContent>
+    </PageLayout>
   );
 };

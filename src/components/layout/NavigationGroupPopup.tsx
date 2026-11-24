@@ -19,8 +19,20 @@ interface NavigationGroupPopupProps {
   onSelectSubItem: (sub: NavigationSubItem) => void;
   onClose: () => void;
   agentTeamSection: string;
+  generalAgentTab: string;
+  subAgentsTab: string;
   settingsSection: string;
   aiSettingsCategory: string;
+  activeNavSubItemId: string | null;
+  agentTeamFocus: string;
+  sshGithubSection: string;
+  ggufHubTab: string;
+  llamaModelsSection: string;
+  skillsSection: string;
+  instructionsSection: string;
+  intelligenceSection: string;
+  directoriesSection: string;
+  gatewayPlatform: string;
 }
 
 export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
@@ -31,8 +43,20 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
   onSelectSubItem,
   onClose,
   agentTeamSection,
+  generalAgentTab,
+  subAgentsTab,
   settingsSection,
   aiSettingsCategory,
+  activeNavSubItemId,
+  agentTeamFocus,
+  sshGithubSection,
+  ggufHubTab,
+  llamaModelsSection,
+  skillsSection,
+  instructionsSection,
+  intelligenceSection,
+  directoriesSection,
+  gatewayPlatform,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -110,13 +134,35 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
                 <div className="ml-5 pl-3 border-l border-zinc-200 dark:border-zinc-800 space-y-1 my-1">
                   {item.subItems!.map((sub) => {
                     const subActive =
-                      sub.initialSection
-                        ? active && agentTeamSection === sub.initialSection
-                        : sub.providerCategory
-                          ? active && aiSettingsCategory === sub.providerCategory
-                          : sub.section
-                            ? settingsSection === sub.section && active
-                            : false;
+                      sub.generalAgentTab
+                        ? active && generalAgentTab === sub.generalAgentTab
+                        : sub.subAgentsTab
+                          ? active && subAgentsTab === sub.subAgentsTab
+                          : sub.agentFocus
+                            ? active && agentTeamSection === sub.initialSection && agentTeamFocus === sub.agentFocus
+                            : sub.initialSection
+                              ? active && agentTeamSection === sub.initialSection
+                              : sub.sshGithubSection
+                                ? active && sshGithubSection === sub.sshGithubSection
+                                : sub.gatewayPlatform
+                                  ? active && gatewayPlatform === sub.gatewayPlatform
+                                  : sub.ggufTab
+                                    ? active && (settingsSection === 'llama-gguf' || settingsSection === 'model-search') && ggufHubTab === sub.ggufTab
+                                    : sub.llamaModelsSection
+                                      ? active && settingsSection === 'llama-models' && llamaModelsSection === sub.llamaModelsSection
+                                      : sub.skillsSection
+                                        ? active && skillsSection === sub.skillsSection
+                                        : sub.instructionsSection
+                                          ? active && settingsSection !== 'intelligence-library' && instructionsSection === sub.instructionsSection
+                                          : sub.intelligenceSection
+                                            ? active && settingsSection === 'intelligence-library' && intelligenceSection === sub.intelligenceSection
+                                            : sub.directoriesSection
+                                              ? active && directoriesSection === sub.directoriesSection
+                                              : sub.providerCategory
+                                                ? active && aiSettingsCategory === sub.providerCategory
+                                                : sub.section
+                                                  ? active && settingsSection === sub.section
+                                                  : active && activeNavSubItemId === sub.id;
                     return (
                       <button
                         key={sub.id}

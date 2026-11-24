@@ -30,17 +30,29 @@ export function ensureOneCoreDirs(): {
   workspacesDir: string;
   logsDir: string;
 } {
-  const home = getOneCoreHome();
-  const modelsDir = getDefaultModelsDir();
-  const reposDir = path.join(home, 'repos');
-  const workspacesDir = path.join(home, 'workspaces');
-  const logsDir = path.join(home, 'logs');
+  const buildPaths = (baseHome: string) => ({
+    home: baseHome,
+    modelsDir: path.join(baseHome, 'models'),
+    reposDir: path.join(baseHome, 'repos'),
+    workspacesDir: path.join(baseHome, 'workspaces'),
+    logsDir: path.join(baseHome, 'logs'),
+  });
 
-  for (const dir of [home, modelsDir, reposDir, workspacesDir, logsDir]) {
-    fs.mkdirSync(dir, { recursive: true });
+  const configuredHome = process.env.ONECORE_HOME?.trim();
+  const primary = buildPaths(getOneCoreHome());
+  try {
+    for (const dir of [primary.home, primary.modelsDir, primary.reposDir, primary.workspacesDir, primary.logsDir]) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    return primary;
+  } catch (error) {
+    if (configuredHome) throw error;
+    const fallback = buildPaths(path.join(os.tmpdir(), '.onecoreai'));
+    for (const dir of [fallback.home, fallback.modelsDir, fallback.reposDir, fallback.workspacesDir, fallback.logsDir]) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    return fallback;
   }
-
-  return { home, modelsDir, reposDir, workspacesDir, logsDir };
 }
 
 export function getModelsManifestPath(): string {

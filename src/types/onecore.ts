@@ -98,6 +98,42 @@ export type SettingsSectionId =
   | 'ssh-github'
   | 'github-download'
   | 'updates';
+
+export type GeneralAgentTabId = 'permissions' | 'directives' | 'instructions' | 'roles';
+export type SubAgentsTabId = 'delegation' | 'team-execution';
+export type AgentTeamSectionId =
+  | 'roles'
+  | 'permissions'
+  | 'directives'
+  | 'instructions'
+  | 'pipeline'
+  | 'delegation'
+  | 'team-execution';
+export type AgentTeamFocusId =
+  | 'general'
+  | 'roles'
+  | 'create-role'
+  | 'permissions'
+  | 'directives'
+  | 'pipeline'
+  | 'orchestration'
+  | 'control';
+export type GgufHubTabId = 'search' | 'library' | 'import';
+export type LlamaModelsSectionId = 'installed' | 'launch';
+export type SkillsSectionId = 'catalog' | 'check' | 'connect' | 'view';
+export type InstructionsSectionId = 'catalog' | 'view' | 'edit' | 'schemas' | 'references';
+export type IntelligenceSectionId =
+  | 'all'
+  | 'fundament'
+  | 'execution'
+  | 'delegation'
+  | 'context'
+  | 'runtime'
+  | 'implementation'
+  | 'sources';
+export type DirectoriesSectionId = 'data' | 'terms' | 'constants' | 'search';
+export type ToolsHooksSectionId = 'all' | 'tools' | 'hooks';
+
 export type AgentMode = 'plan' | 'act';
 export type GpuBackend = 'auto' | 'cuda' | 'vulkan' | 'cpu';
 export type ServerStatus = 'ready' | 'generating' | 'loading' | 'stopped' | 'error';

@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Check, Container, Laptop, Plus, Server, Trash2, Webhook, Wrench } from 'lucide-react';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
+import { SecondaryTabBar } from '../../components/layout/SecondaryTabBar';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { AppHookEvent, ExecutionEnvKind } from '../../types/onecore';
+import type { AppHookEvent, ExecutionEnvKind, ToolsHooksSectionId } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { requestDeleteWarning } from '../../utils/deleteWarning';
 import { getPageUiTokens } from '../../utils/uiStyle';
@@ -211,6 +212,8 @@ export const ToolsHooksPage: React.FC = () => {
     addHook,
     updateHook,
     deleteHook,
+    toolsHooksSection,
+    setToolsHooksSection,
   } = useOneCoreStore();
 
   const tokens = getPageUiTokens(uiStyle);
@@ -251,17 +254,40 @@ export const ToolsHooksPage: React.FC = () => {
     setHookCommand('');
   };
 
+  const showTools = toolsHooksSection === 'all' || toolsHooksSection === 'tools';
+  const showHooks = toolsHooksSection === 'all' || toolsHooksSection === 'hooks';
+
   return (
     <PageLayout>
       <PageHeader>
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
           <Wrench className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-xl font-semibold">Инструменты, среды выполнения и Hooks</h1>
+          <h1 className="text-xl font-semibold">
+            {toolsHooksSection === 'hooks'
+              ? 'Lifecycle Hooks'
+              : toolsHooksSection === 'tools'
+                ? 'Разрешённые инструменты (Tools)'
+                : 'Инструменты и Hooks'}
+          </h1>
         </div>
       </PageHeader>
-      <PageContent contentClassName="space-y-6 py-6">
-        <div className="mx-auto w-full max-w-5xl space-y-6">
+      <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <SecondaryTabBar
+            ariaLabel="Разделы Tools и Hooks"
+            items={[
+              { id: 'all', label: 'Все' },
+              { id: 'tools', label: 'Tools', icon: <Wrench className="h-3.5 w-3.5" /> },
+              { id: 'hooks', label: 'Hooks', icon: <Webhook className="h-3.5 w-3.5" /> },
+            ]}
+            selectedId={toolsHooksSection}
+            onSelect={(id) => setToolsHooksSection(id as ToolsHooksSectionId)}
+          />
+
+          <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
+
           {/* Per-project tool whitelist */}
+          {showTools && (
           <section className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -330,10 +356,12 @@ export const ToolsHooksPage: React.FC = () => {
               </div>
             )}
           </section>
+          )}
 
-          <ExecutionEnvironmentPanel />
+          {toolsHooksSection === 'all' && <ExecutionEnvironmentPanel />}
 
           {/* Lifecycle Hooks */}
+          {showHooks && (
           <section className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
             <div>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -473,6 +501,8 @@ export const ToolsHooksPage: React.FC = () => {
               </div>
             )}
           </section>
+          )}
+          </div>
         </div>
       </PageContent>
     </PageLayout>

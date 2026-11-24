@@ -17,11 +17,27 @@ export const PageSubNavigation: React.FC = () => {
     navigationVisibility,
     aiSettingsCategory,
     setAiSettingsCategory,
+    toolsHooksSection,
+    setToolsHooksSection,
+    ggufHubTab,
+    setGgufHubTab,
+    setLlamaModelsSection,
+    setGeneralAgentTab,
+    setSubAgentsTab,
+    setAgentTeamFocus,
   } = useOneCoreStore();
 
   if (activeTab === 'workstation') return null;
 
-  const activeGroupId = getActiveNavigationGroupId(activeTab, settingsSection, navigationGroups, sshGithubSection);
+  const activeGroupId = getActiveNavigationGroupId(
+    activeTab,
+    settingsSection,
+    navigationGroups,
+    sshGithubSection,
+    aiSettingsCategory,
+    toolsHooksSection,
+    ggufHubTab,
+  );
   const group = navigationGroups.find((item) => item.id === activeGroupId);
   if (!group || !isNavigationVisibilityEnabled(navigationVisibility, `group.${group.id}`)) {
     return <div className="h-10 shrink-0" aria-hidden="true" />;
@@ -34,7 +50,7 @@ export const PageSubNavigation: React.FC = () => {
   );
   if (visibleItems.length === 0) return <div className="h-10 shrink-0" aria-hidden="true" />;
   const selectedItem = visibleItems.find((item) =>
-    isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory),
+    isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
   );
 
   return (
@@ -48,8 +64,19 @@ export const PageSubNavigation: React.FC = () => {
           if (!item) return;
           if (item.section) setSettingsSection(item.section);
           if (item.providerCategory) setAiSettingsCategory(item.providerCategory);
+          if (item.ggufTab) setGgufHubTab(item.ggufTab);
+          if (item.llamaModelsSection) setLlamaModelsSection(item.llamaModelsSection);
+          if (item.id === 'agent-roles') {
+            setGeneralAgentTab('permissions');
+            setAgentTeamFocus('permissions');
+          }
+          if (item.id === 'subagents-delegation') {
+            setSubAgentsTab('delegation');
+            setAgentTeamFocus('pipeline');
+          }
+          if (item.tab === 'tools-hooks') setToolsHooksSection(item.toolsHooksSection ?? 'all');
           if (item.id === 'github') setSshGithubSection('github');
-          if (item.id === 'ssh') setSshGithubSection('ssh-keys');
+          if (item.id === 'ssh' || item.id === 'remote-connection') setSshGithubSection('ssh-keys');
           setActiveTab(item.tab);
         }}
       />

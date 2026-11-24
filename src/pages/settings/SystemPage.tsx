@@ -23,7 +23,7 @@ export const SystemPage: React.FC = () => {
           </div>
         </div>
       </PageHeader>
-      <PageContent contentClassName="space-y-5 pb-5 pt-2">
+      <PageContent contentClassName="space-y-5 pb-6">
         <SecondaryTabBar
           ariaLabel="Разделы системы"
           items={[
@@ -36,9 +36,7 @@ export const SystemPage: React.FC = () => {
         />
 
         {section === 'execution-env' ? (
-          <div className="mx-auto w-full max-w-4xl">
-            <ExecutionEnvironmentPanel />
-          </div>
+          <ExecutionEnvironmentPanel />
         ) : section === 'installation' ? (
           <GitHubInstallView />
         ) : (

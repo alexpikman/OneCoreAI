@@ -102,9 +102,14 @@ export const ModelHubView: React.FC<{ title?: string }> = ({ title = 'Поиск
     removeModelFromProjectMemory,
     settingsError,
     setActiveTab,
+    ggufHubTab,
+    setGgufHubTab,
+    setSettingsSection,
+    setLlamaModelsSection,
   } = useOneCoreStore();
 
-  const [hubTab, setHubTab] = useState<HubSubTab>('search');
+  const hubTab = ggufHubTab;
+  const setHubTab = setGgufHubTab;
   const [installMode, setInstallMode] = useState<InstallTargetMode>('global');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(activeProjectId || projects[0]?.id || '');
 
@@ -544,7 +549,6 @@ export const ModelHubView: React.FC<{ title?: string }> = ({ title = 'Поиск
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
           <SecondaryTabBar
             ariaLabel="Разделы центра GGUF"
-            className="px-5 pt-4"
             selectedId={hubTab}
             onSelect={(id) => setHubTab(id as HubSubTab)}
             items={[
@@ -553,32 +557,46 @@ export const ModelHubView: React.FC<{ title?: string }> = ({ title = 'Поиск
               { id: 'import', label: 'Импорт' },
             ]}
             footer={
-              <div className="mt-2 pb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                <span>
-                  Локальных моделей:{' '}
-                  <strong className="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
-                    {localModels.length}
-                  </strong>
-                </span>
-                {hardwareProfile && (
+              <div className="mt-2 pb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                   <span>
-                    Оборудование:{' '}
-                    <strong className="font-mono font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
-                      VRAM {hardwareProfile.totalVramGb} GB · RAM {hardwareProfile.ram.totalGb} GB
+                    Локальных моделей:{' '}
+                    <strong className="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
+                      {localModels.length}
                     </strong>
                   </span>
-                )}
-                <span>
-                  Назначение:{' '}
-                  <strong className="font-medium text-zinc-700 dark:text-zinc-200">
-                    {installMode === 'project' && targetProject ? `Проект «${targetProject.name}»` : 'Общая библиотека'}
-                  </strong>
-                </span>
+                  {hardwareProfile && (
+                    <span>
+                      Оборудование:{' '}
+                      <strong className="font-mono font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
+                        VRAM {hardwareProfile.totalVramGb} GB · RAM {hardwareProfile.ram.totalGb} GB
+                      </strong>
+                    </span>
+                  )}
+                  <span>
+                    Назначение:{' '}
+                    <strong className="font-medium text-zinc-700 dark:text-zinc-200">
+                      {installMode === 'project' && targetProject ? `Проект «${targetProject.name}»` : 'Общая библиотека'}
+                    </strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLlamaModelsSection('launch');
+                    setSettingsSection('llama-models');
+                    setActiveTab('models');
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400 whitespace-nowrap"
+                >
+                  <Play className="h-3 w-3" />
+                  <span>Управление запуском</span>
+                </button>
               </div>
             }
           />
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
             {settingsError && (
               <p role="alert" className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-300">
                 {settingsError}
