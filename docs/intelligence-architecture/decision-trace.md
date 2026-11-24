@@ -1,4 +1,4 @@
-# Decision Trace v1
+# Decision Trace
 
 Статус: **Draft**.
 

@@ -10,15 +10,15 @@ Intelligence Library — каталог канонических архитек�
 
 | Документ | Назначение | Статус |
 |---|---|---|
-| [Ontology v2](ontology-v2.md) | Термины, сущности, связи и инварианты | Draft |
-| [Playbook Schema v1.1](playbook-schema-v1.1.md) | Структура исполняемого сценария | Draft |
-| [Execution Model v2](execution-model-v2.md) | Resolver, Engine, Control Layer и выполнение | Draft |
-| [Capability Contract v1](capability-contract-v1.md) | Контракт возможностей Tool и фактических эффектов | Draft |
-| [Decision Trace v1](decision-trace-v1.md) | Аудит решений и операций | Draft |
-| [Delegation Model v1](delegation-model-v1.md) | Субагенты, Manager/Dispatcher, handoff, изоляция контекста и приёмка | Draft |
-| [Skill Registry v1](skill-registry-v1.md) | Импорт, происхождение, версии, доверие и подбор Skills | Draft |
-| [Task Context Package v1](task-context-package-v1.md) | Контекст конкретной задачи и его безопасная передача workers | Draft |
-| [Code Audit v1](code-audit-v1.md) | Первый сквозной сценарий проверки кода | Draft |
+| [Ontology](ontology.md) | Термины, сущности, связи и инварианты | Draft |
+| [Playbook Schema](playbook-schema.md) | Структура исполняемого сценария | Draft |
+| [Execution Model](execution-model.md) | Resolver, Engine, Control Layer и выполнение | Draft |
+| [Capability Contract](capability-contract.md) | Контракт возможностей Tool и фактических эффектов | Draft |
+| [Decision Trace](decision-trace.md) | Аудит решений и операций | Draft |
+| [Delegation Model](delegation-model.md) | Субагенты, Manager/Dispatcher, handoff, изоляция контекста и приёмка | Draft |
+| [Skill Registry](skill-registry.md) | Импорт, происхождение, версии, доверие и подбор Skills | Draft |
+| [Task Context Package](task-context-package.md) | Контекст конкретной задачи и его безопасная передача workers | Draft |
+| [Code Audit](code-audit.md) | Первый сквозной сценарий проверки кода | Draft |
 | [Implementation Roadmap](implementation-roadmap.md) | Этапы проектирования, реализации и проверки | Draft |
 
 ## Границы источников истины
@@ -38,6 +38,6 @@ Intelligence Library — каталог канонических архитек�
 4. Нельзя обозначать механизм как Implemented без подтверждения исходным кодом и тестами.
 5. Полные определения хранятся в одном каноническом документе; остальные документы ссылаются на него.
 
-## Открытые вопросы
+## Открытые вопросы (Этап 0 завершен)
 
-Перед фиксацией Schema v1.1 и Execution Model v2 необходимо закрыть вопросы покрытия компетенций каждым кандидатом, формализации Authorization, риск-ориентированного подтверждения, компенсационных операций и enforcement фактических эффектов Tool. Для Delegation Model, Skill Registry и Task Context Package требуется аудит текущих runtime-путей и проверка обратной совместимости.
+Архитектурное ревью Этапа 0 успешно проведено. Вопросы покрытия компетенций кандидатов, формализации Authorization, риск-ориентированного подтверждения, компенсационных операций и enforcement фактических эффектов Tool зафиксированы в соответствующих канонических контрактах. Для Delegation Model, Skill Registry и Task Context Package завершен аудит runtime-путей и определены правила обратной совместимости. Переход к Этапу 1 (аудит текущей реализации).

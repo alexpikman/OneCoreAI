@@ -66,7 +66,6 @@ export const NAV_GROUPS: NavigationGroup[] = [
     description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
     items: [
       { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
-      { id: 'subagents-delegation', label: 'Субагенты и делегирование', icon: 'workflow', tab: 'models', section: 'subagents-delegation' },
     ],
   },
   {

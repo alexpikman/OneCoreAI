@@ -1,4 +1,4 @@
-# Playbook Schema v1.1
+# Playbook Schema
 
 Статус: **Draft / требует закрытия открытых вопросов**. Документ фиксирует структуру и правила валидации; это ещё не исполняемая JSON Schema.
 
@@ -85,7 +85,7 @@ Transition содержит when (Expression или always) и target (ID фаз
 
 Эскалация определяет причину, адресата/канал, варианты продолжения и поведение при отсутствии ответа. Превышение бюджета не разрешает автоматически расширять лимиты.
 
-## 9. Открытые вопросы перед фиксацией v1.1
+## 9. Открытые вопросы (Этап 0 завершен)
 
 1. Завершить грамматику InputSpec, ContextRequirement, DecisionPoint, EscalationPolicy и ObservabilitySpec.
 2. Уточнить терминальные состояния и достижимость графа фаз.
@@ -95,4 +95,4 @@ Transition содержит when (Expression или always) и target (ID фаз
 
 ## 10. Статус реализации
 
-Schema v1.1 — проектный контракт, а не утверждение о существующем Playbook Engine или runtime-валидации в OneCoreAI.
+Playbook Schema — проектный контракт, а не утверждение о существующем Playbook Engine или runtime-валидации в OneCoreAI.

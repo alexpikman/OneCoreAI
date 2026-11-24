@@ -267,8 +267,8 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
         )}
 
         {section === 'roles' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 space-y-3">
+          <div className="space-y-6">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                   Доступные роли для модели {activeModel?.name}
@@ -276,56 +276,57 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                 <span className="text-xs text-zinc-500 font-mono tabular-nums">{roles.length} ролей</span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-3">
                 {roles.map((r) => {
                   const active = enabledRoleIds.includes(r.id);
                   return (
                     <div
                       key={r.id}
                       className={cn(
-                        'rounded-xl border p-4 flex flex-col justify-between gap-3 transition-colors',
+                        'rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors',
                         active
                           ? 'border-blue-500 bg-blue-500/5'
-                          : 'border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114]',
+                          : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40',
                       )}
                     >
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                             {r.name}
                           </span>
-                          {r.isCustom && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const confirmed = await requestDeleteWarning({
-                                  variant: 'simple',
-                                  title: 'Удалить роль агента?',
-                                  description: 'Пользовательская роль будет удалена.',
-                                  itemName: r.name,
-                                });
-                                if (confirmed) deleteCustomRole(r.id);
-                              }}
-                              title="Удалить роль"
-                              className="p-1 rounded text-zinc-400 hover:text-rose-500"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          {active && (
+                            <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
+                              Активна в чате
+                            </span>
                           )}
                         </div>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">{r.tagline}</p>
-                        <div className="mt-2 font-mono text-[11px] text-zinc-500 tabular-nums">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{r.tagline}</p>
+                        <div className="mt-1 font-mono text-[11px] text-zinc-500 tabular-nums">
                           Режим: {r.defaultMode.toUpperCase()} · temp {r.recommendedTemp.toFixed(2)}
                         </div>
-                        <p className="mt-2.5 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed line-clamp-3">
+                        <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
                           {r.systemPrompt}
                         </p>
                       </div>
 
-                      {active && (
-                        <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
-                          Активна в чате
-                        </span>
+                      {r.isCustom && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const confirmed = await requestDeleteWarning({
+                              variant: 'simple',
+                              title: 'Удалить роль агента?',
+                              description: 'Пользовательская роль будет удалена.',
+                              itemName: r.name,
+                            });
+                            if (confirmed) deleteCustomRole(r.id);
+                          }}
+                          title="Удалить роль"
+                          className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/30 text-xs font-medium inline-flex items-center gap-1.5 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Удалить</span>
+                        </button>
                       )}
                     </div>
                   );
@@ -333,11 +334,8 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
               </div>
             </div>
 
-            <div className="lg:col-span-5">
-              <form
-                onSubmit={handleCreateRole}
-                className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4"
-              >
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5">
+              <form onSubmit={handleCreateRole} className="space-y-4">
                 <div>
                   <h2 className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                     <Plus className="w-4 h-4 text-blue-500" />
@@ -348,33 +346,34 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Название роли</label>
-                  <input
-                    type="text"
-                    required
-                    value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
-                    placeholder="Например: Системный оптимизатор"
-                    className="w-full h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Краткая специализация</label>
-                  <input
-                    type="text"
-                    value={roleTagline}
-                    onChange={(e) => setRoleTagline(e.target.value)}
-                    placeholder="Профилирование памяти, SIMD и асинхронный Tokio"
-                    className="w-full h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Название роли</label>
+                    <input
+                      type="text"
+                      required
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      placeholder="Например: Системный оптимизатор"
+                      className="w-full h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Краткая специализация</label>
+                    <input
+                      type="text"
+                      value={roleTagline}
+                      onChange={(e) => setRoleTagline(e.target.value)}
+                      placeholder="Профилирование памяти, SIMD и асинхронный Tokio"
+                      className="w-full h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs text-zinc-900 dark:text-zinc-100"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Системный промпт роли</label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     required
                     value={rolePrompt}
                     onChange={(e) => setRolePrompt(e.target.value)}
@@ -383,7 +382,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-zinc-600 dark:text-zinc-400 mb-1">Режим по умолчанию</label>
                     <select
@@ -423,8 +422,8 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
         )}
 
         {section === 'permissions' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4">
+          <div className="space-y-6">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4">
               <div>
                 <h2 className="font-display text-base font-semibold text-zinc-900 dark:text-zinc-100">
                   Библиотека разрешений модели
@@ -438,7 +437,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                 {permissions.map((rule) => (
                   <div
                     key={rule.id}
-                    className="p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
                       <div className="text-[11px] font-mono text-zinc-500">{rule.category}</div>
@@ -480,7 +479,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
               </div>
             </div>
 
-            <div className="lg:col-span-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 space-y-4">
               <div>
                 <h2 className="font-display text-base font-semibold text-zinc-900 dark:text-zinc-100">
                   Библиотека системных указаний (Directives)
@@ -495,7 +494,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                   <label
                     key={dir.id}
                     className={cn(
-                      'block p-3 rounded-xl border cursor-pointer transition-colors',
+                      'block p-3.5 rounded-xl border cursor-pointer transition-colors',
                       dir.enabled
                         ? 'border-blue-500/40 bg-blue-500/5'
                         : 'border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-900/30 opacity-75',
