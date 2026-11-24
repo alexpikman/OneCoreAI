@@ -73,14 +73,28 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
     setActiveTab,
     sendPrompt,
     saveSettings,
+    agentTeamSection,
+    setAgentTeamSection,
   } = useOneCoreStore();
 
-  const [section, setSection] = useState<SubSection>(initialSection);
-  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);
+  const [section, setSection] = useState<SubSection>(initialSection || agentTeamSection);
 
   useEffect(() => {
-    setSection(initialSection);
-  }, [initialSection]);
+    if (initialSection) {
+      setSection(initialSection);
+      setAgentTeamSection(initialSection);
+    } else if (agentTeamSection) {
+      setSection(agentTeamSection);
+    }
+  }, [initialSection, agentTeamSection, setAgentTeamSection]);
+
+  const handleSelectSection = (id: string) => {
+    const sub = id as SubSection;
+    setSection(sub);
+    setAgentTeamSection(sub);
+  };
+
+  const [generalAgentSaveStatus, setGeneralAgentSaveStatus] = useState<string | null>(null);
 
   // Custom role builder state
   const [roleName, setRoleName] = useState('');
@@ -184,7 +198,7 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
             { id: 'pipeline', label: 'Субагенты и делегирование', icon: <GitBranch className="h-3.5 w-3.5" /> },
           ]}
           selectedId={section}
-          onSelect={(id) => setSection(id as SubSection)}
+          onSelect={handleSelectSection}
         />
         {settingsError && (
           <p

@@ -1,5 +1,14 @@
 import type { AiProviderCategory, AppTab, SettingsSectionId, SshGithubSectionId } from '../types/onecore';
 
+export type NavigationSubItem = {
+  id: string;
+  label: string;
+  tab: AppTab;
+  section?: SettingsSectionId;
+  initialSection?: 'roles' | 'permissions' | 'pipeline';
+  providerCategory?: AiProviderCategory;
+};
+
 export type NavigationItem = {
   id: string;
   label: string;
@@ -7,6 +16,7 @@ export type NavigationItem = {
   tab: AppTab;
   section?: SettingsSectionId;
   providerCategory?: AiProviderCategory;
+  subItems?: NavigationSubItem[];
 };
 
 export type NavigationGroup = {
@@ -54,9 +64,37 @@ export const NAV_GROUPS: NavigationGroup[] = [
         tab: 'models',
         section: 'providers',
         providerCategory: 'local',
+        subItems: [
+          { id: 'sub-prov-local', label: 'Local', tab: 'models', section: 'providers', providerCategory: 'local' },
+          { id: 'sub-prov-cloud', label: 'Cloud', tab: 'models', section: 'providers', providerCategory: 'cloud' },
+          { id: 'sub-prov-comp', label: 'Compatible', tab: 'models', section: 'providers', providerCategory: 'compatible' },
+          { id: 'sub-prov-llama', label: 'LlamaServer', tab: 'models', section: 'providers', providerCategory: 'llama-server' },
+        ],
       },
-      { id: 'llama-settings', label: 'LlamaServer', icon: 'cpu', tab: 'models', section: 'engine-paths' },
-      { id: 'llama-gguf', label: 'Центр GGUF', icon: 'files', tab: 'models', section: 'llama-gguf' },
+      {
+        id: 'llama-settings',
+        label: 'LlamaServer',
+        icon: 'cpu',
+        tab: 'models',
+        section: 'engine-paths',
+        subItems: [
+          { id: 'sub-engine', label: 'Настройки', tab: 'models', section: 'engine-paths' },
+          { id: 'sub-paged', label: 'PagedAttention', tab: 'models', section: 'llama-paged-attention' },
+          { id: 'sub-api', label: 'API Console', tab: 'models', section: 'llama-openai-api' },
+          { id: 'sub-bench', label: 'Бенчмарк', tab: 'models', section: 'llama-benchmark' },
+        ],
+      },
+      {
+        id: 'llama-gguf',
+        label: 'Центр GGUF',
+        icon: 'files',
+        tab: 'models',
+        section: 'llama-gguf',
+        subItems: [
+          { id: 'sub-gguf-cat', label: 'Каталог', tab: 'models', section: 'llama-gguf' },
+          { id: 'sub-gguf-lib', label: 'Библиотека', tab: 'models', section: 'llama-models' },
+        ],
+      },
     ],
   },
   {
@@ -65,7 +103,18 @@ export const NAV_GROUPS: NavigationGroup[] = [
     icon: 'robot',
     description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
     items: [
-      { id: 'agent-roles', label: 'General Agent и роли', icon: 'robot', tab: 'models', section: 'roles-pipeline' },
+      {
+        id: 'agent-roles',
+        label: 'General Agent и роли',
+        icon: 'robot',
+        tab: 'models',
+        section: 'roles-pipeline',
+        subItems: [
+          { id: 'sub-roles', label: 'Роли одной модели', tab: 'models', section: 'roles-pipeline', initialSection: 'roles' },
+          { id: 'sub-permissions', label: 'Разрешения и указания', tab: 'models', section: 'roles-pipeline', initialSection: 'permissions' },
+          { id: 'sub-pipeline', label: 'Субагенты и делегирование', tab: 'models', section: 'roles-pipeline', initialSection: 'pipeline' },
+        ],
+      },
     ],
   },
   {

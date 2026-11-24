@@ -140,6 +140,7 @@ interface OneCoreStore {
   uiStyle: UiStylePreset;
   settingsSection: SettingsSectionId;
   sshGithubSection: SshGithubSectionId;
+  agentTeamSection: 'roles' | 'permissions' | 'pipeline';
   appNavigationWidth: number;
   chatVisibility: ChatVisibilitySettings;
   navigationVisibility: NavigationVisibilitySettings;
@@ -284,6 +285,7 @@ interface OneCoreStore {
   openSettingsSection: (section: SettingsSectionId) => void;
   setSettingsSection: (section: SettingsSectionId) => void;
   setSshGithubSection: (section: SshGithubSectionId) => void;
+  setAgentTeamSection: (section: 'roles' | 'permissions' | 'pipeline') => void;
   setAppNavigationWidth: (width: number) => void;
   saveSettings: () => Promise<{ ok: boolean; error?: string }>;
   refreshSettings: () => Promise<void>;
@@ -521,6 +523,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   uiStyle: 'mica-windows',
   settingsSection: 'ui-chat',
   sshGithubSection: 'ssh-keys',
+  agentTeamSection: 'roles',
   appNavigationWidth: 260,
   chatVisibility: FULL_CHAT_VISIBILITY,
   navigationVisibility: DEFAULT_NAVIGATION_VISIBILITY,
@@ -1245,6 +1248,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   openSettingsSection: (section) => set({ activeTab: 'settings', settingsSection: section }),
   setSettingsSection: (section) => set({ settingsSection: section }),
   setSshGithubSection: (section) => set({ sshGithubSection: section }),
+  setAgentTeamSection: (section) => set({ agentTeamSection: section }),
   setAppNavigationWidth: (width) =>
     set({ appNavigationWidth: Math.max(220, Math.min(380, Math.round(width))) }),
   refreshChatHistory: async () => {

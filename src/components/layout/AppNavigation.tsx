@@ -13,6 +13,7 @@ import {
   getActiveNavigationGroupId,
   isNavigationItemActive,
   type NavigationItem,
+  type NavigationSubItem,
 } from '../../data/appNavigation';
 import { cn } from '../../utils/cn';
 import { useDesignerNavigationGroups } from './DesignerNavigationContext';
@@ -50,6 +51,8 @@ export const AppNavigation: React.FC = () => {
     files,
     projectWorkspace,
     projectLogs,
+    agentTeamSection,
+    setAgentTeamSection,
   } = useOneCoreStore();
 
   const [mobileExpanded, setMobileExpanded] = useState(false);
@@ -110,6 +113,14 @@ export const AppNavigation: React.FC = () => {
     if (item.id === 'github') setSshGithubSection('github');
     if (item.id === 'ssh') setSshGithubSection('ssh-keys');
     setActiveTab(item.tab);
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
+  };
+
+  const handleSelectSubItem = (sub: NavigationSubItem) => {
+    if (sub.section) setSettingsSection(sub.section);
+    if (sub.initialSection) setAgentTeamSection(sub.initialSection);
+    if (sub.providerCategory) setAiSettingsCategory(sub.providerCategory);
+    setActiveTab(sub.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
 
@@ -387,7 +398,10 @@ export const AppNavigation: React.FC = () => {
         items={popupItems}
         anchorRect={popupAnchor}
         onSelectItem={handleSelectNavItem}
+        onSelectSubItem={handleSelectSubItem}
         onClose={() => setPopupGroupId(null)}
+        agentTeamSection={agentTeamSection}
+        settingsSection={settingsSection}
       />
 
       <WorkspaceControlsModal
