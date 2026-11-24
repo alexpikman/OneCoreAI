@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Cloud, Cpu, Plug, Server, Sparkles } from 'lucide-react';
 import { AIResourcePageLayout as PageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -17,6 +17,13 @@ const CATEGORY_LABELS: Record<AiProviderCategory, string> = {
   cloud: 'CLOUD',
   compatible: 'COMPATIBLE',
   'llama-server': 'LLAMASERVER',
+};
+
+const CATEGORY_ICONS: Record<AiProviderCategory, React.ReactNode> = {
+  local: <Cpu className="h-3.5 w-3.5" />,
+  cloud: <Cloud className="h-3.5 w-3.5" />,
+  compatible: <Plug className="h-3.5 w-3.5" />,
+  'llama-server': <Server className="h-3.5 w-3.5" />,
 };
 
 const CATEGORY_ORDER: AiProviderCategory[] = ['local', 'cloud', 'compatible', 'llama-server'];
@@ -65,10 +72,10 @@ export const ProvidersPage: React.FC = () => {
           <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
             <SecondaryTabBar
               ariaLabel="Категории провайдеров ИИ"
-              className="px-5 pt-4"
               items={CATEGORY_ORDER.map((category) => ({
                 id: category,
                 label: CATEGORY_LABELS[category],
+                icon: CATEGORY_ICONS[category],
               }))}
               selectedId={aiSettingsCategory}
               onSelect={(id) => setAiSettingsCategory(id as AiProviderCategory)}

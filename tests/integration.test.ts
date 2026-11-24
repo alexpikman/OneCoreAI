@@ -3583,13 +3583,13 @@ test('built-in component registry maps every existing navigation item and protec
 
 test('navigation layout schema permits safe reordering and grouping without changing page targets', () => {
   const layout = createDefaultNavigationLayout();
-  const workspace = layout.groups.find((group) => group.id === 'workspace');
+  const tools = layout.groups.find((group) => group.id === 'tools');
   const context = layout.groups.find((group) => group.id === 'context');
-  assert.ok(workspace && context);
+  assert.ok(tools && context);
 
-  const browser = workspace.items.find((item) => item.id === 'browser');
+  const browser = tools.items.find((item) => item.id === 'browser');
   assert.ok(browser);
-  workspace.items = workspace.items.filter((item) => item.id !== 'browser');
+  tools.items = tools.items.filter((item) => item.id !== 'browser');
   context.items.unshift(browser);
 
   assert.equal(validateNavigationLayout(layout).valid, true);

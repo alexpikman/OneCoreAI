@@ -66,6 +66,7 @@ export const PageContextSidebar: React.FC<PageContextSidebarProps> = ({
     skills,
     permissions,
     teamExecutionResult,
+    setActiveTab,
   } = useOneCoreStore();
 
   const [isQuantGuideOpen, setIsQuantGuideOpen] = useState(false);
@@ -86,6 +87,29 @@ export const PageContextSidebar: React.FC<PageContextSidebarProps> = ({
         )}
         aria-label="Контекст текущего раздела"
       >
+      <div className="pb-3 border-b border-zinc-200 dark:border-zinc-800 mb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('dashboard')}
+          className="w-full text-left rounded-xl border border-blue-500/30 bg-blue-500/5 p-3 transition-colors hover:bg-blue-500/10 dark:border-blue-500/30 dark:bg-blue-950/20"
+        >
+          <div className="flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400">
+            <span>Дашборд системы</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-zinc-600 dark:text-zinc-300">
+            <div>
+              <span className="text-zinc-400 block text-[10px]">Модель</span>
+              <span className="font-medium truncate block">{localModels.find((m) => m.id === activeModelId)?.name || 'Не выбрана'}</span>
+            </div>
+            <div>
+              <span className="text-zinc-400 block text-[10px]">Сервер</span>
+              <span className="font-medium capitalize block">{serverStatus}</span>
+            </div>
+          </div>
+        </button>
+      </div>
+
       <div className="pb-3 border-b border-zinc-200 dark:border-zinc-800">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Контекст</div>
         <h2 className="mt-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { ONECORE_SLASH_COMMANDS } from '../../data/oneCoreSeed';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
+import { apiFetch } from '../../utils/apiFetch';
 import { cn } from '../../utils/cn';
 import { getUiTokens } from '../../utils/uiStyle';
 import { GitDiffViewer } from '../agent/GitDiffViewer';
@@ -153,7 +154,9 @@ export const CenterAgentPane: React.FC = () => {
       });
     };
 
-    void fetch('/api/agent-journal')
+    const controller = new AbortController();
+
+    void apiFetch('/api/agent-journal', { signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json() as Promise<{ ok?: boolean; events?: AgentJournalEvent[] }>;
@@ -168,18 +171,34 @@ export const CenterAgentPane: React.FC = () => {
       })
       .catch(() => undefined);
 
-    const stream = new EventSource('/api/agent-journal/stream');
-    stream.onmessage = (message) => {
-      try {
-        mergeEvent(JSON.parse(message.data) as AgentJournalEvent);
-      } catch {
-        // Ignore malformed journal events and keep the stream alive.
-      }
-    };
+    void apiFetch('/api/agent-journal/stream', { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (active) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split(/\r?\n\r?\n/);
+          buffer = blocks.pop() ?? '';
+          for (const block of blocks) {
+            const line = block.split(/\r?\n/).find((entry) => entry.startsWith('data:'));
+            if (!line) continue;
+            try {
+              mergeEvent(JSON.parse(line.slice(5).trim()) as AgentJournalEvent);
+            } catch {
+              // Ignore malformed journal events and keep the stream alive.
+            }
+          }
+        }
+      })
+      .catch(() => undefined);
 
     return () => {
       active = false;
-      stream.close();
+      controller.abort();
     };
   }, []);
 

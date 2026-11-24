@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Archive, Cpu, Download, FileJson, Keyboard, RefreshCw, Server, Shield, Sliders } from 'lucide-react';
+import { Activity, Archive, Cpu, Download, FileJson, Keyboard, RefreshCw, Server, Shield, Sliders, Terminal } from 'lucide-react';
 import { AIResourcePageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -16,11 +16,11 @@ import { getPageUiTokens } from '../../utils/uiStyle';
 
 type LlamaSubSection = 'engine-paths' | 'llama-paged-attention' | 'llama-openai-api' | 'llama-benchmark';
 
-const LLAMA_SECTIONS: Array<{ id: LlamaSubSection; label: string }> = [
-  { id: 'engine-paths', label: 'Настройки' },
-  { id: 'llama-paged-attention', label: 'PagedAttention' },
-  { id: 'llama-openai-api', label: 'API Console' },
-  { id: 'llama-benchmark', label: 'Бенчмарк' },
+const LLAMA_SECTIONS: Array<{ id: LlamaSubSection; label: string; icon: React.ReactNode }> = [
+  { id: 'engine-paths', label: 'Настройки', icon: <Sliders className="h-3.5 w-3.5" /> },
+  { id: 'llama-paged-attention', label: 'PagedAttention', icon: <Cpu className="h-3.5 w-3.5" /> },
+  { id: 'llama-openai-api', label: 'API Console', icon: <Terminal className="h-3.5 w-3.5" /> },
+  { id: 'llama-benchmark', label: 'Бенчмарк', icon: <Activity className="h-3.5 w-3.5" /> },
 ];
 
 interface LlamaCppChecks {
@@ -378,7 +378,6 @@ export const LlamaServerSettingsPage: React.FC = () => {
           <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
             <SecondaryTabBar
               ariaLabel="Разделы LlamaServer"
-              className="px-5 pt-4"
               items={LLAMA_SECTIONS}
               selectedId={activeSection}
               onSelect={(id) => setSettingsSection(id as SettingsSectionId)}

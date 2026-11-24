@@ -20,6 +20,7 @@ interface NavigationGroupPopupProps {
   onClose: () => void;
   agentTeamSection: string;
   settingsSection: string;
+  aiSettingsCategory: string;
 }
 
 export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
@@ -31,6 +32,7 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
   onClose,
   agentTeamSection,
   settingsSection,
+  aiSettingsCategory,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -68,20 +70,9 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
         left: `${computedLeft}px`,
         top: `${computedTop}px`,
       }}
-      className="fixed z-50 w-72 max-h-[calc(100vh-32px)] flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 backdrop-blur-md shadow-xl dark:border-zinc-800 dark:bg-zinc-950/95"
+      className="fixed z-50 w-72 max-h-[calc(100vh-32px)] flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 backdrop-blur-md shadow-xl dark:border-zinc-800 dark:bg-zinc-950/95 p-2"
     >
-      <div className="flex items-center justify-end border-b border-zinc-200/60 px-3 py-2 dark:border-zinc-800">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Закрыть меню раздела"
-          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 overflow-y-auto space-y-1">
         {items.map(({ item, active, showIcon, showLabel }) => {
           const hasSubItems = item.subItems && item.subItems.length > 0;
           return (
@@ -121,9 +112,11 @@ export const NavigationGroupPopup: React.FC<NavigationGroupPopupProps> = ({
                     const subActive =
                       sub.initialSection
                         ? active && agentTeamSection === sub.initialSection
-                        : sub.section
-                          ? settingsSection === sub.section && active
-                          : false;
+                        : sub.providerCategory
+                          ? active && aiSettingsCategory === sub.providerCategory
+                          : sub.section
+                            ? settingsSection === sub.section && active
+                            : false;
                     return (
                       <button
                         key={sub.id}

@@ -58,6 +58,7 @@ export default function App() {
     chatHistoryLoaded,
     checkForUpdates,
     refreshHardwareProfile,
+    agentTeamSection,
   } = useOneCoreStore();
 
   const tokens = getUiTokens(uiStyle);
@@ -163,7 +164,7 @@ export default function App() {
       case 'engine-paths':
         return <LlamaServerSettingsPage />;
       case 'roles-pipeline':
-        return <AgentTeamPage initialSection="roles" />;
+        return <AgentTeamPage initialSection={agentTeamSection} />;
       case 'subagents-delegation':
         return <AgentTeamPage initialSection="pipeline" />;
       case 'skills-memory':

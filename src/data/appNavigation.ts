@@ -29,12 +29,18 @@ export type NavigationGroup = {
 
 export const NAV_GROUPS: NavigationGroup[] = [
   {
-    id: 'workspace',
-    label: 'Рабочее пространство',
-    icon: 'dashboard',
+    id: 'chat-group',
+    label: 'Чат',
+    icon: 'message',
     items: [
-      { id: 'dashboard', label: 'Дашборд', icon: 'dashboard', tab: 'dashboard' },
       { id: 'chat', label: 'Чат', icon: 'message', tab: 'workstation' },
+    ],
+  },
+  {
+    id: 'tools',
+    label: 'Инструменты',
+    icon: 'terminal',
+    items: [
       { id: 'terminal', label: 'Терминал', icon: 'terminal', tab: 'terminal' },
       { id: 'browser', label: 'Браузер', icon: 'world', tab: 'browser' },
       { id: 'notes', label: 'Заметки', icon: 'book', tab: 'notes' },
@@ -53,9 +59,9 @@ export const NAV_GROUPS: NavigationGroup[] = [
     ],
   },
   {
-    id: 'ai-tools',
-    label: 'AI Инструменты',
-    icon: 'cpu',
+    id: 'providers-group',
+    label: 'Провайдеры',
+    icon: 'plug',
     items: [
       {
         id: 'provider-local',
@@ -65,10 +71,9 @@ export const NAV_GROUPS: NavigationGroup[] = [
         section: 'providers',
         providerCategory: 'local',
         subItems: [
-          { id: 'sub-prov-local', label: 'Local', tab: 'models', section: 'providers', providerCategory: 'local' },
-          { id: 'sub-prov-cloud', label: 'Cloud', tab: 'models', section: 'providers', providerCategory: 'cloud' },
-          { id: 'sub-prov-comp', label: 'Compatible', tab: 'models', section: 'providers', providerCategory: 'compatible' },
-          { id: 'sub-prov-llama', label: 'LlamaServer', tab: 'models', section: 'providers', providerCategory: 'llama-server' },
+          { id: 'sub-prov-local', label: 'LOCAL', tab: 'models', section: 'providers', providerCategory: 'local' },
+          { id: 'sub-prov-cloud', label: 'CLOUD', tab: 'models', section: 'providers', providerCategory: 'cloud' },
+          { id: 'sub-prov-comp', label: 'COMPATIBLE', tab: 'models', section: 'providers', providerCategory: 'compatible' },
         ],
       },
       {
@@ -84,24 +89,13 @@ export const NAV_GROUPS: NavigationGroup[] = [
           { id: 'sub-bench', label: 'Бенчмарк', tab: 'models', section: 'llama-benchmark' },
         ],
       },
-      {
-        id: 'llama-gguf',
-        label: 'Центр GGUF',
-        icon: 'files',
-        tab: 'models',
-        section: 'llama-gguf',
-        subItems: [
-          { id: 'sub-gguf-cat', label: 'Каталог', tab: 'models', section: 'llama-gguf' },
-          { id: 'sub-gguf-lib', label: 'Библиотека', tab: 'models', section: 'llama-models' },
-        ],
-      },
     ],
   },
   {
     id: 'ai-agents',
-    label: 'Агенты',
+    label: 'Агенты и Модели',
     icon: 'robot',
-    description: 'General Agent, специализации, роли и делегирование ограниченных задач.',
+    description: 'General Agent, роли и Центр GGUF.',
     items: [
       {
         id: 'agent-roles',
@@ -113,6 +107,17 @@ export const NAV_GROUPS: NavigationGroup[] = [
           { id: 'sub-roles', label: 'Роли одной модели', tab: 'models', section: 'roles-pipeline', initialSection: 'roles' },
           { id: 'sub-permissions', label: 'Разрешения и указания', tab: 'models', section: 'roles-pipeline', initialSection: 'permissions' },
           { id: 'sub-pipeline', label: 'Субагенты и делегирование', tab: 'models', section: 'roles-pipeline', initialSection: 'pipeline' },
+        ],
+      },
+      {
+        id: 'llama-gguf',
+        label: 'Центр GGUF',
+        icon: 'files',
+        tab: 'models',
+        section: 'llama-gguf',
+        subItems: [
+          { id: 'sub-gguf-cat', label: 'Каталог', tab: 'models', section: 'llama-gguf' },
+          { id: 'sub-gguf-lib', label: 'Библиотека', tab: 'models', section: 'llama-models' },
         ],
       },
     ],
@@ -173,6 +178,10 @@ export function getActiveNavigationGroupId(
   groups: readonly NavigationGroup[] = NAV_GROUPS,
   sshGithubSection: SshGithubSectionId = 'ssh-keys',
 ): string | null {
+  if (activeTab === 'workstation') {
+    const chatGroup = groups.find((group) => group.items.some((item) => item.tab === 'workstation'));
+    if (chatGroup) return chatGroup.id;
+  }
   const activeGroup = groups.find((group) =>
     group.items.some((item) =>
       isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),
@@ -187,6 +196,10 @@ export function getActiveNavigationGroup(
   groups: readonly NavigationGroup[] = NAV_GROUPS,
   sshGithubSection: SshGithubSectionId = 'ssh-keys',
 ): string {
+  if (activeTab === 'workstation') {
+    const chatGroup = groups.find((group) => group.items.some((item) => item.tab === 'workstation'));
+    if (chatGroup) return chatGroup.label;
+  }
   const activeGroup = groups.find((group) =>
     group.items.some((item) =>
       isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection),

@@ -26,11 +26,11 @@ export const SecondaryTabBar: React.FC<SecondaryTabBarProps> = ({
   footer,
   className,
 }) => (
-  <div className={cn('shrink-0 border-b border-zinc-200/80 pt-3 dark:border-zinc-800', className)}>
+  <div className={cn('shrink-0 border-b border-zinc-200/80 pt-2 dark:border-zinc-800', className)}>
     <div className="flex items-center justify-between gap-3">
       <nav
         aria-label={ariaLabel}
-        className="flex min-w-0 flex-1 flex-nowrap items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 flex-1 flex-nowrap items-center justify-start gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-1"
       >
         {items.map((item) => {
           const active = item.id === selectedId;
@@ -41,13 +41,17 @@ export const SecondaryTabBar: React.FC<SecondaryTabBarProps> = ({
               onClick={() => onSelect(item.id)}
               aria-pressed={active}
               className={cn(
-                'inline-flex shrink-0 items-center gap-1.5 border-b-2 px-4 pb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
+                'inline-flex shrink-0 items-center gap-2 border-b-2 px-1 pb-2.5 text-xs font-semibold whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
                 active
                   ? 'border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-300'
                   : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100',
               )}
             >
-              {item.icon && <span className="shrink-0">{item.icon}</span>}
+              {item.icon && (
+                <span className={cn('shrink-0', active ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400')} role="img" aria-hidden="true">
+                  {item.icon}
+                </span>
+              )}
               <span>{item.label}</span>
             </button>
           );

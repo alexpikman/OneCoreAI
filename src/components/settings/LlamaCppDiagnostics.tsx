@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, CheckCircle2, Circle, Loader2, RefreshCw } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { LocalModel, ServerStatus } from '../../types/onecore';
+import { apiFetch as fetch } from '../../utils/apiFetch';
 import { cn } from '../../utils/cn';
 
 interface LlamaRuntimeSnapshot {

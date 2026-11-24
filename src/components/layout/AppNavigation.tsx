@@ -247,6 +247,11 @@ export const AppNavigation: React.FC = () => {
                       type="button"
                       data-nav-group-trigger="true"
                       onClick={(event) => {
+                        if (group.id === 'chat-group') {
+                          setActiveTab('workstation');
+                          setPopupGroupId(null);
+                          return;
+                        }
                         const rect = event.currentTarget.getBoundingClientRect();
                         setPopupAnchor({ top: rect.top, left: rect.left, width: rect.width });
                         setActiveNavGroup(group.label);
@@ -254,8 +259,8 @@ export const AppNavigation: React.FC = () => {
                       }}
                       title={group.label}
                       aria-label={group.label}
-                      aria-haspopup="menu"
-                      aria-expanded={popupOpen}
+                      aria-haspopup={group.id === 'chat-group' ? undefined : 'menu'}
+                      aria-expanded={group.id === 'chat-group' ? undefined : popupOpen}
                       className={cn(
                         'w-full h-8 px-2.5 lg:px-3 inline-flex items-center justify-center lg:justify-between gap-2 rounded-xl text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950',
                         active || popupOpen
@@ -276,12 +281,14 @@ export const AppNavigation: React.FC = () => {
                           </span>
                         )}
                       </span>
-                      <ChevronRight
-                        className={cn(
-                          'hidden lg:block h-3.5 w-3.5 shrink-0 transition-transform',
-                          popupOpen ? 'text-blue-500 translate-x-0.5' : 'text-zinc-400',
-                        )}
-                      />
+                      {group.id !== 'chat-group' && (
+                        <ChevronRight
+                          className={cn(
+                            'hidden lg:block h-3.5 w-3.5 shrink-0 transition-transform',
+                            popupOpen ? 'text-blue-500 translate-x-0.5' : 'text-zinc-400',
+                          )}
+                        />
+                      )}
                     </button>
                   );
                 })}
@@ -402,6 +409,7 @@ export const AppNavigation: React.FC = () => {
         onClose={() => setPopupGroupId(null)}
         agentTeamSection={agentTeamSection}
         settingsSection={settingsSection}
+        aiSettingsCategory={aiSettingsCategory}
       />
 
       <WorkspaceControlsModal

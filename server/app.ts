@@ -237,7 +237,13 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
     if (origin && !isTauriOrigin && !isDesignerDevOrigin) {
       try {
-        isAllowedOrigin = matchesRequestAuthority(new URL(origin));
+        const parsedOrigin = new URL(origin);
+        const isBrowserSameOrigin =
+          fetchSite === 'same-origin' &&
+          (parsedOrigin.protocol === 'http:' || parsedOrigin.protocol === 'https:') &&
+          !parsedOrigin.username &&
+          !parsedOrigin.password;
+        isAllowedOrigin = matchesRequestAuthority(parsedOrigin) || isBrowserSameOrigin;
       } catch {
         isAllowedOrigin = false;
       }
@@ -250,17 +256,19 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
 
     let isTrustedClient = Boolean(origin && isAllowedOrigin);
     if (!origin) {
-      const referer = req.header('Referer');
-      if (referer) {
-        try {
-          const parsedReferer = new URL(referer);
-          isTrustedClient =
-            tauriOrigins.has(parsedReferer.origin) || matchesRequestAuthority(parsedReferer);
-        } catch {
-          isTrustedClient = false;
-        }
-      } else if (fetchSite === 'same-origin') {
+      if (fetchSite === 'same-origin') {
         isTrustedClient = true;
+      } else {
+        const referer = req.header('Referer');
+        if (referer) {
+          try {
+            const parsedReferer = new URL(referer);
+            isTrustedClient =
+              tauriOrigins.has(parsedReferer.origin) || matchesRequestAuthority(parsedReferer);
+          } catch {
+            isTrustedClient = false;
+          }
+        }
       }
     }
     res.locals.oneCoreTrustedClient = isTrustedClient;

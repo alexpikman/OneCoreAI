@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   AlertTriangle,
+  ArrowDown,
   ArrowRight,
   Bot,
   CheckCircle2,
@@ -37,7 +38,7 @@ const SPECIALIST_ROLES = [
   { id: 'role-qa', label: 'QA' },
 ];
 
-export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initialSection = 'roles' }) => {
+export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initialSection }) => {
   const {
     roles,
     enabledRoleIds,
@@ -77,16 +78,16 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
     setAgentTeamSection,
   } = useOneCoreStore();
 
-  const [section, setSection] = useState<SubSection>(initialSection || agentTeamSection);
+  const [section, setSection] = useState<SubSection>(agentTeamSection || initialSection || 'roles');
 
   useEffect(() => {
-    if (initialSection) {
+    if (agentTeamSection && agentTeamSection !== section) {
+      setSection(agentTeamSection);
+    } else if (!agentTeamSection && initialSection && initialSection !== section) {
       setSection(initialSection);
       setAgentTeamSection(initialSection);
-    } else if (agentTeamSection) {
-      setSection(agentTeamSection);
     }
-  }, [initialSection, agentTeamSection, setAgentTeamSection]);
+  }, [initialSection, agentTeamSection, section, setAgentTeamSection]);
 
   const handleSelectSection = (id: string) => {
     const sub = id as SubSection;
@@ -888,8 +889,8 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
             </div>
 
             {/* Interactive Connected Nodes Graph */}
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5 overflow-x-auto">
-              <div className="flex items-stretch gap-2 min-w-[920px]">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#111114] p-5">
+              <div className="flex flex-col gap-3">
                 {pipelineStages.map((stage, idx) => {
                   const stageRole = roles.find((r) => r.id === stage.assignedRoleId) ?? roles[0];
                   const isSelected = stage.id === selectedStageId;
@@ -899,13 +900,13 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                         type="button"
                         onClick={() => setSelectedStageId(stage.id)}
                         className={cn(
-                          'flex-1 text-left p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-3',
+                          'w-full text-left p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4',
                           isSelected
                             ? 'border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/30'
                             : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/40 hover:border-zinc-300 dark:hover:border-zinc-700',
                         )}
                       >
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-mono text-[11px] text-zinc-500 tabular-nums">
                               0{stage.stepNumber}
@@ -931,27 +932,27 @@ export const AgentTeamPage: React.FC<{ initialSection?: SubSection }> = ({ initi
                                     : 'Ожидание'}
                             </span>
                           </div>
-                          <div className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mt-1.5">
+                          <div className="font-display text-sm font-semibold text-zinc-900 dark:text-zinc-100 mt-1">
                             {stage.title}
                           </div>
-                          <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
                             {stage.shortGoal}
                           </p>
                         </div>
 
-                        <div className="pt-2 border-t border-zinc-200/70 dark:border-zinc-800/80 text-[11px]">
-                          <div className="font-medium text-zinc-800 dark:text-zinc-200 truncate">
+                        <div className="sm:text-right shrink-0 pt-2 sm:pt-0 sm:border-t-0 border-t border-zinc-200/70 dark:border-zinc-800/80 text-[11px]">
+                          <div className="font-medium text-zinc-800 dark:text-zinc-200">
                             Роль: {stageRole.name}
                           </div>
-                          <div className="font-mono text-[10.5px] text-zinc-400 truncate mt-0.5">
+                          <div className="font-mono text-[10.5px] text-zinc-400 mt-0.5">
                             {stage.outputArtifact}
                           </div>
                         </div>
                       </button>
 
                       {idx < pipelineStages.length - 1 && (
-                        <div className="flex items-center justify-center text-zinc-400 dark:text-zinc-600 shrink-0">
-                          <ArrowRight className="w-4 h-4" />
+                        <div className="flex items-center justify-center py-1 text-zinc-400 dark:text-zinc-600">
+                          <ArrowDown className="w-4 h-4" />
                         </div>
                       )}
                     </React.Fragment>
