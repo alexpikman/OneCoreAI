@@ -120,6 +120,8 @@ export const AppNavigation: React.FC = () => {
     if (sub.section) setSettingsSection(sub.section);
     if (sub.initialSection) setAgentTeamSection(sub.initialSection);
     if (sub.providerCategory) setAiSettingsCategory(sub.providerCategory);
+    if (sub.id === 'github') setSshGithubSection('github');
+    else if (sub.id === 'ssh' || sub.id === 'ssh-hosts' || sub.id === 'ssh-config') setSshGithubSection('ssh-keys');
     setActiveTab(sub.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
