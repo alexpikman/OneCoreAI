@@ -67,6 +67,7 @@ export const ModelSwitcherModal: React.FC = () => {
     setLlamaChecks(null);
     setCheckSteps(initialSteps);
     let discoveredChecks: LlamaServerChecks | null = null;
+    let runtimeWasRunning = false;
     const updateStep = (index: number, patch: Partial<LlamaCheckStep>) => {
       setCheckSteps((current) => current.map((step, stepIndex) =>
         stepIndex === index ? { ...step, ...patch } : step,
@@ -79,6 +80,7 @@ export const ModelSwitcherModal: React.FC = () => {
       const initialResponse = await apiFetch('/api/models/llama-cpp/status');
       const initialStatus = await initialResponse.json() as { ok?: boolean; status?: string; error?: string };
       if (!initialResponse.ok || !initialStatus.ok) throw new Error(initialStatus.error || 'Не удалось определить состояние llama-server.');
+      runtimeWasRunning = initialStatus.status === 'ready';
       updateStep(0, { state: 'success', detail: initialStatus.status === 'ready' ? 'Сервер уже запущен.' : 'Текущее состояние определено.' });
 
       updateStep(1, { state: 'checking' });
@@ -165,8 +167,8 @@ export const ModelSwitcherModal: React.FC = () => {
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Не удалось проверить llama-server.';
       setLlamaChecks(discoveredChecks
-        ? { ...discoveredChecks, running: false }
-        : { downloaded: false, installed: false, running: false, version: null, executablePath: null });
+        ? { ...discoveredChecks, running: runtimeWasRunning || discoveredChecks.running }
+        : { downloaded: false, installed: false, running: runtimeWasRunning, version: null, executablePath: null });
       setError(message);
       setCheckSteps((current) => current.map((step) =>
         step.state === 'checking' ? { ...step, state: 'error', detail: message } : step,
