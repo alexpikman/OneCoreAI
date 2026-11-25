@@ -3941,3 +3941,166 @@ test('dashboard layout validation protects required runtime sections and grid ge
   outOfBounds.elements[0].columnSpan = 13;
   assert.equal(validateDashboardLayout(outOfBounds).valid, false);
 });
+
+
+test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', async () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage2-context-'));
+  fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(projectDir, 'README.md'), '# Stage 2 test project\\nProject overview.', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-target.ts'), 'export const target = "stage2 excerpt content";\\n', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-ignored.ts'), 'export const ignored = true;\\n', 'utf-8');
+
+  let workerPrompt = '';
+  const providerServer = http.createServer(async (req, res) => {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    const request = JSON.parse(raw) as {
+      tools?: unknown[];
+      messages?: Array<{ role: string; content?: string }>;
+    };
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (!request.tools) {
+      res.end(JSON.stringify({
+        choices: [{
+          message: {
+            content: JSON.stringify({
+              riskLevel: 'low',
+              acceptanceCriteria: ['Inspect the selected target file'],
+              tasks: [{
+                taskId: 'stage2-task-target',
+                role: 'researcher',
+                objective: 'Inspect src/stage2-target.ts',
+                acceptanceCriteria: ['Use the selected file'],
+                files: ['src/stage2-target.ts'],
+              }],
+            }),
+          },
+        }],
+      }));
+      return;
+    }
+
+    workerPrompt = request.messages?.find((message) => message.role === 'user')?.content ?? '';
+    const handoffMatch = workerPrompt.match(/Handoff \\(JSON\\):\\n([\\s\\S]*?)\\n\\nВЕРНИ СТРОГО/);
+    assert.ok(handoffMatch, 'Worker prompt must contain the serialized handoff');
+    const handoff = JSON.parse(handoffMatch[1]) as { taskId: string; operationId: string };
+    res.end(JSON.stringify({
+      choices: [{
+        message: {
+          content: JSON.stringify({
+            schemaVersion: 1,
+            taskId: handoff.taskId,
+            operationId: handoff.operationId,
+            status: 'completed',
+            summary: 'Stage 2 worker response',
+            findings: [],
+            filesInspected: [],
+            checks: [],
+            unresolvedQuestions: [],
+            limitations: [],
+          }),
+        },
+      }],
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, '127.0.0.1', resolve));
+  const address = providerServer.address();
+  if (!address || typeof address === 'string') throw new Error('Stage 2 mock provider did not bind a TCP port');
+
+  let projectId = '';
+  try {
+    await configureTestProvider('stage2-context-provider', `http://127.0.0.1:${address.port}/v1`, '', ['stage2-test-model']);
+
+    const createRes = await jsonReq<{ ok: boolean; project: { id: string }; error?: string }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Stage 2 Context Regression',
+        folderSource: 'local',
+        folderPath: projectDir,
+      }),
+    });
+    assert.equal(createRes.status, 201, createRes.data.error);
+    projectId = createRes.data.project.id;
+
+    const runRes = await jsonReq<{
+      ok: boolean;
+      tasks: Array<{ handoff: { files: Array<{ path: string; excerpts?: Array<{ content: string }> }> } }>;
+    }>('/api/agents/team-run', {
+      method: 'POST',
+      headers: { 'X-OneCore-Approval': 'user-confirmed' },
+      body: JSON.stringify({
+        approved: true,
+        projectId,
+        objective: 'Inspect src/stage2-target.ts',
+        requestedRoles: ['researcher'],
+        maxCycles: 1,
+      }),
+    });
+
+    assert.equal(runRes.status, 200);
+    assert.equal(runRes.data.ok, true);
+    assert.equal(runRes.data.tasks.length, 1);
+    assert.deepEqual(runRes.data.tasks[0].handoff.files.map((file) => file.path), ['src/stage2-target.ts']);
+    assert.equal(
+      runRes.data.tasks[0].handoff.files[0].excerpts?.[0]?.content.includes('stage2 excerpt content'),
+      true,
+    );
+    assert.match(workerPrompt, /stage2 excerpt content/);
+  } finally {
+    if (projectId) {
+      await jsonReq(`/api/projects/${encodeURIComponent(projectId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ approved: true }),
+      });
+    }
+    await new Promise<void>((resolve, reject) =>
+      providerServer.close((error) => (error ? reject(error) : resolve())),
+    );
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
+test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or parent reads', () => {
+  const makeHandoff = (taskId: string, operationId: string): AgentHandoffContract => ({
+    schemaVersion: 1,
+    taskId,
+    operationId,
+    fromRole: 'role.dispatcher',
+    toRole: 'role.qa',
+    objective: 'Verify worker-specific evidence',
+    acceptanceCriteria: [],
+    procedureRefs: [],
+    project: { projectId: 'stage2-project', constraints: [] },
+    files: [],
+    findings: [],
+    completedSteps: [],
+    unresolvedQuestions: [],
+    allowedCapabilities: [],
+    outputFormat: 'worker-result.v1',
+    status: 'ready',
+  });
+  const workerBResult = {
+    schemaVersion: 1,
+    taskId: 'worker-b',
+    operationId: 'operation-b',
+    status: 'completed',
+    summary: 'Worker B result',
+    findings: [],
+    filesInspected: ['src/worker-a-only.ts', 'README.md'],
+    checks: [],
+    unresolvedQuestions: [],
+    limitations: [],
+  };
+
+  const validation = validateWorkerResult(
+    workerBResult,
+    makeHandoff('worker-b', 'operation-b'),
+    { confirmedReadFiles: [], confirmedChecks: [] },
+  );
+
+  assert.equal(validation.ok, false);
+  assert.ok(validation.errors.some((error) => error.includes('src/worker-a-only.ts')));
+  assert.ok(validation.errors.some((error) => error.includes('README.md')));
+});
