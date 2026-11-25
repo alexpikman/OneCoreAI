@@ -3946,9 +3946,9 @@ test('dashboard layout validation protects required runtime sections and grid ge
 test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', async () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage2-context-'));
   fs.mkdirSync(path.join(projectDir, 'src'), { recursive: true });
-  fs.writeFileSync(path.join(projectDir, 'README.md'), '# Stage 2 test project\\nProject overview.', 'utf-8');
-  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-target.ts'), 'export const target = "stage2 excerpt content";\\n', 'utf-8');
-  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-ignored.ts'), 'export const ignored = true;\\n', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'README.md'), '# Stage 2 test project\nProject overview.', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-target.ts'), 'export const target = "stage2 excerpt content";\n', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'src', 'stage2-ignored.ts'), 'export const ignored = true;\n', 'utf-8');
 
   let workerPrompt = '';
   const providerServer = http.createServer(async (req, res) => {
@@ -3982,7 +3982,7 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
     }
 
     workerPrompt = request.messages?.find((message) => message.role === 'user')?.content ?? '';
-    const handoffMatch = workerPrompt.match(/Handoff \\(JSON\\):\\n([\\s\\S]*?)\\n\\nВЕРНИ СТРОГО/);
+    const handoffMatch = workerPrompt.match(/Handoff \\(JSON\\):\n([\\s\\S]*?)\n\nВЕРНИ СТРОГО/);
     assert.ok(handoffMatch, 'Worker prompt must contain the serialized handoff');
     const handoff = JSON.parse(handoffMatch[1]) as { taskId: string; operationId: string };
     res.end(JSON.stringify({
@@ -4063,7 +4063,7 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
 });
 
 test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or parent reads', () => {
-  const makeHandoff = (taskId: string, operationId: string): AgentHandoffContract => ({
+  const makeHandoff = (taskId: string, operationId: string) => ({
     schemaVersion: 1,
     taskId,
     operationId,
