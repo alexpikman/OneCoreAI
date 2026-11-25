@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, Check, CheckCircle2, Circle, Download, Loader2, PackageCheck, PlayCircle, X } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { FreeProviderProfile, LocalModel } from '../../types/onecore';
@@ -56,7 +56,7 @@ export const ModelSwitcherModal: React.FC = () => {
     { label: 'Проверка текущего состояния llama-server…', state: 'pending' },
   ]);
 
-  const inspectLlamaServer = async () => {
+  const inspectLlamaServer = useCallback(async () => {
     const initialSteps: LlamaCheckStep[] = [
       { label: 'Определение текущего состояния llama-server…', state: 'pending' },
       { label: 'Поиск системных файлов llama-server…', state: 'pending' },
@@ -121,16 +121,17 @@ export const ModelSwitcherModal: React.FC = () => {
         const state = useOneCoreStore.getState();
         const llamaProvider = state.freeProviders.find((provider) => provider.kind === 'llama-cpp');
         const selectedModel = llamaProvider?.selectedModel?.trim().toLowerCase();
-        const readyModel = state.localModels.find((model) =>
+        const readyModels = state.localModels.filter((model) =>
           model.status === 'ready'
           && model.sourceType !== 'ollama'
-          && model.filename.toLowerCase().endsWith('.gguf')
-          && (!selectedModel
-            ? model.id === state.activeModelId
-            : [model.filename, model.name, model.localPath].some((value) =>
-                value.toLowerCase() === selectedModel || value.toLowerCase().endsWith(`/${selectedModel}`),
-              )),
+          && model.filename.toLowerCase().endsWith('.gguf'),
         );
+        const readyModel = readyModels.find((model) =>
+          selectedModel && [model.filename, model.name, model.localPath].some((value) => {
+            const normalized = value.replace(/\\/g, '/').toLowerCase();
+            return normalized === selectedModel || normalized.endsWith(`/${selectedModel.replace(/\\/g, '/')}`);
+          }),
+        ) ?? readyModels.find((model) => model.id === state.activeModelId);
         if (readyModel) {
           const startResponse = await apiFetch('/api/models/llama-cpp/start', {
             method: 'POST',
@@ -173,7 +174,7 @@ export const ModelSwitcherModal: React.FC = () => {
     } finally {
       setChecksFinished(true);
     }
-  };
+  }, [refreshLocalModels, refreshLlamaCppStatus]);
 
   useEffect(() => {
     const show = () => {
@@ -187,7 +188,7 @@ export const ModelSwitcherModal: React.FC = () => {
     };
     window.addEventListener('onecore:open-model-switcher', show);
     return () => window.removeEventListener('onecore:open-model-switcher', show);
-  }, [fetchProviderModels, refreshLocalModels]);
+  }, [fetchProviderModels, inspectLlamaServer]);
 
   const choices = useMemo<ModelChoice[]>(() => {
     const local: ModelChoice[] = localModels.filter(isGguf).map((model) => ({
