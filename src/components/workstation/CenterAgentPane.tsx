@@ -801,7 +801,7 @@ export const CenterAgentPane: React.FC = () => {
       {/* Composer */}
       <form
         onSubmit={handleSubmit}
-        className={cn('shrink-0 border-t border-zinc-200 p-3.5 relative dark:border-zinc-800', tokens.headerBg)}
+        className="shrink-0 border-t border-zinc-200 bg-transparent p-3.5 relative dark:border-zinc-800"
       >
         <div className="max-w-4xl mx-auto relative">
           {showSlashPopup && matchingSlash.length > 0 && (
