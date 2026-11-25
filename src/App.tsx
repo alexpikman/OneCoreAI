@@ -7,6 +7,7 @@ import { PageContextSidebar } from './components/layout/PageContextSidebar';
 import { StartupScreen } from './components/layout/StartupScreen';
 import { ModelHubView } from './components/models/ModelHubView';
 import { OfflineIndicator } from './components/pwa/OfflineIndicator';
+import { GodProWarningModal } from './components/agent/GodProWarningModal';
 import { ModelSwitcherModal } from './components/workstation/ModelSwitcherModal';
 import { AgentTeamPage } from './pages/ai-resources/AgentTeamPage';
 import { DirectoriesPage } from './pages/ai-resources/DirectoriesPage';
@@ -298,6 +299,7 @@ export default function App() {
         </div>
         <OfflineIndicator />
         <ModelSwitcherModal />
+        <GodProWarningModal />
         <DeleteWarningHost />
         <NotificationHost />
       </div>

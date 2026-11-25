@@ -11,11 +11,13 @@ import {
   ChevronDown,
   Eye,
   FileText,
+  Flame,
   FolderOpen,
   Globe,
   History,
   Radio,
   RotateCcw,
+  ShieldAlert,
   Square,
   Save,
   ShieldCheck,
@@ -45,12 +47,18 @@ export const CenterAgentPane: React.FC = () => {
   const {
     projects,
     activeProjectId,
+    selectFile,
     createOrWriteProjectFile,
     sessions,
     activeSessionId,
     centerPaneMode,
     setCenterPaneMode,
     agentMode,
+    generalAgentConfig,
+    setGeneralAgentAuthorityMode,
+    openGodProModal,
+    confirmCriticalAction,
+    rejectCriticalAction,
     files,
     selectedFilePath,
     projectFileLoading,
@@ -83,6 +91,8 @@ export const CenterAgentPane: React.FC = () => {
     tokensPerSec,
     learnSkillFromMessage,
   } = useOneCoreStore();
+
+  const authorityMode = generalAgentConfig.authorityMode ?? 'god';
 
   const tokens = getUiTokens(uiStyle);
   const [input, setInput] = useState('');
@@ -296,6 +306,33 @@ export const CenterAgentPane: React.FC = () => {
             )}
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400 tabular-nums text-right">
+            <button
+              type="button"
+              onClick={() => {
+                if (authorityMode === 'god-pro') {
+                  void setGeneralAgentAuthorityMode('god');
+                } else {
+                  openGodProModal();
+                }
+              }}
+              title={authorityMode === 'god-pro' ? 'Нажмите, чтобы вернуть режим GOD' : 'Нажмите, чтобы открыть 3-этапную активацию GodPro'}
+              className={cn(
+                'inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold transition-colors',
+                authorityMode === 'god-pro'
+                  ? 'border-rose-500/60 bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                  : authorityMode === 'god'
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : 'border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300',
+              )}
+            >
+              {authorityMode === 'god-pro' ? (
+                <Flame className="h-3 w-3" />
+              ) : (
+                <ShieldAlert className="h-3 w-3" />
+              )}
+              <span>{authorityMode === 'god-pro' ? 'GodPro' : authorityMode === 'god' ? 'GOD' : 'Standard'}</span>
+            </button>
+            <span>·</span>
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('onecore:open-model-switcher'))}
@@ -660,8 +697,34 @@ export const CenterAgentPane: React.FC = () => {
                     <span className="font-mono text-[11px]">read_file:</span>
                     {msg.readFiles.map((rf, i) => (
                       <React.Fragment key={rf}>
-                        <span className="font-mono text-zinc-700 dark:text-zinc-300">{rf}</span>
+                        <button
+                          type="button"
+                          onClick={() => void selectFile(rf, true)}
+                          className="font-mono text-blue-600 hover:underline dark:text-blue-400"
+                          title={`Открыть ${rf} в редакторе`}
+                        >
+                          {rf}
+                        </button>
                         {i < msg.readFiles!.length - 1 && <span>·</span>}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                )}
+
+                {msg.openedFiles && msg.openedFiles.length > 0 && (
+                  <div className="mb-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11.5px] text-emerald-700 dark:text-emerald-300">
+                    <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-mono text-[11px]">opened:</span>
+                    {msg.openedFiles.map((ofPath, i) => (
+                      <React.Fragment key={ofPath}>
+                        <button
+                          type="button"
+                          onClick={() => void selectFile(ofPath, true)}
+                          className="font-mono font-medium hover:underline"
+                        >
+                          {ofPath}
+                        </button>
+                        {i < msg.openedFiles!.length - 1 && <span>·</span>}
                       </React.Fragment>
                     ))}
                   </div>
@@ -762,6 +825,56 @@ export const CenterAgentPane: React.FC = () => {
                     onSkip={() => skipCommand(msg.id)}
                     onDiagnose={() => diagnoseCommandError(msg.id)}
                   />
+                )}
+
+                {msg.criticalConfirmations && msg.criticalConfirmations.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {msg.criticalConfirmations.map((reqItem) => (
+                      <div
+                        key={reqItem.id}
+                        className="rounded-xl border-2 border-amber-500/70 bg-amber-50/80 p-3 text-xs dark:border-amber-500/50 dark:bg-amber-950/25"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-200">
+                            <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                            <span>GOD · {reqItem.titleRu}</span>
+                          </span>
+                          <span className="rounded bg-rose-500/15 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase text-rose-700 dark:text-rose-300">
+                            {reqItem.riskLevel}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-zinc-700 dark:text-zinc-300">
+                          {reqItem.descriptionRu}
+                        </p>
+                        <div className="mt-1.5 rounded border border-amber-300/70 bg-white/80 px-2.5 py-1.5 font-mono text-[11px] text-zinc-900 dark:border-amber-800/60 dark:bg-zinc-950 dark:text-zinc-100">
+                          {reqItem.toolName}: {reqItem.targetSummary}
+                        </div>
+                        {reqItem.status === 'pending' ? (
+                          <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void rejectCriticalAction(msg.id, reqItem.id)}
+                              className="h-8 rounded-lg border border-zinc-300 bg-white px-3 text-[11px] font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              Отклонить
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void confirmCriticalAction(msg.id, reqItem.id)}
+                              className="h-8 rounded-lg bg-rose-600 px-3 text-[11px] font-semibold text-white hover:bg-rose-500"
+                            >
+                              Подтвердить и выполнить
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
+                            Статус: {reqItem.status === 'confirmed' ? 'Подтверждено и выполнено' : 'Отклонено пользователем'}
+                            {reqItem.resultOutput ? ` — ${reqItem.resultOutput}` : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {msg.role === 'assistant' && !msg.isStreaming && !msg.subagentRun && (

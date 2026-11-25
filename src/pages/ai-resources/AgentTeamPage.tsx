@@ -26,8 +26,12 @@ export const AgentTeamPage: React.FC<{ initialTab?: GeneralAgentTabId }> = ({ in
     enabledRoleIds,
     directives,
     permissions,
+    generalAgentConfig,
+    openGodProModal,
+    deactivateGodProMode,
     settingsError,
   } = useOneCoreStore();
+  const authorityMode = generalAgentConfig.authorityMode ?? 'god';
 
   useEffect(() => {
     if (initialTab && initialTab !== generalAgentTab) {
@@ -105,6 +109,37 @@ export const AgentTeamPage: React.FC<{ initialTab?: GeneralAgentTabId }> = ({ in
                     <strong className="font-medium tabular-nums text-zinc-700 dark:text-zinc-200">
                       {enabledRoleIds.length} / {roles.length}
                     </strong>
+                  </span>
+                  <span>
+                    Режим прав:{' '}
+                    <strong
+                      className={
+                        authorityMode === 'god-pro'
+                          ? 'font-semibold text-rose-600 dark:text-rose-400'
+                          : authorityMode === 'god'
+                            ? 'font-semibold text-amber-600 dark:text-amber-400'
+                            : 'font-medium text-zinc-700 dark:text-zinc-200'
+                      }
+                    >
+                      {authorityMode === 'god-pro' ? 'GodPro' : authorityMode === 'god' ? 'GOD' : 'Standard'}
+                    </strong>
+                    {authorityMode === 'god-pro' ? (
+                      <button
+                        type="button"
+                        onClick={() => void deactivateGodProMode('god')}
+                        className="ml-1.5 text-[10px] font-medium text-rose-600 hover:underline dark:text-rose-400"
+                      >
+                        Отключить GodPro
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={openGodProModal}
+                        className="ml-1.5 text-[10px] font-medium text-amber-600 hover:underline dark:text-amber-400"
+                      >
+                        GodPro
+                      </button>
+                    )}
                   </span>
                 </div>
                 <button

@@ -45,6 +45,8 @@ export type SideEffectPermissionScope =
   | 'project.git.mutate'
   | 'project.undo'
   | 'agent.team-run'
+  | 'agent.god-confirm'
+  | 'agent.god-pro'
   | 'configuration.apply'
   | 'configuration.pair';
 

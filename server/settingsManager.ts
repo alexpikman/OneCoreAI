@@ -369,3 +369,152 @@ export async function saveAppSettings(settings: PersistedAppSettings): Promise<S
   writeSettingsManifest(manifest);
   return { ...manifest, settings: safeSettings };
 }
+
+export async function saveGeneralAgentAuthorityState(patch: {
+  authorityMode?: 'standard' | 'god' | 'god-pro';
+  godProActivation?: {
+    activatedAt: string;
+    controlPhraseVerified: boolean;
+    stage1Accepted: boolean;
+    stage3WaiverAccepted: boolean;
+  } | null;
+}): Promise<SettingsManifest> {
+  const existing = await readInternalAppSettings();
+  const baseSettings: PersistedAppSettings = existing?.settings ?? {
+    theme: 'light',
+    uiStyle: 'mica-windows',
+    settingsSection: 'ui-chat',
+    appNavigationWidth: 260,
+    chatVisibility: {
+      showLeftSidebar: true,
+      showProjectTree: true,
+      showLocalModels: true,
+      showSessionHistory: true,
+      showSkillsMemoryTab: true,
+      showRightInspector: true,
+      showTelemetry: true,
+      showInferenceControls: true,
+      showSubagentsPanel: true,
+      showActiveContext: true,
+      showToolbar: true,
+      showExecutionEnvBar: true,
+      showTaskBanner: true,
+      showMessageHeaders: true,
+      showTimestamps: true,
+      showReadFilesChips: true,
+      showDiffBlocks: true,
+      showTerminalBlocks: true,
+      showCheckpointBadges: true,
+      showRoleSwitcher: true,
+      showQuickPrompts: true,
+      showComposerStatusRow: true,
+    },
+    inferenceSettings: {
+      gpuBackend: 'auto',
+      temperature: 0.2,
+      contextSize: 8192,
+      gpuLayers: null,
+      maxVramGb: 8,
+      maxRamGb: 16,
+    },
+    appSettings: {
+      modelsDir: getDefaultModelsDir(),
+      llamaServerPath: '',
+      autoCheckSha256: true,
+      includeOpenFilesByDefault: true,
+      includeTreeByDefault: true,
+      cloudFallbackProvider: 'none',
+      cloudFallbackKey: '',
+    },
+    roles: [],
+    activeRoleId: 'role-developer',
+    modelCategory: 'cloud',
+    modelSource: 'cloud',
+    providerSelectionByCategory: {
+      local: 'prov-ollama',
+      cloud: 'prov-deepseek-api',
+      compatible: 'prov-custom',
+      'llama-server': 'prov-llama-cpp',
+    },
+    permissions: [],
+    directives: [],
+    pipelineStages: [],
+    pipelineProjectName: 'OneCore Project',
+    pipelineStack: 'TypeScript · Node · React',
+    sshKeys: [],
+    activeSshKeyId: '',
+    sshHosts: [],
+    sshSettings: {
+      openSshAgentAutoStart: false,
+      windowsOpenSshPath: '',
+      defaultKeyDir: '',
+      useGitSshCommandEnv: true,
+    },
+    githubAccess: {
+      authMethod: 'pat',
+      repoOwnerSlashName: '',
+      defaultBranch: 'main',
+      gitUserName: '',
+      gitUserEmail: '',
+      tokenInput: '',
+      scopes: { repo: true, workflow: false, writePackages: false, readUser: true },
+      autoSignCommits: false,
+      lastVerifyStatus: 'idle',
+      lastVerifyMessage: '',
+    },
+    freeProviders: [],
+    activeProviderId: 'prov-deepseek-api',
+    skills: [],
+    memoryDocs: [],
+    subagentConfig: {
+      enabled: true,
+      maxParallel: 3,
+      maxIterations: 4,
+      defaultRoleId: 'role-developer',
+      defaultProviderId: 'prov-deepseek-api',
+      providerCategory: 'cloud',
+      providerSelectionByCategory: {
+        local: 'prov-ollama',
+        cloud: 'prov-deepseek-api',
+        compatible: 'prov-custom',
+        'llama-server': 'prov-llama-cpp',
+      },
+      providers: [],
+      providerProfilesByRole: {},
+      autoSummarizeResult: true,
+    },
+    executionEnv: {
+      activeEnv: 'local',
+      localShell: 'sh',
+      localWorkdir: '',
+      sshHostId: '',
+      dockerImage: '',
+      dockerWorkdir: '/workspace',
+      dockerMountWorkspace: true,
+      dockerNetworkMode: 'bridge',
+      requireApprovalBeforeExec: true,
+    },
+    gateways: [],
+  };
+
+  const prevGeneral = baseSettings.generalAgentConfig ?? {
+    instructions: '',
+    behaviorSchema: '',
+    systemPrompt: '',
+    authorityMode: 'god' as const,
+    godProActivation: null,
+    customSubagents: [],
+  };
+
+  const updated: PersistedAppSettings = {
+    ...baseSettings,
+    generalAgentConfig: {
+      ...prevGeneral,
+      ...(patch.authorityMode !== undefined ? { authorityMode: patch.authorityMode } : {}),
+      ...(patch.godProActivation !== undefined ? { godProActivation: patch.godProActivation } : {}),
+    },
+  };
+
+  return saveAppSettings(updated);
+}
+

@@ -535,10 +535,54 @@ export interface ModelRole {
   isCustom?: boolean;
 }
 
+export type GeneralAgentAuthorityMode = 'standard' | 'god' | 'god-pro';
+
+export interface GodProActivationAudit {
+  activatedAt: string;
+  controlPhraseVerified: boolean;
+  stage1Accepted: boolean;
+  stage3WaiverAccepted: boolean;
+}
+
+export interface CustomSubagentBlueprint {
+  id: string;
+  name: string;
+  purpose: string;
+  instructions: string;
+  allowedCapabilities: string[];
+  readOnly: boolean;
+  createdBy: 'general-agent' | 'user';
+  createdAt: string;
+  lastTaskPrompt?: string;
+  lastResultSummary?: string;
+  lastStatus?: 'idle' | 'running' | 'completed' | 'failed';
+}
+
+export interface CriticalActionConfirmationRequest {
+  id: string;
+  operationId?: string;
+  actionType: 'command' | 'file_write' | 'file_delete' | 'git_mutate' | 'system_path' | 'bulk_operation';
+  ruleId: string;
+  riskLevel: 'critical' | 'high';
+  titleRu: string;
+  titleEn: string;
+  descriptionRu: string;
+  descriptionEn: string;
+  targetSummary: string;
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  projectId: string;
+  status: 'pending' | 'confirmed' | 'rejected';
+  resultOutput?: string;
+}
+
 export interface GeneralAgentConfig {
   instructions: string;
   behaviorSchema: string;
   systemPrompt: string;
+  authorityMode?: GeneralAgentAuthorityMode;
+  godProActivation?: GodProActivationAudit | null;
+  customSubagents?: CustomSubagentBlueprint[];
 }
 
 export interface PermissionRule {
@@ -624,11 +668,13 @@ export interface AgentMessage {
   timestamp: string;
   content: string;
   readFiles?: string[];
+  openedFiles?: string[];
   webSources?: Array<{ title: string; url: string }>;
   diff?: DiffProposal;
   command?: CommandProposal;
   checkpointId?: string;
   subagentRun?: SubagentRun;
+  criticalConfirmations?: CriticalActionConfirmationRequest[];
   skillLearned?: boolean;
   tokenUsage?: ModelTokenUsage;
   isStreaming?: boolean;

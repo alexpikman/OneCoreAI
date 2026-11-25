@@ -4449,3 +4449,512 @@ test('tools registry exposes all system tools with subagent links, (SYS) single-
     }
   }
 });
+
+test('ProcessesPage wires SystemEventGraphView and SystemDocsWindowModal without Header paragraph violations', () => {
+  const processesSrc = fs.readFileSync(path.join(process.cwd(), 'src', 'pages', 'context', 'ProcessesPage.tsx'), 'utf-8');
+  const eventGraphSrc = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'processes', 'SystemEventGraphView.tsx'),
+    'utf-8',
+  );
+  assert.match(processesSrc, /SystemEventGraphView/);
+  assert.match(processesSrc, /Event Graph \(Сканер\)/);
+  assert.match(processesSrc, /Окно документов/);
+  assert.match(eventGraphSrc, /SystemDocsWindowModal/);
+
+  const headerSection = processesSrc.match(/<PageHeader[\s\S]*?<\/PageHeader>/);
+  assert.ok(headerSection);
+  assert.doesNotMatch(headerSection[0], /<p[\s>]/);
+});
+
+test('GET /api/system-graph scans repo docs, routes, Tauri IPC, macro layers, dead-ends, and verified bindings', async () => {
+  const res = await jsonReq<{
+    ok: boolean;
+    graph: {
+      scanSummary: {
+        totalDocs: number;
+        totalApiRoutes: number;
+        totalTauriCommands: number;
+        totalNodes: number;
+        totalEdges: number;
+        deadEndCount: number;
+      };
+      layers: Array<{ id: string }>;
+      macros: Array<{
+        id: string;
+        layers: Array<{ nodeIds: string[]; deadEnds: string[] }>;
+        docRefs: Array<{ path: string; verifiedOnDisk: boolean }>;
+      }>;
+      nodes: Array<{
+        id: string;
+        layerId: string;
+        isDeadEnd: boolean;
+        deadEndReason?: string;
+        docRefs: Array<{ path: string; verifiedOnDisk: boolean }>;
+      }>;
+      edges: Array<{ id: string; from: string; to: string; kind: string }>;
+      documentsCatalog: Array<{ path: string; category: string }>;
+      apiRoutes: Array<{ method: string; path: string; line: number }>;
+      tauriCommands: Array<{ name: string; file: string; line: number }>;
+    };
+  }>('/api/system-graph');
+
+  assert.equal(res.status, 200);
+  assert.equal(res.data.ok, true);
+  const { graph } = res.data;
+  assert.equal(graph.layers.length, 7);
+  assert.equal(graph.macros.length, 8);
+  assert.ok(graph.scanSummary.totalDocs >= 30);
+  assert.ok(graph.scanSummary.totalApiRoutes >= 30);
+  assert.ok(graph.scanSummary.totalTauriCommands >= 1);
+  assert.ok(graph.scanSummary.deadEndCount >= 8);
+
+  const nodeIds = new Set(graph.nodes.map((n) => n.id));
+  assert.equal(nodeIds.size, graph.nodes.length, 'Workflow node IDs must be unique');
+
+  for (const edge of graph.edges) {
+    assert.ok(nodeIds.has(edge.from), `Edge ${edge.id} references unknown source node ${edge.from}`);
+    assert.ok(nodeIds.has(edge.to), `Edge ${edge.id} references unknown target node ${edge.to}`);
+  }
+
+  for (const node of graph.nodes) {
+    if (node.isDeadEnd) {
+      assert.ok(node.deadEndReason && node.deadEndReason.length > 0, `Dead-end node ${node.id} must explain deadEndReason`);
+    }
+    for (const ref of node.docRefs) {
+      assert.equal(ref.verifiedOnDisk, true, `Node ${node.id} docRef ${ref.path} must exist on disk`);
+    }
+  }
+
+  for (const macro of graph.macros) {
+    for (const step of macro.layers) {
+      for (const id of step.nodeIds) {
+        assert.ok(nodeIds.has(id), `Macro ${macro.id} layer references unknown node ${id}`);
+      }
+      for (const deadId of step.deadEnds) {
+        assert.ok(nodeIds.has(deadId), `Macro ${macro.id} layer references unknown dead-end ${deadId}`);
+      }
+    }
+    for (const ref of macro.docRefs) {
+      assert.equal(ref.verifiedOnDisk, true, `Macro ${macro.id} docRef ${ref.path} must exist on disk`);
+    }
+  }
+});
+
+test('GET /api/system-graph/document reads allowed repo docs and blocks traversal or sensitive files', async () => {
+  const validRes = await jsonReq<{
+    ok: boolean;
+    document: {
+      path: string;
+      format: string;
+      content: string;
+      lineCount: number;
+    };
+  }>('/api/system-graph/document?path=docs/architecture/OPERATION_LIFECYCLE.md');
+
+  assert.equal(validRes.status, 200);
+  assert.equal(validRes.data.ok, true);
+  assert.equal(validRes.data.document.path, 'docs/architecture/OPERATION_LIFECYCLE.md');
+  assert.equal(validRes.data.document.format, 'markdown');
+  assert.ok(validRes.data.document.content.length > 100);
+  assert.ok(validRes.data.document.lineCount > 10);
+
+  const traversalRes = await jsonReq('/api/system-graph/document?path=docs/../../.env.example');
+  assert.equal(traversalRes.status, 400);
+
+  const outsideRes = await jsonReq('/api/system-graph/document?path=.env.example');
+  assert.equal(outsideRes.status, 400);
+});
+
+test('agentRouter routes direct file-name and path open/read prompts to project without requiring the word file', () => {
+  assert.deepEqual(routeAgentPrompt('Открой package.json'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Прочитай server/app.ts'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Покажи README.md'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Open tsconfig.json'), { kind: 'project' });
+  assert.deepEqual(routeAgentPrompt('Открой https://example.com'), {
+    kind: 'browser',
+    browserAction: 'read',
+    query: 'https://example.com',
+  });
+});
+
+test('General Agent GOD mode opens normalized ./ files, creates & delegates to custom subagents, and pauses crash-risk actions until confirmed', async () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-god-mode-'));
+  fs.writeFileSync(path.join(projectDir, 'README.md'), '# GOD Mode Project\nHello from README.\n', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'danger.txt'), 'must-not-delete-without-approval', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, '.env'), 'SECRET_KEY=initial\n', 'utf-8');
+
+  const projectResponse = await jsonReq<{ ok: boolean; project: { id: string } }>('/api/projects', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: 'GOD Mode Integration Test',
+      folderSource: 'local',
+      folderPath: projectDir,
+    }),
+  });
+  assert.equal(projectResponse.status, 201);
+  const projectId = projectResponse.data.project.id;
+
+  let callStep = 0;
+  const providerServer = http.createServer((req, res) => {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      const request = JSON.parse(body) as {
+        messages: Array<{ role: string; content: string | null }>;
+      };
+      callStep += 1;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      const isSubagentTurn = request.messages.some(
+        (m) => m.role === 'system' && (m.content ?? '').includes('Кастомный субагент:'),
+      );
+      if (isSubagentTurn) {
+        res.end(JSON.stringify({
+          choices: [{ message: { content: 'Субагент READMEInspector подтвердил содержимое README.md.' } }],
+        }));
+        return;
+      }
+
+      if (callStep === 1) {
+        res.end(JSON.stringify({
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  id: 'god-open-1',
+                  type: 'function',
+                  function: { name: 'open_project_file', arguments: JSON.stringify({ path: './README.md' }) },
+                },
+                {
+                  id: 'god-sub-create-1',
+                  type: 'function',
+                  function: {
+                    name: 'create_custom_subagent',
+                    arguments: JSON.stringify({
+                      name: 'READMEInspector',
+                      purpose: 'Проверяет README.md',
+                      instructions: 'Прочитай README.md и кратко отчитайся.',
+                      allowedCapabilities: ['read_file', 'list_files'],
+                      readOnly: true,
+                    }),
+                  },
+                },
+              ],
+            },
+          }],
+        }));
+      } else if (callStep === 2) {
+        res.end(JSON.stringify({
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [
+                {
+                  id: 'god-sub-del-1',
+                  type: 'function',
+                  function: {
+                    name: 'delegate_subagent_task',
+                    arguments: JSON.stringify({
+                      subagentIdOrName: 'READMEInspector',
+                      objective: 'Проверь README.md',
+                    }),
+                  },
+                },
+                {
+                  id: 'god-risk-delete-1',
+                  type: 'function',
+                  function: {
+                    name: 'delete_project_file',
+                    arguments: JSON.stringify({ path: 'danger.txt' }),
+                  },
+                },
+                {
+                  id: 'god-risk-env-1',
+                  type: 'function',
+                  function: {
+                    name: 'write_project_file',
+                    arguments: JSON.stringify({ path: '.env', content: 'SECRET_KEY=overwritten\n' }),
+                  },
+                },
+                {
+                  id: 'god-risk-cmd-1',
+                  type: 'function',
+                  function: {
+                    name: 'run_project_command',
+                    arguments: JSON.stringify({ command: 'rm -rf /tmp/nonexistent' }),
+                  },
+                },
+              ],
+            },
+          }],
+        }));
+      } else {
+        res.end(JSON.stringify({
+          choices: [{
+            message: {
+              content: 'Файл README.md открыт, субагент READMEInspector отработал, опасные действия ждут вашего подтверждения.',
+            },
+          }],
+        }));
+      }
+    });
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, '127.0.0.1', resolve));
+  const address = providerServer.address();
+  if (!address || typeof address === 'string') throw new Error('Mock provider failed to bind');
+
+  try {
+    await configureTestProvider('god-mode-test', `http://127.0.0.1:${address.port}/v1`);
+    const result = await jsonReq<{
+      ok: boolean;
+      authorityMode: string;
+      content: string;
+      readFiles: string[];
+      openedFiles: string[];
+      createdSubagents: Array<{ id: string; name: string }>;
+      pendingConfirmations: Array<{ id: string; toolName: string; ruleId: string; status: string }>;
+    }>('/api/agents/chat', {
+      method: 'POST',
+      headers: {
+        'X-OneCore-Operation-Id': 'god-mode-op-1',
+      },
+      body: JSON.stringify({
+        projectId,
+        mode: 'act',
+        authorityMode: 'god',
+        provider: {
+          providerId: 'god-mode-test',
+          model: 'mock-god-model',
+        },
+        messages: [
+          { role: 'user', content: 'Открой ./README.md, создай субагента, удали danger.txt и обнови .env' },
+        ],
+      }),
+    });
+
+    assert.equal(result.status, 200);
+    assert.equal(result.data.ok, true);
+    assert.equal(result.data.authorityMode, 'god');
+    assert.ok(result.data.openedFiles.includes('README.md'));
+    assert.ok(result.data.readFiles.includes('README.md'));
+    assert.equal(result.data.createdSubagents.length, 1);
+    assert.equal(result.data.createdSubagents[0].name, 'READMEInspector');
+    assert.equal(result.data.pendingConfirmations.length, 3);
+    assert.ok(result.data.pendingConfirmations.some((c) => c.toolName === 'delete_project_file'));
+    assert.ok(result.data.pendingConfirmations.some((c) => c.toolName === 'write_project_file'));
+    assert.ok(result.data.pendingConfirmations.some((c) => c.toolName === 'run_project_command'));
+
+    // Must NOT have executed destructive actions before confirmation
+    assert.equal(fs.existsSync(path.join(projectDir, 'danger.txt')), true);
+    assert.equal(fs.readFileSync(path.join(projectDir, '.env'), 'utf-8'), 'SECRET_KEY=initial\n');
+
+    // Confirm delete_project_file explicitly
+    const deleteConfirm = result.data.pendingConfirmations.find((c) => c.toolName === 'delete_project_file')!;
+    const confirmRes = await jsonReq<{ ok: boolean; status: string }>('/api/agents/god-confirm', {
+      method: 'POST',
+      headers: { 'X-OneCore-Approval': 'user-confirmed' },
+      body: JSON.stringify({
+        confirmationId: deleteConfirm.id,
+        decision: 'confirm',
+        approved: true,
+      }),
+    });
+    assert.equal(confirmRes.status, 200);
+    assert.equal(confirmRes.data.ok, true);
+    assert.equal(confirmRes.data.status, 'confirmed');
+    assert.equal(fs.existsSync(path.join(projectDir, 'danger.txt')), false);
+
+    // Reject .env write explicitly
+    const envConfirm = result.data.pendingConfirmations.find((c) => c.toolName === 'write_project_file')!;
+    const rejectRes = await jsonReq<{ ok: boolean; status: string }>('/api/agents/god-confirm', {
+      method: 'POST',
+      body: JSON.stringify({
+        confirmationId: envConfirm.id,
+        decision: 'reject',
+      }),
+    });
+    assert.equal(rejectRes.status, 200);
+    assert.equal(rejectRes.data.status, 'rejected');
+    assert.equal(fs.readFileSync(path.join(projectDir, '.env'), 'utf-8'), 'SECRET_KEY=initial\n');
+
+    const subagentEvents = readAgentJournal(5000).filter(
+      (ev) => ev.category === 'subagent' && ev.projectId === projectId,
+    );
+    assert.ok(subagentEvents.length >= 1);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      providerServer.close((error) => (error ? reject(error) : resolve())),
+    );
+    await jsonReq(`/api/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
+test('GodPro requires 3-stage verification with exact control phrase, unlocks unrestricted host file read without project, and restores guard on deactivate', async () => {
+  const outsideDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-godpro-outside-'));
+  const outsideFile = path.join(outsideDir, 'host-note.txt');
+  fs.writeFileSync(outsideFile, 'GODPRO_HOST_FILE_OK', 'utf-8');
+
+  const badStage1 = await jsonReq('/api/agents/god-pro/activate', {
+    method: 'POST',
+    body: JSON.stringify({
+      stage1Accepted: false,
+      typedPhrase: 'I understand that I could lose everything',
+      stage3WaiverAccepted: true,
+    }),
+  });
+  assert.equal(badStage1.status, 400);
+
+  const badPhrase = await jsonReq('/api/agents/god-pro/activate', {
+    method: 'POST',
+    body: JSON.stringify({
+      stage1Accepted: true,
+      typedPhrase: 'wrong phrase',
+      stage3WaiverAccepted: true,
+    }),
+  });
+  assert.equal(badPhrase.status, 400);
+
+  const badWaiver = await jsonReq('/api/agents/god-pro/activate', {
+    method: 'POST',
+    body: JSON.stringify({
+      stage1Accepted: true,
+      typedPhrase: 'I understand that I could lose everything',
+      stage3WaiverAccepted: false,
+    }),
+  });
+  assert.equal(badWaiver.status, 400);
+
+  const okActivate = await jsonReq<{ ok: boolean; authorityMode: string; godProActivation: { controlPhraseVerified: boolean } }>(
+    '/api/agents/god-pro/activate',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        stage1Accepted: true,
+        typedPhrase: 'I understand that I could lose everything',
+        stage3WaiverAccepted: true,
+      }),
+    },
+  );
+  assert.equal(okActivate.status, 200);
+  assert.equal(okActivate.data.ok, true);
+  assert.equal(okActivate.data.authorityMode, 'god-pro');
+  assert.equal(okActivate.data.godProActivation.controlPhraseVerified, true);
+
+  let step = 0;
+  const providerServer = http.createServer((req, res) => {
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      step += 1;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      if (step === 1) {
+        res.end(JSON.stringify({
+          choices: [{
+            message: {
+              content: null,
+              tool_calls: [{
+                id: 'gp-read-1',
+                type: 'function',
+                function: { name: 'read_any_file', arguments: JSON.stringify({ path: outsideFile }) },
+              }],
+            },
+          }],
+        }));
+      } else {
+        const parsed = JSON.parse(body) as { messages: Array<{ role: string; content: string | null }> };
+        const toolMsg = parsed.messages.find((m) => m.role === 'tool');
+        res.end(JSON.stringify({
+          choices: [{
+            message: {
+              content: `GodPro прочитал внешний файл: ${(toolMsg?.content ?? '').includes('GODPRO_HOST_FILE_OK') ? 'да' : 'нет'}`,
+            },
+          }],
+        }));
+      }
+    });
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, '127.0.0.1', resolve));
+  const address = providerServer.address();
+  if (!address || typeof address === 'string') throw new Error('Mock provider failed to bind');
+
+  try {
+    await configureTestProvider('god-pro-test', `http://127.0.0.1:${address.port}/v1`);
+    const chatRes = await jsonReq<{ ok: boolean; authorityMode: string; content: string; readFiles: string[] }>(
+      '/api/agents/chat',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: '',
+          mode: 'act',
+          authorityMode: 'god-pro',
+          provider: {
+            providerId: 'god-pro-test',
+            model: 'mock-godpro-model',
+          },
+          messages: [{ role: 'user', content: `Прочитай ${outsideFile}` }],
+        }),
+      },
+    );
+    assert.equal(chatRes.status, 200);
+    assert.equal(chatRes.data.ok, true);
+    assert.equal(chatRes.data.authorityMode, 'god-pro');
+    assert.match(chatRes.data.content, /да/);
+    assert.ok(chatRes.data.readFiles.includes(outsideFile));
+
+    const deactivateRes = await jsonReq<{ ok: boolean; authorityMode: string }>('/api/agents/god-pro/deactivate', {
+      method: 'POST',
+      body: JSON.stringify({ authorityMode: 'god' }),
+    });
+    assert.equal(deactivateRes.status, 200);
+    assert.equal(deactivateRes.data.authorityMode, 'god');
+
+    // Empty projectId must once again be rejected when GodPro is deactivated
+    const blockedAfterDeactivate = await jsonReq('/api/agents/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        projectId: '',
+        mode: 'act',
+        authorityMode: 'god-pro',
+        provider: {
+          providerId: 'god-pro-test',
+          model: 'mock-godpro-model',
+        },
+        messages: [{ role: 'user', content: 'test' }],
+      }),
+    });
+    assert.equal(blockedAfterDeactivate.status, 400);
+  } finally {
+    await new Promise<void>((resolve, reject) =>
+      providerServer.close((error) => (error ? reject(error) : resolve())),
+    );
+    fs.rmSync(outsideDir, { recursive: true, force: true });
+  }
+});
+
+test('GodProWarningModal renders 3 bilingual RU+EN stages, no-paste control phrase check, and developer liability waiver via createPortal', () => {
+  const modalSrc = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'components', 'agent', 'GodProWarningModal.tsx'),
+    'utf-8',
+  );
+  const modesSrc = fs.readFileSync(
+    path.join(process.cwd(), 'src', 'data', 'generalAgentModes.ts'),
+    'utf-8',
+  );
+  assert.match(modalSrc, /createPortal/);
+  assert.match(modalSrc, /onPaste=/);
+  assert.match(modalSrc, /onDrop=/);
+  assert.match(modalSrc, /insertFromPaste/);
+  assert.match(modalSrc, /stage === 1/);
+  assert.match(modalSrc, /stage === 2/);
+  assert.match(modalSrc, /stage === 3/);
+  assert.match(modesSrc, /I understand that I could lose everything/);
+  assert.match(modesSrc, /ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ РАЗРАБОТЧИКА/);
+  assert.match(modesSrc, /DEVELOPER LIABILITY WAIVER/);
+});
+
+

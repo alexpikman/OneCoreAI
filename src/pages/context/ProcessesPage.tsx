@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Activity, CheckCircle2, CircleDot, Radio, RefreshCw, Search, Workflow, XCircle } from 'lucide-react';
+import { Activity, CheckCircle2, CircleDot, FolderOpen, Network, Radio, RefreshCw, Search, Workflow, XCircle } from 'lucide-react';
 import type { AgentJournalEvent, AgentJournalStatus } from '../../types/onecore';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import { apiFetch } from '../../utils/apiFetch';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
+import { SystemEventGraphView } from '../../components/processes/SystemEventGraphView';
 
 interface ProcessesPageProps {
   projectFilterId: string;
@@ -73,8 +74,9 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<AgentJournalStatus | 'all'>('all');
-  const [viewMode, setViewMode] = useState<'map' | 'journal'>('map');
+  const [viewMode, setViewMode] = useState<'event-graph' | 'map' | 'journal'>('event-graph');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [docsWindowTick, setDocsWindowTick] = useState(0);
 
   const refreshEvents = useCallback(async () => {
     setLoading(true);
@@ -205,6 +207,17 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
         showSave={false}
         actions={[
           {
+            id: 'open-system-docs-window',
+            label: 'Окно документов',
+            icon: <FolderOpen className="h-3.5 w-3.5" />,
+            onClick: () => {
+              setViewMode('event-graph');
+              setDocsWindowTick((tick) => tick + 1);
+            },
+            title: 'Открыть окно документов и расположений файлов',
+            variant: 'secondary',
+          },
+          {
             id: 'refresh-processes',
             label: 'Обновить',
             icon: <RefreshCw className={loading ? 'h-3.5 w-3.5 animate-spin' : 'h-3.5 w-3.5'} />,
@@ -221,8 +234,8 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
           <span
             className={
               connected
-                ? 'ml-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                : 'ml-1 inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+                ? 'ml-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-[10px] text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                : 'ml-1 inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 text-[10px] text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
             }
           >
             <Radio className="h-3 w-3" /> {connected ? 'Live' : 'Нет соединения'}
@@ -234,6 +247,19 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
         <div className="flex flex-col gap-4 py-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-lg bg-zinc-100 p-1 dark:bg-zinc-900">
+              <button
+                type="button"
+                onClick={() => setViewMode('event-graph')}
+                aria-pressed={viewMode === 'event-graph'}
+                className={
+                  viewMode === 'event-graph'
+                    ? 'inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm dark:bg-zinc-800 dark:text-blue-300'
+                    : 'inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100'
+                }
+              >
+                <Network className="h-3.5 w-3.5" />
+                <span>Event Graph (Сканер)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setViewMode('map')}
@@ -263,6 +289,11 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
               {visibleEvents.length} событий · {operationGroups.length} операций
             </span>
           </div>
+
+          {viewMode === 'event-graph' ? (
+            <SystemEventGraphView externalDocsRequestTick={docsWindowTick} />
+          ) : (
+            <>
 
           <div className="flex flex-wrap items-center gap-2">
             <label className="relative min-w-[180px] flex-1">
@@ -485,6 +516,8 @@ export const ProcessesPage: React.FC<ProcessesPageProps> = ({
                 </article>
               ))}
             </div>
+          )}
+            </>
           )}
         </div>
       </PageContent>

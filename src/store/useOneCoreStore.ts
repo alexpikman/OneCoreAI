@@ -42,15 +42,19 @@ import type {
   ChatVisibilitySettings,
   NavigationVisibilitySettings,
   Checkpoint,
+  CriticalActionConfirmationRequest,
+  CustomSubagentBlueprint,
   DirectoriesSectionId,
   ExecutionEnvConfig,
   ExecutionEnvKind,
   FreeProviderProfile,
   GatewayChannelConfig,
   GatewayPlatform,
+  GeneralAgentAuthorityMode,
   GeneralAgentTabId,
   GgufHubTabId,
   GitHubAccessSettings,
+  GodProActivationAudit,
   GpuBackend,
   HardwareProfile,
   InferenceSettings,
@@ -205,7 +209,27 @@ interface OneCoreStore {
 
   roles: ModelRole[];
   generalAgentConfig: GeneralAgentConfig;
+  godProModalOpen: boolean;
+  openGodProModal: () => void;
+  closeGodProModal: () => void;
   updateGeneralAgentConfig: (patch: Partial<GeneralAgentConfig>) => void;
+  setGeneralAgentAuthorityMode: (mode: GeneralAgentAuthorityMode) => Promise<{ ok: boolean; error?: string }>;
+  activateGodProMode: (payload: {
+    stage1Accepted: boolean;
+    typedPhrase: string;
+    stage3WaiverAccepted: boolean;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  deactivateGodProMode: (nextMode?: 'god' | 'standard') => Promise<{ ok: boolean; error?: string }>;
+  createCustomSubagent: (payload: {
+    name: string;
+    purpose: string;
+    instructions: string;
+    allowedCapabilities: string[];
+    readOnly: boolean;
+  }) => Promise<CustomSubagentBlueprint>;
+  deleteCustomSubagent: (subagentId: string) => Promise<void>;
+  confirmCriticalAction: (messageId: string, confirmationId: string) => Promise<{ ok: boolean; error?: string }>;
+  rejectCriticalAction: (messageId: string, confirmationId: string) => Promise<void>;
   activeRoleId: string;
   enabledRoleIds: string[];
   permissions: PermissionRule[];
@@ -612,6 +636,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
 
   roles: INITIAL_ROLES,
   generalAgentConfig: INITIAL_GENERAL_AGENT_CONFIG,
+  godProModalOpen: false,
   activeRoleId: INITIAL_ROLES[0].id,
   enabledRoleIds: [],
   permissions: INITIAL_PERMISSIONS,
@@ -1403,7 +1428,15 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         appSettings: saved.appSettings,
         systemConfig: { ...DEFAULT_SYSTEM_CONFIG, ...(saved.systemConfig ?? {}) },
         roles: saved.roles,
-        generalAgentConfig: saved.generalAgentConfig ?? INITIAL_GENERAL_AGENT_CONFIG,
+        generalAgentConfig: {
+          ...INITIAL_GENERAL_AGENT_CONFIG,
+          ...(saved.generalAgentConfig ?? {}),
+          authorityMode: saved.generalAgentConfig?.authorityMode ?? INITIAL_GENERAL_AGENT_CONFIG.authorityMode ?? 'god',
+          godProActivation: saved.generalAgentConfig?.godProActivation ?? null,
+          customSubagents: Array.isArray(saved.generalAgentConfig?.customSubagents)
+            ? saved.generalAgentConfig.customSubagents
+            : [],
+        },
         activeRoleId: saved.activeRoleId,
         enabledRoleIds: [],
         permissions: saved.permissions,
@@ -2009,6 +2042,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         providerLabel?: string;
         tokenUsage?: ModelTokenUsage;
         readFiles?: string[];
+        openedFiles?: string[];
+        criticalConfirmations?: CriticalActionConfirmationRequest[];
         webSources?: ChatSession['messages'][number]['webSources'];
         diff?: ChatSession['messages'][number]['diff'];
         command?: ChatSession['messages'][number]['command'];
@@ -2031,6 +2066,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
             timestamp: nowTime(),
             content: replyText,
             readFiles: opts.readFiles,
+            openedFiles: opts.openedFiles,
+            criticalConfirmations: opts.criticalConfirmations,
             webSources: opts.webSources,
             diff: opts.diff,
             command: opts.command,
@@ -2347,7 +2384,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       .filter(Boolean)
       .join('\n\n');
 
-    if (!activeProj && (route.kind === 'project' || route.kind === 'terminal')) {
+    const authorityMode: GeneralAgentAuthorityMode = state.generalAgentConfig.authorityMode ?? 'god';
+
+    if (!activeProj && (route.kind === 'project' || route.kind === 'terminal') && authorityMode !== 'god-pro') {
       set({ pendingProjectPrompt: { prompt: trimmed, sessionId, mode } });
       pushReply(
         'Для этой задачи нужен проект. Выберите или подключите папку — после этого я автоматически продолжу с проектным агентом.',
@@ -2415,10 +2454,13 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     publishAgentJournalEvent('running');
 
     try {
-      const useGeneralToolRuntime = Boolean(activeProj) &&
-        (route.kind === 'chat' || route.kind === 'project') &&
+      const useGeneralToolRuntime =
         !trimmed.startsWith('/') &&
-        (isReadOnlyProjectRequest || (route.kind === 'project' && mode === 'plan'));
+        route.kind !== 'browser' &&
+        (
+          (Boolean(activeProj) && (route.kind === 'chat' || route.kind === 'project')) ||
+          (authorityMode === 'god-pro' && (!activeProj || route.kind !== 'terminal'))
+        );
       if (activeProj && (route.kind === 'project' || route.kind === 'terminal') && !useGeneralToolRuntime) {
         const res = await fetch(`/api/projects/${encodeURIComponent(activeProj.id)}/task`, {
           method: 'POST',
@@ -2535,14 +2577,18 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         activeChatAbortController = chatAbortController;
         set({ canCancelActiveChat: true });
         const useProjectTools = useGeneralToolRuntime;
+        const toolRuntimeInstruction = authorityMode === 'god-pro'
+          ? `Ты — Общий агент ONE CORE AI в максимальном неограниченном режиме GodPro (без навязанной роли). ${activeProj ? `Активный проект: «${activeProj.name}» (${activeProj.folderPath}).` : 'Можно работать даже без выбранного проекта.'} Используй реальные function tools (open_project_file, read_project_file, list_project_files, search_project_code, write_project_file, delete_project_file, run_project_command, run_project_git, create_custom_subagent, delegate_subagent_task, list_directory, read_any_file, write_any_file, delete_any_file, exec_system_command).`
+          : authorityMode === 'god'
+            ? `Ты — Общий агент ONE CORE AI в режиме GOD («Бог проекта», без навязанной роли). Подключён проект «${activeProj?.name}». У тебя есть полный доступ к открытию и чтению файлов (open_project_file, read_project_file, list_project_files, search_project_code), созданию кастомных субагентов с правами и задачами (create_custom_subagent, delegate_subagent_task), а также к write_project_file, delete_project_file, run_project_command и run_project_git. Опасные действия, угрожающие крахом (удаление, терминал, секреты/ключевые конфиги, мутирующий git, пути вне проекта), система автоматически ставит на паузу и ждёт подтверждения пользователя. Не имитируй вызовы инструментов текстом.`
+            : useProjectTools
+              ? `Ты — общий агент ONE CORE AI. Подключён проект «${activeProj?.name}». Используй реальные function tools (${mode === 'act' ? 'open_project_file, read_project_file, list_project_files, search_project_code' : 'list_project_files, read_project_file, search_project_code'}). Дождись реальных результатов инструментов перед выводами.`
+              : 'Ты — общий агент ONE CORE AI. В этой ветке нет подключённого проекта: не утверждай, что читал или изменял файлы и запускал команды. Если задача требует рабочего каталога, попроси выбрать проект.';
+
         const requestMessages = [
           {
             role: 'system' as const,
-            content:
-              `${systemContext}\n\n` +
-              (useProjectTools
-                ? `Ты — общий агент ONE CORE AI. Подключён проект «${activeProj?.name}». Для анализа содержимого используй только предоставленные приложением function tools: list_project_files, read_project_file, search_project_code. Дождись реальных результатов инструментов перед выводами. Не имитируй вызовы инструментов текстом, не утверждай, что читал файлы без успешного результата. Режим анализа — read-only: инструменты записи, терминала и Git не предоставлены и запрещены. После исследования подготовь структурированный отчёт с охватом проверки, архитектурой, находками, рисками и рекомендациями. Укажи, какие файлы реально прочитаны.`
-                : 'Ты — общий агент ONE CORE AI. В этой ветке нет подключённого проекта: не утверждай, что читал или изменял файлы и запускал команды. Если задача требует рабочего каталога, попроси выбрать проект.'),
+            content: `${systemContext}\n\n${toolRuntimeInstruction}`,
           },
           ...history,
           { role: 'user' as const, content: trimmed },
@@ -2553,7 +2599,10 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
           signal: chatAbortController.signal,
           body: JSON.stringify(useProjectTools
             ? {
-                projectId: activeProj?.id,
+                projectId: activeProj?.id ?? '',
+                mode,
+                authorityMode,
+                customSubagents: state.generalAgentConfig.customSubagents ?? [],
                 provider: {
                   baseUrl: activeProvider.baseUrl,
                   providerId: activeProvider.id,
@@ -2577,14 +2626,41 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         }
 
         if (useProjectTools) {
-          const result = await resp.json() as { ok?: boolean; content?: string; readFiles?: string[]; toolCalls?: number; error?: string };
+          const result = await resp.json() as {
+            ok?: boolean;
+            content?: string;
+            readFiles?: string[];
+            openedFiles?: string[];
+            pendingConfirmations?: CriticalActionConfirmationRequest[];
+            createdSubagents?: CustomSubagentBlueprint[];
+            toolCalls?: number;
+            error?: string;
+          };
           if (!result.ok || !result.content) throw new Error(result.error || 'Агент не сформировал итоговый отчёт.');
+          if (Array.isArray(result.createdSubagents) && result.createdSubagents.length > 0) {
+            set((current) => {
+              const existing = current.generalAgentConfig.customSubagents ?? [];
+              const merged = new Map(existing.map((item) => [item.id, item]));
+              for (const item of result.createdSubagents!) {
+                merged.set(item.id, item);
+              }
+              return {
+                generalAgentConfig: {
+                  ...current.generalAgentConfig,
+                  customSubagents: [...merged.values()],
+                },
+              };
+            });
+            void get().saveSettings();
+          }
           pushReply(result.content, {
-            roleName: 'Общий агент',
+            roleName: authorityMode === 'god-pro' ? 'Общий агент (GodPro)' : authorityMode === 'god' ? 'Общий агент (GOD)' : 'Общий агент',
             roleId: activeRole.id,
             modelName: providerModel,
             providerLabel: `${activeProvider.name} · ${providerModel}`,
             readFiles: result.readFiles ?? [],
+            openedFiles: result.openedFiles ?? [],
+            criticalConfirmations: result.pendingConfirmations ?? [],
             tokenUsage: {
               promptTokens: null,
               completionTokens: null,
@@ -2594,6 +2670,19 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
               recordedAt: new Date().toISOString(),
             },
           });
+          if (activeProj) {
+            void Promise.all([
+              get().refreshProjectFiles(activeProj.id),
+              get().refreshProjectLogs(activeProj.id),
+            ]);
+            if (Array.isArray(result.openedFiles) && result.openedFiles.length > 0) {
+              void get().selectFile(result.openedFiles[0], true, {
+                operationId: agentOperationId,
+                messageId: agentMessageId ?? undefined,
+                sessionId,
+              });
+            }
+          }
         } else {
           if (!resp.body) throw new Error('Провайдер не вернул поток ответа.');
           const reader = resp.body.getReader();
@@ -4311,4 +4400,237 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   },
 
   clearTeamExecutionResult: () => set({ teamExecutionResult: null, teamExecutionError: null }),
+
+  openGodProModal: () => set({ godProModalOpen: true }),
+  closeGodProModal: () => set({ godProModalOpen: false }),
+
+  setGeneralAgentAuthorityMode: async (mode) => {
+    const current = get().generalAgentConfig;
+    if (mode === 'god-pro') {
+      const verified = Boolean(
+        current.authorityMode === 'god-pro' &&
+          current.godProActivation?.controlPhraseVerified &&
+          current.godProActivation?.stage1Accepted &&
+          current.godProActivation?.stage3WaiverAccepted,
+      );
+      if (!verified) {
+        set({ godProModalOpen: true });
+        return { ok: false, error: 'Требуется пройти 3-этапное подтверждение GodPro.' };
+      }
+      return { ok: true };
+    }
+    if (current.authorityMode === 'god-pro') {
+      return get().deactivateGodProMode(mode);
+    }
+    set((state) => ({
+      generalAgentConfig: {
+        ...state.generalAgentConfig,
+        authorityMode: mode,
+        godProActivation: null,
+      },
+    }));
+    const saved = await get().saveSettings();
+    return saved;
+  },
+
+  activateGodProMode: async ({ stage1Accepted, typedPhrase, stage3WaiverAccepted }) => {
+    try {
+      const res = await fetch('/api/agents/god-pro/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage1Accepted, typedPhrase, stage3WaiverAccepted }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        authorityMode?: GeneralAgentAuthorityMode;
+        godProActivation?: GodProActivationAudit;
+        error?: string;
+      };
+      if (!res.ok || !data.ok || data.authorityMode !== 'god-pro' || !data.godProActivation) {
+        return { ok: false, error: data.error || `HTTP ${res.status}` };
+      }
+      set((state) => ({
+        godProModalOpen: false,
+        generalAgentConfig: {
+          ...state.generalAgentConfig,
+          authorityMode: 'god-pro',
+          godProActivation: data.godProActivation!,
+        },
+        notifications: [
+          {
+            id: `godpro-${Date.now()}`,
+            title: 'Активирован режим GodPro',
+            detail: 'Все ограничения сняты под полную ответственность пользователя.',
+            timestamp: nowTime(),
+            read: false,
+          },
+          ...state.notifications,
+        ],
+      }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Сетевая ошибка активации GodPro' };
+    }
+  },
+
+  deactivateGodProMode: async (nextMode = 'god') => {
+    try {
+      const res = await fetch('/api/agents/god-pro/deactivate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authorityMode: nextMode }),
+      });
+      const data = (await res.json()) as { ok?: boolean; authorityMode?: GeneralAgentAuthorityMode; error?: string };
+      if (!res.ok || !data.ok) {
+        return { ok: false, error: data.error || `HTTP ${res.status}` };
+      }
+      set((state) => ({
+        godProModalOpen: false,
+        generalAgentConfig: {
+          ...state.generalAgentConfig,
+          authorityMode: data.authorityMode ?? nextMode,
+          godProActivation: null,
+        },
+      }));
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Ошибка отключения GodPro' };
+    }
+  },
+
+  createCustomSubagent: async (payload) => {
+    const blueprint: CustomSubagentBlueprint = {
+      id: `custom-sub-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      name: payload.name.trim(),
+      purpose: payload.purpose.trim(),
+      instructions: payload.instructions.trim(),
+      allowedCapabilities: payload.allowedCapabilities.length > 0
+        ? payload.allowedCapabilities
+        : ['list_files', 'read_file', 'search_code', 'read_knowledge'],
+      readOnly: payload.readOnly,
+      createdBy: 'user',
+      createdAt: new Date().toISOString(),
+      lastStatus: 'idle',
+    };
+    set((state) => ({
+      generalAgentConfig: {
+        ...state.generalAgentConfig,
+        customSubagents: [blueprint, ...(state.generalAgentConfig.customSubagents ?? [])],
+      },
+    }));
+    await get().saveSettings();
+    return blueprint;
+  },
+
+  deleteCustomSubagent: async (subagentId) => {
+    set((state) => ({
+      generalAgentConfig: {
+        ...state.generalAgentConfig,
+        customSubagents: (state.generalAgentConfig.customSubagents ?? []).filter((item) => item.id !== subagentId),
+      },
+    }));
+    await get().saveSettings();
+  },
+
+  confirmCriticalAction: async (messageId, confirmationId) => {
+    const state = get();
+    const session = state.sessions.find((s) => s.id === state.activeSessionId);
+    const msg = session?.messages.find((m) => m.id === messageId);
+    const reqItem = msg?.criticalConfirmations?.find((c) => c.id === confirmationId);
+    if (!reqItem || reqItem.status !== 'pending') {
+      return { ok: false, error: 'Запрос подтверждения не найден или уже обработан.' };
+    }
+    try {
+      const res = await fetch('/api/agents/god-confirm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OneCore-Approval': 'user-confirmed',
+        },
+        body: JSON.stringify({
+          confirmationId,
+          decision: 'confirm',
+          approved: true,
+          projectId: reqItem.projectId,
+          toolName: reqItem.toolName,
+          toolArgs: reqItem.toolArgs,
+        }),
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        status?: 'confirmed' | 'rejected';
+        output?: string;
+        filePath?: string;
+        error?: string;
+      };
+      const resultText = data.output || data.error || 'Операция выполнена.';
+      set((current) => ({
+        sessions: current.sessions.map((sess) =>
+          sess.id !== current.activeSessionId
+            ? sess
+            : {
+                ...sess,
+                messages: sess.messages.map((m) =>
+                  m.id !== messageId
+                    ? m
+                    : {
+                        ...m,
+                        criticalConfirmations: (m.criticalConfirmations ?? []).map((c) =>
+                          c.id === confirmationId
+                            ? { ...c, status: data.ok ? 'confirmed' : 'pending', resultOutput: resultText }
+                            : c,
+                        ),
+                      },
+                ),
+              },
+        ),
+      }));
+      if (!res.ok || !data.ok) {
+        return { ok: false, error: data.error || resultText };
+      }
+      if (reqItem.projectId) {
+        await Promise.all([
+          get().refreshProjectFiles(reqItem.projectId),
+          get().refreshProjectLogs(reqItem.projectId),
+        ]);
+      }
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Сбой подтверждения действия GOD' };
+    }
+  },
+
+  rejectCriticalAction: async (messageId, confirmationId) => {
+    await fetch('/api/agents/god-confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirmationId, decision: 'reject' }),
+    }).catch(() => undefined);
+
+    set((current) => ({
+      sessions: current.sessions.map((sess) =>
+        sess.id !== current.activeSessionId
+          ? sess
+          : {
+              ...sess,
+              messages: sess.messages.map((m) =>
+                m.id !== messageId
+                  ? m
+                  : {
+                      ...m,
+                      criticalConfirmations: (m.criticalConfirmations ?? []).map((c) =>
+                        c.id === confirmationId
+                          ? {
+                              ...c,
+                              status: 'rejected',
+                              resultOutput: 'Отклонено пользователем в режиме GOD.',
+                            }
+                          : c,
+                      ),
+                    },
+              ),
+            },
+      ),
+    }));
+  },
 }));

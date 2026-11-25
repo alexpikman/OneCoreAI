@@ -1337,6 +1337,297 @@ export function buildAgentToolsRegistry(rootDir: string): AgentToolsRegistryPayl
         ],
       },
     }),
+
+    makeEntry({
+      toolId: 'open_project_file',
+      capabilityKey: 'read_file',
+      title: 'Открытие файла проекта в редакторе',
+      subtitle: 'Прямое открытие и возврат содержимого файла проекта (с нормализацией ./ и поиском по имени) для General Agent',
+      category: 'filesystem',
+      enforcementStatus: 'runtime-enforced',
+      projectPermissionGate: 'read_file',
+      generalAgentAccess: {
+        allowed: true,
+        modeConstraint: 'ACT, GOD и GodPro (всегда открывает файл в рабочей области и возвращает содержимое)',
+        mechanism: 'OpenAI Function Tool open_project_file -> readProjectFile() + selectFile(..., true)',
+      },
+      subagentAccessNote: 'Открытие вкладки редактора предназначено для General Agent; субагенты используют read_project_file.',
+      interactionSchema: {
+        operationId: 'fs.project.open_file',
+        protocol: 'OpenAI Function Calling -> AgentOrchestratorResponse.openedFiles[] -> UI Preview',
+        inputSchema: {
+          path: 'string (путь или имя файла в проекте)',
+        },
+        outputSchema: {
+          ok: 'boolean',
+          openedInEditor: 'boolean',
+          path: 'string',
+          content: 'string',
+        },
+        effects: ['filesystem.read'],
+        authorizationAndGuardrails: [
+          'normalizeProjectRelPathCandidate(): очистка ./ и подбор уникального совпадения по имени файла',
+          'safeResolveInside(): изоляция внутри папки проекта (в режиме GOD выход наружу требует подтверждения)',
+          'В режиме GOD/GodPro чтение не блокируется принудительным PLAN-фильтром в чате',
+        ],
+        confirmationPolicy: 'none в пределах проекта; user-confirmation при пути вне проекта в режиме GOD',
+        flowSteps: [
+          '1. General Agent вызывает open_project_file({ path })',
+          '2. Сервер нормализует путь и читает реальный файл проекта',
+          '3. Путь добавляется в openedFiles[] и readFiles[]',
+          '4. Клиент автоматически открывает первый файл из openedFiles в редакторе',
+        ],
+        documentSpecs: [
+          {
+            docId: 'protocol.file-content-provisioning',
+            title: 'File Content Provisioning Protocol',
+            path: 'docs/knowledge/protocols/file-content-provisioning.md',
+            section: 'Evidence Registry / Exact path reading',
+          },
+          {
+            title: 'Security, Permissions, and Approvals',
+            path: 'docs/architecture/SECURITY_AND_APPROVALS.md',
+            section: '§2.4 File integrity and path containment',
+          },
+        ],
+        entityBindings: [
+          { entityType: 'Module', name: 'executeTool("open_project_file")', path: 'server/agentOrchestrator.ts', note: 'Чтение и регистрация файла в openedFiles' },
+          { entityType: 'Store', name: 'selectFile(path, true)', path: 'src/store/useOneCoreStore.ts', note: 'Автооткрытие файла в центре рабочей области' },
+        ],
+      },
+    }),
+
+    makeEntry({
+      toolId: 'delete_project_file',
+      capabilityKey: null,
+      title: 'Удаление файла проекта (GOD / GodPro)',
+      subtitle: 'Удаление файла на диске: в режиме GOD строго ставится на паузу и ждёт подтверждения пользователя',
+      category: 'mutation',
+      enforcementStatus: 'approval-required',
+      projectPermissionGate: null,
+      generalAgentAccess: {
+        allowed: true,
+        modeConstraint: 'GOD (всегда через паузу подтверждения) и GodPro (без подтверждения)',
+        mechanism: 'OpenAI Function Tool delete_project_file -> evaluateCriticalActionRisk() -> POST /api/agents/god-confirm',
+      },
+      subagentAccessNote: 'Субагентам недоступен: деструктивное удаление выполняет только General Agent с подтверждением пользователя.',
+      interactionSchema: {
+        operationId: 'fs.project.delete_file',
+        protocol: 'GOD Guard Pause Card -> POST /api/agents/god-confirm',
+        inputSchema: {
+          path: 'string (относительный путь файла проекта)',
+        },
+        outputSchema: {
+          ok: 'boolean',
+          requiresConfirmation: 'boolean',
+          confirmation: 'CriticalActionConfirmationRequest?',
+        },
+        effects: ['filesystem.delete'],
+        authorizationAndGuardrails: [
+          'evaluateCriticalActionRisk() классифицирует любое удаление как critical (god-rule-file-delete)',
+          'В режиме GOD операция НЕ выполняется до вызова /api/agents/god-confirm с approved: true',
+          'После подтверждения verifyFileRemoved() проверяет фактическое удаление с диска',
+        ],
+        confirmationPolicy: 'mandatory-god-confirmation в режиме GOD; без паузы в GodPro',
+        flowSteps: [
+          '1. General Agent в режиме GOD запрашивает delete_project_file({ path })',
+          '2. godModeGuard останавливает выполнение и создаёт CriticalActionConfirmationRequest',
+          '3. Пользователь видит карточку угрозы краха в чате и нажимает «Подтвердить» или «Отклонить»',
+          '4. При подтверждении executeConfirmedCriticalAction() удаляет файл и проверяет verifyFileRemoved()',
+        ],
+        documentSpecs: [
+          {
+            title: 'Security, Permissions, and Approvals',
+            path: 'docs/architecture/SECURITY_AND_APPROVALS.md',
+            section: 'Class C — Destructive confirmation gates',
+          },
+          {
+            title: 'Capability Contract',
+            path: 'docs/intelligence-architecture/capability-contract.md',
+            section: '§5 Confirmation / §6 Compensation',
+          },
+        ],
+        entityBindings: [
+          { entityType: 'Module', name: 'evaluateCriticalActionRisk()', path: 'server/orchestration/godModeGuard.ts', note: 'Оценка угрозы краха и блокировка до подтверждения' },
+          { entityType: 'Endpoint', name: 'POST /api/agents/god-confirm', path: 'server/app.ts', note: 'Подтверждение или отклонение критического действия GOD' },
+        ],
+      },
+    }),
+
+    makeEntry({
+      toolId: 'create_custom_subagent',
+      capabilityKey: null,
+      title: 'Создание кастомного субагента General Agent',
+      subtitle: 'Динамическое определение субагента с именем, целью, правами (capabilities) и точными инструкциями',
+      category: 'knowledge-orchestration',
+      enforcementStatus: 'runtime-enforced',
+      projectPermissionGate: null,
+      generalAgentAccess: {
+        allowed: true,
+        modeConstraint: 'GOD и GodPro (Общий агент без жёсткой роли конструирует команду под задачу)',
+        mechanism: 'OpenAI Function Tool create_custom_subagent -> CustomSubagentBlueprint[]',
+      },
+      subagentAccessNote: 'Инструмент принадлежит исключительно General Agent как верховному оркестратору внутри проекта.',
+      interactionSchema: {
+        operationId: 'orchestration.subagent.create_custom',
+        protocol: 'OpenAI Function Calling -> createdSubagents[] -> Persisted GeneralAgentConfig',
+        inputSchema: {
+          name: 'string (название нового субагента)',
+          purpose: 'string (назначение и зона ответственности)',
+          instructions: 'string (точные пошаговые указания)',
+          allowedCapabilities: 'string[] (list_files, read_file, search_code, read_knowledge)',
+          readOnly: 'boolean (по умолчанию true)',
+        },
+        outputSchema: {
+          ok: 'boolean',
+          subagent: 'CustomSubagentBlueprint',
+        },
+        effects: ['orchestration.control'],
+        authorizationAndGuardrails: [
+          'General Agent выступает как суперагент без навязанной роли и выдаёт субагенту только явно перечисленные права',
+          'Созданные субагенты сохраняются в настройках GeneralAgentConfig.customSubagents',
+        ],
+        confirmationPolicy: 'none (создание описания и прав субагента в рамках проекта)',
+        flowSteps: [
+          '1. General Agent анализирует задачу и вызывает create_custom_subagent()',
+          '2. Сервер создаёт CustomSubagentBlueprint и добавляет в сессию оркестрации',
+          '3. UI сохраняет созданного субагента в списке кастомных субагентов Общего агента',
+        ],
+        documentSpecs: [
+          {
+            title: 'Agent Registry and Context',
+            path: 'docs/architecture/AGENT_REGISTRY_AND_CONTEXT.md',
+            section: 'General Agent & Subagent Configuration',
+          },
+          {
+            title: 'Delegation Model',
+            path: 'docs/intelligence-architecture/delegation-model.md',
+            section: '§3 Модель делегирования / §4 Контракт поручения',
+          },
+        ],
+        entityBindings: [
+          { entityType: 'Module', name: 'executeTool("create_custom_subagent")', path: 'server/agentOrchestrator.ts', note: 'Конструктор кастомных субагентов' },
+          { entityType: 'Contract', name: 'CustomSubagentBlueprint', path: 'src/types/onecore.ts', note: 'Типизированный профиль кастомного субагента' },
+        ],
+      },
+    }),
+
+    makeEntry({
+      toolId: 'delegate_subagent_task',
+      capabilityKey: null,
+      title: 'Постановка задачи кастомному субагенту',
+      subtitle: 'Изолированный запуск созданного субагента с его набором прав и возвратом проверенного результата',
+      category: 'knowledge-orchestration',
+      enforcementStatus: 'runtime-enforced',
+      projectPermissionGate: null,
+      generalAgentAccess: {
+        allowed: true,
+        modeConstraint: 'GOD и GodPro (General Agent поручает задачу и контролирует выполнение)',
+        mechanism: 'OpenAI Function Tool delegate_subagent_task -> runScopedSubagentTurn()',
+      },
+      subagentAccessNote: 'Исполняемый субагент получает строго свои instructions и allowedCapabilities.',
+      interactionSchema: {
+        operationId: 'orchestration.subagent.delegate_custom',
+        protocol: 'OpenAI Function Calling -> runScopedSubagentTurn() -> Agent Journal',
+        inputSchema: {
+          subagentIdOrName: 'string (ID или точное имя субагента)',
+          objective: 'string (конкретная задача и критерии результата)',
+        },
+        outputSchema: {
+          ok: 'boolean',
+          subagentId: 'string',
+          subagentName: 'string',
+          readFiles: 'string[]',
+          resultSummary: 'string',
+        },
+        effects: ['orchestration.control', 'filesystem.read'],
+        authorizationAndGuardrails: [
+          'runScopedSubagentTurn() ограничивает доступ инструментами из blueprint.allowedCapabilities',
+          'Каждое делегирование логируется в Agent Journal с категорией subagent',
+        ],
+        confirmationPolicy: 'none для read-only субагентов; мутации возвращаются на контроль',
+        flowSteps: [
+          '1. General Agent вызывает delegate_subagent_task({ subagentIdOrName, objective })',
+          '2. Оркестратор находит CustomSubagentBlueprint и запускает runScopedSubagentTurn()',
+          '3. Субагент выполняет задачу по своим инструкциям и возвращает результат с перечнем readFiles',
+        ],
+        documentSpecs: [
+          {
+            docId: 'protocol.task-handoff',
+            title: 'Agent Task Handoff Protocol',
+            path: 'docs/knowledge/protocols/task-handoff.md',
+            section: 'Bounded delegation handoff',
+          },
+          {
+            title: 'Delegation Model',
+            path: 'docs/intelligence-architecture/delegation-model.md',
+            section: '§5 Изоляция исполнителя и возврат результата',
+          },
+        ],
+        entityBindings: [
+          { entityType: 'Module', name: 'runScopedSubagentTurn()', path: 'server/agentOrchestrator.ts', note: 'Исполнение задачи кастомного субагента в рамках его прав' },
+          { entityType: 'Module', name: 'recordAgentEvent()', path: 'server/agentJournal.ts', note: 'Логирование делегирования в журнал агента' },
+        ],
+      },
+    }),
+
+    makeEntry({
+      toolId: 'god_pro_system_access',
+      capabilityKey: null,
+      title: 'Неограниченный доступ к ОС и ФС (GodPro)',
+      subtitle: 'Прямые системные инструменты (list_directory, read_any_file, write_any_file, delete_any_file, exec_system_command)',
+      category: 'execution',
+      enforcementStatus: 'approval-required',
+      projectPermissionGate: null,
+      generalAgentAccess: {
+        allowed: true,
+        modeConstraint: 'Только после 3-этапной активации GodPro с ручным вводом контрольной фразы и отказом от ответственности',
+        mechanism: 'POST /api/agents/god-pro/activate -> resolveVerifiedAuthorityMode() === "god-pro"',
+      },
+      subagentAccessNote: 'Субагентам недоступен: GodPro действует только в рамках осознанно разблокированной сессии General Agent.',
+      interactionSchema: {
+        operationId: 'system.god_pro.unrestricted',
+        protocol: '3-Stage Bilingual Warning + Manual Control Phrase -> Server Verified Session',
+        inputSchema: {
+          stage1Accepted: 'boolean (ответственность за всю IT-инфраструктуру)',
+          typedPhrase: 'string ("I understand that I could lose everything", без копипаста)',
+          stage3WaiverAccepted: 'boolean (отказ от ответственности разработчика)',
+        },
+        outputSchema: {
+          ok: 'boolean',
+          authorityMode: '"god-pro"',
+          godProActivation: 'GodProActivationAudit',
+        },
+        effects: ['filesystem.read', 'filesystem.write', 'filesystem.delete', 'process.exec'],
+        authorizationAndGuardrails: [
+          'Серверная проверка resolveVerifiedAuthorityMode() отклоняет запрос god-pro, если не пройдены все 3 этапа в /api/agents/god-pro/activate',
+          'Включает аудит-запись в Agent Journal и отображает быстрый переключатель отключения в интерфейсе',
+        ],
+        confirmationPolicy: '3-stage-bilingual-manual-phrase-and-liability-waiver',
+        flowSteps: [
+          '1. Пользователь выбирает GodPro и проходит 3 двуязычных предупреждения (RU+EN)',
+          '2. На 2-м этапе вручную вводит контрольную фразу без возможности копирования',
+          '3. На 3-м этапе подтверждает отказ от ответственности разработчика -> POST /api/agents/god-pro/activate',
+          '4. Сервер разблокирует list_directory / read_any_file / write_any_file / delete_any_file / exec_system_command',
+        ],
+        documentSpecs: [
+          {
+            title: 'Security, Permissions, and Approvals',
+            path: 'docs/architecture/SECURITY_AND_APPROVALS.md',
+            section: '§2 Control boundaries and explicit approvals',
+          },
+          {
+            title: 'Capability Contract',
+            path: 'docs/intelligence-architecture/capability-contract.md',
+            section: '§5 Confirmation / §7 Enforcement',
+          },
+        ],
+        entityBindings: [
+          { entityType: 'Module', name: 'verifyGodProActivationInput() / resolveVerifiedAuthorityMode()', path: 'server/orchestration/godModeGuard.ts', note: 'Серверная верификация 3-этапной активации GodPro' },
+          { entityType: 'Endpoint', name: 'POST /api/agents/god-pro/activate', path: 'server/app.ts', note: 'Включение и аудит режима GodPro' },
+        ],
+      },
+    }),
   ];
 
   const verifiedDocumentsCount = new Set(

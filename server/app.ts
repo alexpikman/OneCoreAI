@@ -44,7 +44,7 @@ import {
   setActiveProjectId,
   verifySshConnectionAndPath,
 } from './projectsManager';
-import { clearIntegrationSecret, clearProviderSecret, clearSubagentProviderSecret, getIntegrationSecret, getProviderConnection, readAppSettings, saveAppSettings, setIntegrationSecret, setProviderSecret, setSubagentProviderSecret } from './settingsManager';
+import { clearIntegrationSecret, clearProviderSecret, clearSubagentProviderSecret, getIntegrationSecret, getProviderConnection, readAppSettings, saveAppSettings, saveGeneralAgentAuthorityState, setIntegrationSecret, setProviderSecret, setSubagentProviderSecret } from './settingsManager';
 import { assertProjectToolAllowed, evaluateSideEffectApproval, isProjectToolAllowed, type SideEffectPermissionScope } from './permissionManager';
 import { beginAgentEvent, deleteAgentJournalEventsForProject, finishAgentEvent, flushAgentJournal, readAgentJournal, recordAgentEvent, runWithAgentOperationContext, subscribeAgentJournal } from './agentJournal';
 import { cancelOperation, finishOperation, getOperation, getOperationSignal, listOperations, startOperation } from './operationRegistry';
@@ -66,6 +66,9 @@ import { ROLE_CONTRACTS } from './orchestration/roleContracts';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { buildAgentToolsRegistry } from './orchestration/toolsRegistry';
+import { readSystemGraphDocument, scanSystemWorkflowGraph } from './orchestration/workflowGraphScanner';
+import { executeConfirmedCriticalAction, rejectPendingCriticalConfirmation, resolveVerifiedAuthorityMode, verifyGodProActivationInput } from './orchestration/godModeGuard';
+import type { CustomSubagentBlueprint } from '../src/types/onecore';
 import { getOneCoreHome } from './paths';
 import { BUILTIN_NAVIGATION_ICON_IDS, getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
@@ -530,6 +533,27 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
         instructionBinding: 'runtime-enforced',
       },
     });
+  });
+
+  app.get('/api/system-graph', async (_req, res) => {
+    try {
+      const graph = await scanSystemWorkflowGraph(rootDir);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, graph });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось просканировать граф системы.' });
+    }
+  });
+
+  app.get('/api/system-graph/document', (req, res) => {
+    try {
+      const requestedPath = typeof req.query.path === 'string' ? req.query.path : '';
+      const document = readSystemGraphDocument(rootDir, requestedPath);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, document });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось прочитать документ графа.' });
+    }
   });
 
   app.get('/api/knowledge', (_req, res) => {
@@ -2816,15 +2840,15 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     const canUse = (tool: 'read_file' | 'write_file' | 'run_command' | 'git') =>
       Boolean(projectWorkspaceReady && project && isProjectToolAllowed(project.id, tool));
     const application = {
-      readFiles: { available: canUse('read_file'), reason: project ? (canUse('read_file') ? 'Разрешено политикой проекта' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
+      readFiles: { available: canUse('read_file'), reason: project ? (canUse('read_file') ? 'Разрешено политикой проекта и открытием через General Agent' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
       writeFiles: { available: canUse('write_file'), reason: project ? (canUse('write_file') ? 'Доступно через diff и подтверждение пользователя' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
-      deleteFiles: { available: false, reason: 'Отдельный инструмент удаления файлов не реализован' },
+      deleteFiles: { available: Boolean(projectWorkspaceReady && project), reason: project ? 'Доступно в режиме GOD (с подтверждением) или GodPro' : 'Нет активного проекта' },
       runCommands: { available: canUse('run_command'), reason: project ? (canUse('run_command') ? 'Команды требуют явного подтверждения' : 'Отключено в разрешениях проекта') : 'Нет активного проекта' },
       git: { available: canUse('git'), reason: project ? (canUse('git') ? 'Git доступен; изменяющие операции требуют подтверждения' : 'Git отключён в разрешениях проекта') : 'Нет активного проекта' },
       ssh: { available: false, reason: 'SSH ещё не подключён к инструментам проектного агента' },
       github: { available: false, reason: 'Прямые GitHub-действия проектного агента ещё не реализованы' },
       web: { available: true, reason: 'Встроенный браузер публичных страниц доступен' },
-      functionCalling: { available: false, reason: 'Native function calling не подключён; используется JSON-протокол' },
+      functionCalling: { available: Boolean(projectWorkspaceReady && project), reason: project ? 'Поддерживается оркестратором General Agent (OpenAI tools)' : 'Для проектных инструментов нужен подключённый проект' },
       vision: { available: false, reason: 'Визуальный ввод не проверяется этим endpoint' },
     };
 
@@ -2887,14 +2911,101 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
     }
   });
 
+  app.post('/api/agents/god-pro/activate', async (req, res) => {
+    try {
+      const check = verifyGodProActivationInput(req.body ?? {});
+      if (!check.ok) {
+        res.status(400).json({ ok: false, error: check.error });
+        return;
+      }
+      const godProActivation = {
+        activatedAt: new Date().toISOString(),
+        controlPhraseVerified: true,
+        stage1Accepted: true,
+        stage3WaiverAccepted: true,
+      };
+      await saveGeneralAgentAuthorityState({
+        authorityMode: 'god-pro',
+        godProActivation,
+      });
+      recordAgentEvent({
+        category: 'agent',
+        level: 'warning',
+        status: 'completed',
+        title: 'Активирован режим GodPro (полные системные права)',
+        summary: 'Пользователь прошёл 3-этапное предупреждение, ввёл контрольную фразу вручную и принял отказ от ответственности разработчика.',
+        source: 'god-mode-guard',
+        details: { authorityMode: 'god-pro', activatedAt: godProActivation.activatedAt },
+      });
+      res.json({ ok: true, authorityMode: 'god-pro', godProActivation });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось активировать GodPro' });
+    }
+  });
+
+  app.post('/api/agents/god-pro/deactivate', async (req, res) => {
+    try {
+      const nextMode = req.body?.authorityMode === 'standard' ? 'standard' : 'god';
+      await saveGeneralAgentAuthorityState({
+        authorityMode: nextMode,
+        godProActivation: null,
+      });
+      recordAgentEvent({
+        category: 'agent',
+        level: 'info',
+        status: 'completed',
+        title: `Режим GodPro отключён (активен ${nextMode.toUpperCase()})`,
+        summary: 'Ограничения безопасности восстановлены.',
+        source: 'god-mode-guard',
+      });
+      res.json({ ok: true, authorityMode: nextMode });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err instanceof Error ? err.message : 'Не удалось отключить GodPro' });
+    }
+  });
+
+  app.post('/api/agents/god-confirm', async (req, res) => {
+    const confirmationId = typeof req.body?.confirmationId === 'string' ? req.body.confirmationId.trim() : '';
+    const decision = req.body?.decision === 'reject' ? 'reject' : 'confirm';
+    if (!confirmationId) {
+      res.status(400).json({ ok: false, error: 'Не указан confirmationId.' });
+      return;
+    }
+    if (decision === 'reject') {
+      rejectPendingCriticalConfirmation(confirmationId);
+      res.json({ ok: true, status: 'rejected', output: 'Критическое действие отклонено пользователем в режиме GOD.' });
+      return;
+    }
+    if (!requireSideEffectApproval(req, res, 'agent.god-confirm', confirmationId)) return;
+    try {
+      const execResult = await executeConfirmedCriticalAction({
+        confirmationId,
+        projectId: typeof req.body?.projectId === 'string' ? req.body.projectId : undefined,
+        toolName: typeof req.body?.toolName === 'string' ? req.body.toolName : undefined,
+        toolArgs: req.body?.toolArgs && typeof req.body.toolArgs === 'object' ? (req.body.toolArgs as Record<string, unknown>) : undefined,
+        signal: res.locals.operationSignal as AbortSignal | undefined,
+      });
+      res.json({ ...execResult, status: 'confirmed' });
+    } catch (err) {
+      res.status(400).json({ ok: false, error: err instanceof Error ? err.message : 'Ошибка выполнения подтверждённого действия GOD' });
+    }
+  });
+
   app.post('/api/agents/chat', async (req, res) => {
     const projectId = typeof req.body?.projectId === 'string' ? req.body.projectId.trim() : '';
     const provider = req.body?.provider;
     const providerConnection = provider && typeof provider.providerId === 'string'
       ? await getProviderConnection(provider.providerId, provider.credentialScope === 'subagent' ? 'subagent' : 'primary', typeof provider.roleId === 'string' ? provider.roleId : undefined)
       : null;
+    const settingsManifest = await readAppSettings();
+    const authorityMode = resolveVerifiedAuthorityMode(req.body?.authorityMode, settingsManifest?.settings);
+    const mode = req.body?.mode === 'act' ? 'act' : 'plan';
     const rawMessages = Array.isArray(req.body?.messages) ? req.body.messages : [];
-    if (!projectId || !provider || !providerConnection || typeof provider.model !== 'string' || rawMessages.length === 0) {
+    const customSubagents = Array.isArray(req.body?.customSubagents)
+      ? (req.body.customSubagents as CustomSubagentBlueprint[])
+      : [];
+
+    if ((!projectId && authorityMode !== 'god-pro') || !provider || !providerConnection || typeof provider.model !== 'string' || rawMessages.length === 0) {
       res.status(400).json({ ok: false, error: 'Не заданы projectId, provider или messages' });
       return;
     }
@@ -2914,7 +3025,7 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       return { role: item.role, content: item.content.slice(0, 100000) };
     });
 
-    const systemConfig = normalizeSystemConfig((await readAppSettings())?.settings.systemConfig);
+    const systemConfig = normalizeSystemConfig(settingsManifest?.settings.systemConfig);
     const controller = new AbortController();
     const operationSignal = res.locals.operationSignal as AbortSignal | undefined;
     const requestSignal = operationSignal ? AbortSignal.any([controller.signal, operationSignal]) : controller.signal;
@@ -2931,6 +3042,9 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       const result = await executeGeneralAgentTask({
         projectId,
         knowledgeRoot: path.join(rootDir, 'docs', 'knowledge'),
+        mode,
+        authorityMode,
+        customSubagents,
         provider: {
           baseUrl: providerConnection.baseUrl,
           apiKey: providerConnection.apiKey ?? undefined,
@@ -2947,8 +3061,8 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
             title: name,
             summary,
             source: 'agent-orchestrator',
-            projectId,
-            details: { tool: name },
+            projectId: projectId || undefined,
+            details: { tool: name, authorityMode },
             trace,
           });
         },
@@ -2960,12 +3074,12 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
             title: trace.stageLabel,
             summary,
             source: 'agent-orchestrator',
-            projectId,
+            projectId: projectId || undefined,
             trace,
           });
         },
       });
-      if (!res.destroyed) res.json({ ok: true, ...result });
+      if (!res.destroyed) res.json({ ok: true, authorityMode, ...result });
     } catch (err) {
       if (res.destroyed) return;
       const message = requestSignal.aborted && requestSignal.reason instanceof Error
