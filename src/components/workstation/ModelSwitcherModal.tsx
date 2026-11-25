@@ -1,8 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, Loader2, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Circle, Download, Loader2, PackageCheck, PlayCircle, X } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { FreeProviderProfile, LocalModel } from '../../types/onecore';
 import { apiFetch } from '../../utils/apiFetch';
+
+type LlamaCheckState = 'pending' | 'checking' | 'success' | 'error';
+
+type LlamaCheckStep = {
+  label: string;
+  state: LlamaCheckState;
+  detail?: string;
+};
+
+type LlamaServerChecks = {
+  downloaded: boolean;
+  installed: boolean;
+  running: boolean;
+  version: string | null;
+  executablePath: string | null;
+};
 
 type ModelChoice =
   | { key: string; kind: 'gguf'; model: LocalModel; label: string }
@@ -31,6 +47,120 @@ export const ModelSwitcherModal: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [stage, setStage] = useState('');
   const [error, setError] = useState('');
+  const [checksFinished, setChecksFinished] = useState(false);
+  const [llamaChecks, setLlamaChecks] = useState<LlamaServerChecks | null>(null);
+  const [checkSteps, setCheckSteps] = useState<LlamaCheckStep[]>([
+    { label: 'Определение текущего состояния llama-server…', state: 'pending' },
+    { label: 'Поиск системных файлов llama-server…', state: 'pending' },
+    { label: 'Проверка установленных компонентов llama-server…', state: 'pending' },
+    { label: 'Проверка текущего состояния llama-server…', state: 'pending' },
+  ]);
+
+  const inspectLlamaServer = async () => {
+    const initialSteps: LlamaCheckStep[] = [
+      { label: 'Определение текущего состояния llama-server…', state: 'pending' },
+      { label: 'Поиск системных файлов llama-server…', state: 'pending' },
+      { label: 'Проверка установленных компонентов llama-server…', state: 'pending' },
+      { label: 'Проверка текущего состояния llama-server…', state: 'pending' },
+    ];
+    setChecksFinished(false);
+    setLlamaChecks(null);
+    setCheckSteps(initialSteps);
+    const updateStep = (index: number, patch: Partial<LlamaCheckStep>) => {
+      setCheckSteps((current) => current.map((step, stepIndex) =>
+        stepIndex === index ? { ...step, ...patch } : step,
+      ));
+    };
+
+    try {
+      updateStep(0, { state: 'checking' });
+      const initialResponse = await apiFetch('/api/models/llama-cpp/status');
+      const initialStatus = await initialResponse.json() as { ok?: boolean; status?: string; error?: string };
+      if (!initialResponse.ok || !initialStatus.ok) throw new Error(initialStatus.error || 'Не удалось определить состояние llama-server.');
+      updateStep(0, { state: 'success', detail: initialStatus.status === 'ready' ? 'Сервер уже запущен.' : 'Текущее состояние определено.' });
+
+      updateStep(1, { state: 'checking' });
+      const checksResponse = await apiFetch('/api/models/llama-cpp/checks');
+      const checks = await checksResponse.json() as {
+        ok?: boolean;
+        downloaded?: boolean;
+        installed?: boolean;
+        running?: boolean;
+        version?: string | null;
+        executablePath?: string | null;
+        error?: string;
+      };
+      if (!checksResponse.ok || !checks.ok) throw new Error(checks.error || 'Не удалось выполнить поиск системных файлов llama-server.');
+      const executableFound = Boolean(checks.executablePath && checks.installed);
+      updateStep(1, {
+        state: executableFound ? 'success' : 'error',
+        detail: executableFound ? checks.executablePath ?? undefined : 'Исполняемый файл llama-server не найден.',
+      });
+
+      updateStep(2, { state: 'checking' });
+      const installed = checks.installed === true;
+      updateStep(2, {
+        state: installed ? 'success' : 'error',
+        detail: installed ? checks.version || 'Компоненты llama-server установлены.' : 'Установленные компоненты llama-server не обнаружены.',
+      });
+
+      updateStep(3, { state: 'checking' });
+      let running = checks.running === true || initialStatus.status === 'ready';
+      if (!running && checks.downloaded === true && installed) {
+        await refreshLocalModels();
+        const state = useOneCoreStore.getState();
+        const llamaProvider = state.freeProviders.find((provider) => provider.kind === 'llama-cpp');
+        const selectedModel = llamaProvider?.selectedModel?.trim().toLowerCase();
+        const readyModel = state.localModels.find((model) =>
+          model.status === 'ready'
+          && model.sourceType !== 'ollama'
+          && model.filename.toLowerCase().endsWith('.gguf')
+          && (!selectedModel
+            ? model.id === state.activeModelId
+            : [model.filename, model.name, model.localPath].some((value) =>
+                value.toLowerCase() === selectedModel || value.toLowerCase().endsWith(`/${selectedModel}`),
+              )),
+        );
+        if (readyModel) {
+          const startResponse = await apiFetch('/api/models/llama-cpp/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ approved: true }),
+          });
+          const startData = await startResponse.json() as { ok?: boolean; status?: string; error?: string };
+          if (!startResponse.ok || !startData.ok || startData.status !== 'ready') {
+            throw new Error(startData.error || 'Автоматический запуск llama-server не подтвердил готовность.');
+          }
+          running = true;
+          updateStep(3, { state: 'success', detail: 'Сервер автоматически запущен.' });
+        } else {
+          updateStep(3, { state: 'error', detail: 'Нет выбранной готовой GGUF-модели для запуска.' });
+        }
+      } else {
+        updateStep(3, {
+          state: running ? 'success' : 'error',
+          detail: running ? 'llama-server запущен и отвечает.' : 'Сервер остановлен; автоматический запуск невозможен без скачанного и установленного runtime.',
+        });
+      }
+
+      setLlamaChecks({
+        downloaded: checks.downloaded === true,
+        installed,
+        running,
+        version: checks.version ?? null,
+        executablePath: checks.executablePath ?? null,
+      });
+      if (running) await refreshLlamaCppStatus();
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'Не удалось проверить llama-server.';
+      setError(message);
+      setCheckSteps((current) => current.map((step) =>
+        step.state === 'checking' ? { ...step, state: 'error', detail: message } : step,
+      ));
+    } finally {
+      setChecksFinished(true);
+    }
+  };
 
   useEffect(() => {
     const show = () => {
@@ -41,6 +171,7 @@ export const ModelSwitcherModal: React.FC = () => {
         (provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false && provider.status === 'connected',
       );
       void Promise.all(connected.map((provider) => fetchProviderModels(provider.id)));
+      void inspectLlamaServer();
     };
     window.addEventListener('onecore:open-model-switcher', show);
     return () => window.removeEventListener('onecore:open-model-switcher', show);
@@ -218,8 +349,67 @@ export const ModelSwitcherModal: React.FC = () => {
           <h2 id="model-switcher-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Выбор модели</h2>
           <button type="button" onClick={close} disabled={busy} aria-label="Закрыть" className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"><X className="h-4 w-4" /></button>
         </header>
+        <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              {checksFinished ? 'Проверка завершена' : 'Выполняется проверка…'}
+            </span>
+          </div>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            {([
+              { key: 'downloaded', label: 'СКАЧАН', Icon: Download },
+              { key: 'installed', label: 'УСТАНОВЛЕН', Icon: PackageCheck },
+              { key: 'running', label: 'ЗАПУЩЕН', Icon: PlayCircle },
+            ] as const).map(({ key, label, Icon }) => {
+              const value = llamaChecks?.[key];
+              const checking = !checksFinished || checkSteps[3]?.state === 'checking';
+              const stateClass = value === true
+                ? 'text-emerald-600 drop-shadow-[0_0_7px_rgba(16,185,129,0.55)] dark:text-emerald-400'
+                : value === false
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : checking
+                    ? 'animate-pulse text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.65)]'
+                    : 'text-zinc-300 opacity-60 dark:text-zinc-600';
+              return (
+                <div key={key} className="flex flex-col items-center gap-1 rounded-lg bg-zinc-50 px-2 py-2 dark:bg-zinc-900/70">
+                  <span className="text-[9px] font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
+                  <Icon className={`h-5 w-5 transition-colors ${stateClass}`} aria-label={value === true ? `${label}: успешно` : value === false ? `${label}: не выполнено` : `${label}: проверяется`} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="space-y-1.5">
+            {checkSteps.map((step, index) => {
+              const StepIcon = step.state === 'success' ? CheckCircle2
+                : step.state === 'error' ? AlertCircle
+                  : step.state === 'checking' ? Loader2 : Circle;
+              return (
+                <div key={index} className="flex items-start gap-2 text-[10px]">
+                  <span className="min-w-0 flex-1 text-zinc-600 dark:text-zinc-400">{step.label}</span>
+                  <StepIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                    step.state === 'success' ? 'text-emerald-600 dark:text-emerald-400'
+                      : step.state === 'error' ? 'text-rose-600 dark:text-rose-400'
+                        : step.state === 'checking' ? 'animate-spin text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.7)]'
+                          : 'text-zinc-300 dark:text-zinc-600'
+                  }`} />
+                </div>
+              );
+            })}
+          </div>
+          {llamaChecks?.version && (
+            <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>
+              {llamaChecks.version} · {llamaChecks.executablePath}
+            </p>
+          )}
+        </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-          {providerGroups.length ? providerGroups.map((group) => {
+          {!checksFinished ? (
+            <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Определение доступных моделей…
+            </div>
+          ) : providerGroups.length ? providerGroups.map((group) => {
             const expanded = expandedProviderId === group.id;
             const groupHasSelection = group.choices.some((choice) => choice.key === selectedKey);
             const groupHasActive = group.choices.some((choice) => choice.kind === 'gguf'
