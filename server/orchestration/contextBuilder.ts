@@ -103,16 +103,29 @@ export function extractLineFragment(
   requestedStartLine?: number,
   requestedEndLine?: number,
 ): { content: string; startLine: number; endLine: number } {
-  const lines = content.split(/\r\n|\n|\r/);
+  const lineStarts = [0];
+  const lineEnds: number[] = [];
+  for (let index = 0; index < content.length; index += 1) {
+    if (content[index] === '\r' || content[index] === '\n') {
+      lineEnds.push(index);
+      if (content[index] === '\r' && content[index + 1] === '\n') index += 1;
+      lineStarts.push(index + 1);
+    }
+  }
+  lineEnds.push(content.length);
+  if ((content.endsWith('\n') || content.endsWith('\r')) && lineStarts.length > 1) {
+    lineStarts.pop();
+    lineEnds.pop();
+  }
   const startLine = requestedStartLine ?? 1;
-  const endLine = requestedEndLine ?? lines.length;
+  const endLine = requestedEndLine ?? lineStarts.length;
   if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine < 1 || endLine < startLine) {
     throw new Error('Диапазон строк файла должен быть положительным и иметь endLine не меньше startLine.');
   }
-  if (startLine > lines.length || endLine > lines.length) {
-    throw new Error(`Диапазон строк ${startLine}-${endLine} выходит за границы файла (${lines.length} строк).`);
+  if (startLine > lineStarts.length || endLine > lineStarts.length) {
+    throw new Error('Диапазон строк ' + startLine + '-' + endLine + ' выходит за границы файла (' + lineStarts.length + ' строк).');
   }
-  return { content: lines.slice(startLine - 1, endLine).join('\n'), startLine, endLine };
+  return { content: content.slice(lineStarts[startLine - 1], lineEnds[endLine - 1]), startLine, endLine };
 }
 
 export interface ProvisionedWorkerContext {

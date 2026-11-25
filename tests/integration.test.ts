@@ -4170,7 +4170,7 @@ test('Stage 4.1: provisioned Worker context is bounded and does not count as Wor
 });
 
 
-test('Stage 5: fragment deduplication uses contentHash and refreshes changed file content', () => {
+test('Stage 5: fragment deduplication uses contentHash and refreshes changed file content', async () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage5-dedup-'));
   const filePath = path.join(projectDir, 'target.ts');
   const cache = new FragmentDeduplicationCache(4, 60_000);
@@ -4187,18 +4187,30 @@ test('Stage 5: fragment deduplication uses contentHash and refreshes changed fil
   };
 
   try {
-    fs.writeFileSync(filePath, 'export const value = 1;\\n', 'utf-8');
+    fs.writeFileSync(filePath, 'export const value = 1;\n', 'utf-8');
     const first = readFragment();
     const repeated = readFragment();
     assert.equal(first.cacheHit, false);
     assert.equal(repeated.cacheHit, true);
     assert.equal(repeated.contentHash, first.contentHash);
 
-    fs.writeFileSync(filePath, 'export const value = 2;\\n', 'utf-8');
+    fs.writeFileSync(filePath, 'export const value = 2;\n', 'utf-8');
     const changed = readFragment();
     assert.equal(changed.cacheHit, false);
     assert.notEqual(changed.contentHash, first.contentHash);
     assert.equal(changed.content, 'export const value = 2;');
+
+    const bounded = new FragmentDeduplicationCache(1, 60_000);
+    bounded.getFragment({ taskId: 'task-a', normalizedPath: 'a.ts', startLine: 1, endLine: 1, content: 'a' });
+    bounded.getFragment({ taskId: 'task-a', normalizedPath: 'b.ts', startLine: 1, endLine: 1, content: 'b' });
+    assert.equal(bounded.getFragment({ taskId: 'task-a', normalizedPath: 'a.ts', startLine: 1, endLine: 1, content: 'a' }).cacheHit, false);
+    assert.equal(bounded.getFragment({ taskId: 'task-b', normalizedPath: 'a.ts', startLine: 1, endLine: 1, content: 'a' }).cacheHit, false);
+
+    const expiring = new FragmentDeduplicationCache(2, 1);
+    const expiringInput = { taskId: 'ttl-task', normalizedPath: 'a.ts', startLine: 1, endLine: 1, content: 'ttl' };
+    expiring.getFragment(expiringInput);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(expiring.getFragment(expiringInput).cacheHit, false);
   } finally {
     fs.rmSync(projectDir, { recursive: true, force: true });
   }
@@ -4255,7 +4267,8 @@ test('Stage 5: cancelling one child operation does not cancel its parent or sibl
 
 test('Stage 5: file reads report missing paths, reject traversal and validate line bounds', async () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage5-read-'));
-  fs.writeFileSync(path.join(projectDir, 'existing.ts'), 'first\\nsecond\\n', 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'existing.ts'), 'first\nsecond\n', 'utf-8');
+  fs.mkdirSync(path.join(projectDir, 'folder'));
   let projectId = '';
 
   try {
@@ -4271,8 +4284,9 @@ test('Stage 5: file reads report missing paths, reject traversal and validate li
     projectId = createRes.data.project.id;
 
     assert.throws(() => readProjectFile(projectId, 'missing.ts'), /Файл не найден в проекте/);
+    assert.throws(() => readProjectFile(projectId, 'folder'), /не является файлом проекта/);
     assert.throws(() => readProjectFile(projectId, '../outside.ts'), /запрещён|Недопустимый компонент пути/i);
-    assert.throws(() => extractLineFragment('first\\nsecond', 1, 3), /выходит за границы файла/);
+    assert.throws(() => extractLineFragment('first\nsecond', 1, 3), /выходит за границы файла/);
     assert.throws(() => readProjectFile(projectId, 'existing.ts', AbortSignal.abort()), /отменён/i);
   } finally {
     if (projectId) {
