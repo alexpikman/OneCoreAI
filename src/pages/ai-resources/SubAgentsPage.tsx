@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Bot, GitBranch, Play } from 'lucide-react';
+import { Bot, GitBranch, Play, Users } from 'lucide-react';
 import { AIResourcePageLayout as PageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -8,6 +8,7 @@ import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { SubAgentsTabId } from '../../types/onecore';
 import { SubAgentsDelegationSection } from './SubAgentsDelegationSection';
 import { TeamExecutionPage } from './TeamExecutionPage';
+import { SubAgentsRegistryPage } from './SubAgentsRegistryPage';
 
 export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initialTab }) => {
   const {
@@ -33,8 +34,10 @@ export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initi
   const handleSelectTab = (id: string) => {
     const nextTab = id as SubAgentsTabId;
     setSubAgentsTab(nextTab);
-    setAgentTeamSection(nextTab);
-    setAgentTeamFocus(nextTab === 'delegation' ? 'pipeline' : 'orchestration');
+    if (nextTab !== 'registry') {
+      setAgentTeamSection(nextTab);
+      setAgentTeamFocus(nextTab === 'delegation' ? 'pipeline' : 'orchestration');
+    }
   };
 
   return (
@@ -55,6 +58,7 @@ export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initi
             items={[
               { id: 'delegation', label: 'Субагенты и делегирование', icon: <GitBranch className="h-3.5 w-3.5" /> },
               { id: 'team-execution', label: 'Командное выполнение', icon: <Play className="h-3.5 w-3.5" /> },
+              { id: 'registry', label: 'Реестр субагентов', icon: <Users className="h-3.5 w-3.5" /> },
             ]}
             footer={
               <div className="mt-2 pb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
@@ -109,6 +113,7 @@ export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initi
 
             {subAgentsTab === 'delegation' && <SubAgentsDelegationSection />}
             {subAgentsTab === 'team-execution' && <TeamExecutionPage />}
+            {subAgentsTab === 'registry' && <SubAgentsRegistryPage />}
           </div>
         </div>
       </PageContent>
