@@ -4144,6 +4144,20 @@ test('Stage 4.1: provisioned Worker context is bounded and does not count as Wor
   assert.deepEqual(context.providedFiles, ['src/provided.ts']);
   assert.equal(context.files[0].excerpts?.[0].content.length, 6000);
   assert.equal(context.initialChars, 6000);
+  const multipleExcerpts = buildProvisionedWorkerContext({
+    workerId: 'worker-multi-excerpt',
+    files: [{
+      path: 'src/multiple.ts',
+      purpose: 'Multiple excerpts',
+      evidence: 'read',
+      excerpts: [
+        { startLine: 1, content: 'a'.repeat(4000) },
+        { startLine: 100, content: 'b'.repeat(4000) },
+      ],
+    }],
+  });
+  assert.equal(multipleExcerpts.initialChars, 6000);
+  assert.equal(multipleExcerpts.files[0].excerpts?.reduce((sum, excerpt) => sum + excerpt.content.length, 0), 6000);
   assert.equal(context.omittedFiles.some((file) => file.path === 'src/listed.ts'), true);
   assert.match(context.context, /не являются подтверждением самостоятельного чтения/i);
 });

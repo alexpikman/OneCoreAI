@@ -30,15 +30,17 @@ export function buildProvisionedWorkerContext(input: {
 
   for (const file of input.files.slice(0, MAX_HANDOFF_FILES)) {
     const excerpts: NonNullable<AgentHandoffFileEntry['excerpts']> = [];
+    let remainingFileChars = MAX_EXCERPT_CHARS;
     for (const sourceExcerpt of file.excerpts ?? []) {
-      if (remainingChars <= 0) {
-        omittedFiles.push({ path: file.path, reason: 'Исчерпан лимит начальных фрагментов handoff (16 000 символов).' });
+      if (remainingChars <= 0 || remainingFileChars <= 0) {
+        omittedFiles.push({ path: file.path, reason: 'Исчерпан лимит фрагментов: 6 000 символов на файл и 16 000 символов на handoff.' });
         break;
       }
-      const excerpt = sourceExcerpt.content.slice(0, Math.min(MAX_EXCERPT_CHARS, remainingChars));
+      const excerpt = sourceExcerpt.content.slice(0, Math.min(remainingFileChars, remainingChars));
       if (excerpt.length > 0) {
         excerpts.push({ ...sourceExcerpt, content: excerpt });
         remainingChars -= excerpt.length;
+        remainingFileChars -= excerpt.length;
         initialChars += excerpt.length;
       }
       if (excerpt.length < sourceExcerpt.content.length) {
