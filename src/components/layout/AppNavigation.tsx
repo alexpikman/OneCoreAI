@@ -36,7 +36,6 @@ export const AppNavigation: React.FC = () => {
     setSettingsSection,
     setAiSettingsCategory,
     aiSettingsCategory,
-    modelCategory,
     sshGithubSection,
     setSshGithubSection,
     agentMode,
