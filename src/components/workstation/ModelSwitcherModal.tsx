@@ -3,6 +3,7 @@ import { AlertCircle, Check, CheckCircle2, Circle, Cloud, Cpu, Download, Loader2
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { FreeProviderProfile, LocalModel } from '../../types/onecore';
 import { apiFetch } from '../../utils/apiFetch';
+import { NavigationRibbon } from '../layout/NavigationRibbon';
 
 type LlamaCheckState = 'pending' | 'checking' | 'success' | 'error';
 
@@ -447,11 +448,12 @@ export const ModelSwitcherModal: React.FC = () => {
               <span className={ollamaProvider?.status === 'connected' ? 'text-emerald-500' : ollamaProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cpu className="h-4 w-4" /></span>
               <span className={lmStudioProvider?.status === 'connected' ? 'text-emerald-500' : lmStudioProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cloud className="h-4 w-4" /></span>
             </div>
-            <nav className="flex items-center gap-1" aria-label="Разделы выбора модели">
-              {([{ id: 'local', label: 'Локальные модели' }, { id: 'cloud', label: 'Облачные модели' }, { id: 'role', label: 'Роль агента' }] as const).map((item) => (
-                <button key={item.id} type="button" onClick={() => setPage(item.id)} className={`rounded-lg px-3 py-2 text-[10px] font-semibold transition-colors ${page === item.id ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'}`}>{item.label}</button>
-              ))}
-            </nav>
+            <NavigationRibbon
+              ariaLabel="Разделы выбора модели"
+              items={[{ id: 'local', label: 'Локальные модели' }, { id: 'cloud', label: 'Облачные модели' }, { id: 'role', label: 'Роль агента' }]}
+              selectedId={page}
+              onSelect={(id) => setPage(id as typeof page)}
+            />
           </div>
         </header>
         <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
