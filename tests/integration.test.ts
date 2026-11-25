@@ -39,7 +39,7 @@ import {
   MAX_HANDOFF_EXCERPT_CHARS,
   MAX_WORKER_TOTAL_CHARS,
 } from '../server/orchestration/contextBuilder';
-import { prioritizePendingContextRetries, registerNeedsMoreContextRetry } from '../server/orchestration/teamOrchestrator';
+import { getLatestTaskAttempts, prioritizePendingContextRetries, registerNeedsMoreContextRetry } from '../server/orchestration/teamOrchestrator';
 import {
   createAppearanceStylesheet,
   DEFAULT_APPEARANCE_TOKENS,
@@ -4232,6 +4232,13 @@ test('Stage 5: needs_more_context permits exactly two retries per taskId', () =>
   assert.equal(nextCycle[0].taskId, 'stable-task');
   assert.equal(nextCycle[0].files[0], 'src/a.ts');
   assert.equal(pending.size, 0);
+
+  const latest = getLatestTaskAttempts([
+    { taskId: 'stable-task', status: 'needs_more_context' },
+    { taskId: 'stable-task', status: 'blocked' },
+  ]);
+  assert.equal(latest.length, 1);
+  assert.equal(latest[0].status, 'blocked');
 });
 
 test('Stage 5: cancelling one child operation does not cancel its parent or sibling', () => {

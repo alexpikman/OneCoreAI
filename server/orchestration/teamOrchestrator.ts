@@ -46,6 +46,12 @@ export function prioritizePendingContextRetries<T extends { taskId: string }>(
   return [...pending, ...plannedTasks.filter((task) => !pendingIds.has(task.taskId))].slice(0, limit);
 }
 
+export function getLatestTaskAttempts<T extends { taskId: string }>(attempts: T[]): T[] {
+  const latest = new Map<string, T>();
+  for (const attempt of attempts) latest.set(attempt.taskId, attempt);
+  return [...latest.values()];
+}
+
 export interface PlannedSubtask {
   taskId: string;
   roleKey: string;
@@ -737,13 +743,15 @@ export async function runTeamExecution(input: {
   }
 
   // Stage 4: Manager Reconciliation
-  const allBlocked = executedTasks.length > 0 && executedTasks.every((t) => t.result.status === 'blocked');
-  const anyFailed = executedTasks.some((t) => t.result.status === 'failed');
+  const latestTaskAttempts = getLatestTaskAttempts(executedTasks);
+  const allBlocked = latestTaskAttempts.length > 0 && latestTaskAttempts.every((t) => t.result.status === 'blocked');
+  const anyFailed = latestTaskAttempts.some((t) => t.result.status === 'failed');
+  const anyCompleted = latestTaskAttempts.some((t) => t.result.status === 'completed');
   const finalStatus: TeamExecutionResult['status'] = cancelled
     ? 'cancelled'
     : allBlocked
       ? 'blocked'
-      : anyFailed && executedTasks.every((t) => t.result.status !== 'completed')
+      : anyFailed && !anyCompleted
         ? 'failed'
         : 'completed';
 
