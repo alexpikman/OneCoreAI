@@ -4142,6 +4142,8 @@ test('Stage 4.1: provisioned Worker context is bounded and does not count as Wor
   assert.ok(context.initialChars <= MAX_HANDOFF_EXCERPT_CHARS + 1000);
   assert.equal(context.maxTotalChars, MAX_WORKER_TOTAL_CHARS);
   assert.deepEqual(context.providedFiles, ['src/provided.ts']);
+  assert.equal(context.files[0].excerpts?.[0].content.length, 6000);
+  assert.equal(context.initialChars, 6000);
   assert.equal(context.omittedFiles.some((file) => file.path === 'src/listed.ts'), true);
   assert.match(context.context, /не являются подтверждением самостоятельного чтения/i);
 });

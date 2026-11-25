@@ -11,6 +11,7 @@ export const MAX_WORKER_TOTAL_CHARS = 40_000;
 export interface ProvisionedWorkerContext {
   workerId: string;
   context: string;
+  files: AgentHandoffFileEntry[];
   providedFiles: string[];
   omittedFiles: Array<{ path: string; reason: string }>;
   initialChars: number;
@@ -21,29 +22,33 @@ export function buildProvisionedWorkerContext(input: {
   workerId: string;
   files: AgentHandoffFileEntry[];
 }): ProvisionedWorkerContext {
-  const blocks: string[] = [];
+  const files: AgentHandoffFileEntry[] = [];
   const providedFiles: string[] = [];
   const omittedFiles: Array<{ path: string; reason: string }> = [];
   let remainingChars = MAX_HANDOFF_EXCERPT_CHARS;
+  let initialChars = 0;
 
   for (const file of input.files.slice(0, MAX_HANDOFF_FILES)) {
-    const excerptText = (file.excerpts ?? [])
-      .map((excerpt) => excerpt.content)
-      .join('\n');
-    if (!excerptText) {
+    const excerpts: NonNullable<AgentHandoffFileEntry['excerpts']> = [];
+    for (const sourceExcerpt of file.excerpts ?? []) {
+      if (remainingChars <= 0) {
+        omittedFiles.push({ path: file.path, reason: 'Исчерпан лимит начальных фрагментов handoff (16 000 символов).' });
+        break;
+      }
+      const excerpt = sourceExcerpt.content.slice(0, Math.min(MAX_EXCERPT_CHARS, remainingChars));
+      if (excerpt.length > 0) {
+        excerpts.push({ ...sourceExcerpt, content: excerpt });
+        remainingChars -= excerpt.length;
+        initialChars += excerpt.length;
+      }
+      if (excerpt.length < sourceExcerpt.content.length) {
+        omittedFiles.push({ path: file.path, reason: 'Фрагмент усечён лимитом 6 000 символов на файл или общим лимитом handoff.' });
+      }
+    }
+    files.push({ ...file, ...(excerpts.length > 0 ? { excerpts } : { excerpts: undefined }) });
+    if (excerpts.length > 0) providedFiles.push(file.path);
+    else if (!(file.excerpts?.length)) {
       omittedFiles.push({ path: file.path, reason: 'В handoff отсутствует содержимое файла; требуется самостоятельное чтение Worker.' });
-      continue;
-    }
-    if (remainingChars <= 0) {
-      omittedFiles.push({ path: file.path, reason: 'Исчерпан лимит начального контекста handoff (16 000 символов).' });
-      continue;
-    }
-    const excerpt = excerptText.slice(0, Math.min(MAX_EXCERPT_CHARS, remainingChars));
-    remainingChars -= excerpt.length;
-    blocks.push(`### ${file.path} (предоставленный фрагмент; не является подтверждением чтения Worker)\n\`\`\`\n${excerpt}${excerpt.length < excerptText.length ? '\n[Фрагмент усечён]' : ''}\n\`\`\``);
-    providedFiles.push(file.path);
-    if (excerpt.length < excerptText.length) {
-      omittedFiles.push({ path: file.path, reason: 'Фрагмент усечён лимитом начального контекста.' });
     }
   }
 
@@ -52,20 +57,22 @@ export function buildProvisionedWorkerContext(input: {
   }
 
   const context = [
-    '## Предоставленный контекст проекта',
-    'Эти фрагменты подготовлены Dispatcher. Они не считаются самостоятельным чтением Worker и не добавляются в filesInspected.',
-    ...blocks,
+    '## Evidence Registry Worker',
+    `Worker ID: ${input.workerId}`,
+    'Предоставленные фрагменты перечислены в Handoff (JSON). Они не являются самостоятельным чтением Worker и не добавляются в filesInspected.',
+    `Начальный контекст: ${initialChars} символов. Общий бюджет: ${MAX_WORKER_TOTAL_CHARS} символов.`,
     omittedFiles.length > 0
-      ? `## Файлы, не включённые полностью\n${omittedFiles.map((file) => `- ${file.path}: ${file.reason}`).join('\n')}`
+      ? `## Файлы и фрагменты, не включённые полностью\n${omittedFiles.map((file) => `- ${file.path}: ${file.reason}`).join('\n')}`
       : '',
   ].filter(Boolean).join('\n\n');
 
   return {
     workerId: input.workerId,
     context,
+    files,
     providedFiles,
     omittedFiles,
-    initialChars: context.length,
+    initialChars,
     maxTotalChars: MAX_WORKER_TOTAL_CHARS,
   };
 }

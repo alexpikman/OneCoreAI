@@ -380,7 +380,7 @@ export async function runTeamExecution(input: {
         : initialFilesManifest;
       const provisionedContext = buildProvisionedWorkerContext({
         workerId: childOpId,
-        files: taskFilesManifest,
+        files: provisionedContext.files,
       });
 
       const handoff: AgentHandoffContract = {
