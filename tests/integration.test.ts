@@ -4056,7 +4056,8 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
       true,
     );
     assert.match(workerPrompt, /stage2 excerpt content/);
-    assert.equal(runRes.data.tasks[0].validationOk, false);\n    assert.equal(runRes.data.tasks[0].result.filesInspected.includes('src/e.ts'), false);
+    assert.equal(runRes.data.tasks[0].validationOk, false);
+    assert.equal(runRes.data.tasks[0].result.filesInspected.includes('src/e.ts'), false);
   } finally {
     if (projectId) {
       await jsonReq(`/api/projects/${encodeURIComponent(projectId)}`, {
