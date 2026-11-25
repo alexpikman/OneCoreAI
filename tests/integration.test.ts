@@ -4117,5 +4117,6 @@ test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or pa
   assert.equal(parentEvidence.includes('README.md'), true);
   assert.equal(validation.ok, false);
   assert.ok(validation.errors.some((error) => error.includes('src/worker-a-only.ts')));
-  assert.ok(validation.errors.some((error) => error.includes('README.md')));\n  assert.equal(validation.errors.some((error) => error.includes('src/worker-b-only.ts')), false);
+  assert.ok(validation.errors.some((error) => error.includes('README.md')));
+  assert.equal(validation.errors.some((error) => error.includes('src/worker-b-only.ts')), false);
 });
