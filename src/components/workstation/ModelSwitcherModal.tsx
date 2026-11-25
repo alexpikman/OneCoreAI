@@ -395,7 +395,9 @@ export const ModelSwitcherModal: React.FC = () => {
             <span className="block truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">{group.name}</span>
             <span className="mt-0.5 block text-[10px] text-zinc-500 dark:text-zinc-400">{group.choices.length} моделей</span>
           </span>
-          {groupHasActive && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активен</span>}
+          {groupHasActive
+            ? <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активен</span>
+            : <span className="text-[10px] text-zinc-400 dark:text-zinc-500">Неактивен</span>}
           {groupHasSelection && !groupHasActive && <span className="text-[10px] text-blue-600 dark:text-blue-400">Выбрано</span>}
           <span className="text-zinc-400"><span className={`inline-block transition-transform ${expanded ? 'rotate-180' : ''}`}>⌄</span></span>
         </button>
