@@ -4292,7 +4292,7 @@ test('Stage 5: file reads report missing paths, reject traversal and validate li
 
     assert.throws(() => readProjectFile(projectId, 'missing.ts'), /Файл не найден в проекте/);
     assert.throws(() => readProjectFile(projectId, 'folder'), /не является файлом проекта/);
-    assert.throws(() => readProjectFile(projectId, '../outside.ts'), /запрещён|Недопустимый компонент пути/i);
+    assert.throws(() => readProjectFile(projectId, '../outside.ts'), /запрещён|Недопустимый компонент пути|Недопустимое окончание компонента пути/i);
     assert.throws(() => extractLineFragment('first\nsecond', 1, 3), /выходит за границы файла/);
     assert.throws(() => readProjectFile(projectId, 'existing.ts', AbortSignal.abort()), /отменён/i);
     let abortChecks = 0;
