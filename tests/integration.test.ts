@@ -4080,7 +4080,10 @@ test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or pa
     allowedCapabilities: [],
     outputFormat: 'worker-result.v1',
     status: 'ready',
-  });
+  } as Parameters<typeof validateWorkerResult>[1]);
+  const workerAEvidence = ['src/worker-a-only.ts'];
+  const parentEvidence = ['README.md'];
+  const workerBEvidence: string[] = [];
   const workerBResult = {
     schemaVersion: 1,
     taskId: 'worker-b',
@@ -4097,9 +4100,11 @@ test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or pa
   const validation = validateWorkerResult(
     workerBResult,
     makeHandoff('worker-b', 'operation-b'),
-    { confirmedReadFiles: [], confirmedChecks: [] },
+    { confirmedReadFiles: workerBEvidence, confirmedChecks: [] },
   );
 
+  assert.equal(workerAEvidence.includes('src/worker-a-only.ts'), true);
+  assert.equal(parentEvidence.includes('README.md'), true);
   assert.equal(validation.ok, false);
   assert.ok(validation.errors.some((error) => error.includes('src/worker-a-only.ts')));
   assert.ok(validation.errors.some((error) => error.includes('README.md')));
