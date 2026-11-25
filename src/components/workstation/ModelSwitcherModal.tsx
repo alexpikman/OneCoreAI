@@ -376,7 +376,7 @@ export const ModelSwitcherModal: React.FC = () => {
               { key: 'running', label: 'ЗАПУЩЕН', Icon: PlayCircle },
             ] as const).map(({ key, label, Icon }) => {
               const value = llamaChecks?.[key];
-              const checking = !checksFinished || checkSteps[3]?.state === 'checking';
+              const checking = checkSteps.some((step) => step.state === 'checking');
               const stateClass = value === true
                 ? 'text-emerald-600 drop-shadow-[0_0_7px_rgba(16,185,129,0.55)] dark:text-emerald-400'
                 : value === false
