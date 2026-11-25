@@ -4309,3 +4309,65 @@ test('Stage 5: file reads report missing paths, reject traversal and validate li
     fs.rmSync(projectDir, { recursive: true, force: true });
   }
 });
+
+
+test('Stage 6: v1 public contracts validate without orchestration-internal fields', () => {
+  const handoffSchema = JSON.parse(fs.readFileSync(
+    path.join(process.cwd(), 'docs/knowledge/schemas/agent-handoff.v1.schema.json'),
+    'utf-8',
+  )) as { required: string[]; properties: Record<string, unknown> };
+  const resultSchema = JSON.parse(fs.readFileSync(
+    path.join(process.cwd(), 'docs/knowledge/schemas/worker-result.v1.schema.json'),
+    'utf-8',
+  )) as { required: string[]; properties: Record<string, unknown> };
+
+  for (const schema of [handoffSchema, resultSchema]) {
+    assert.equal(schema.required.includes('provisionedContext'), false);
+    assert.equal(schema.required.includes('evidenceRegistry'), false);
+    assert.equal(Object.hasOwn(schema.properties, 'provisionedContext'), false);
+    assert.equal(Object.hasOwn(schema.properties, 'evidenceRegistry'), false);
+  }
+
+  const handoff = {
+    schemaVersion: 1,
+    taskId: 'stage6-public-task',
+    operationId: 'stage6-public-operation',
+    fromRole: 'role.dispatcher',
+    toRole: 'role.qa',
+    objective: 'Validate the public v1 handoff',
+    acceptanceCriteria: ['The public contract is sufficient'],
+    procedureRefs: [],
+    project: { projectId: 'stage6-project', constraints: [] },
+    files: [],
+    findings: [],
+    completedSteps: [],
+    unresolvedQuestions: [],
+    allowedCapabilities: [],
+    outputFormat: 'worker-result.v1',
+    status: 'ready',
+  } as const;
+
+  const handoffValidation = validateAgentHandoff(handoff);
+  assert.equal(handoffValidation.ok, true, handoffValidation.errors.join('; '));
+  assert.equal(handoffValidation.value?.parentOperationId, undefined);
+
+  const workerResult = {
+    schemaVersion: 1,
+    taskId: handoff.taskId,
+    operationId: handoff.operationId,
+    status: 'completed',
+    summary: 'Public v1 worker result',
+    findings: [],
+    filesInspected: [],
+    checks: [],
+    unresolvedQuestions: [],
+    limitations: [],
+  } as const;
+
+  const resultValidation = validateWorkerResult(
+    workerResult,
+    handoffValidation.value!,
+    { confirmedReadFiles: [], confirmedChecks: [] },
+  );
+  assert.equal(resultValidation.ok, true, resultValidation.errors.join('; '));
+});
