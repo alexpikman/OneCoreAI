@@ -21,6 +21,18 @@ import type {
 
 const MAX_CYCLES = 4;
 const MAX_TASKS_PER_CYCLE = 8;
+const MAX_NEEDS_MORE_CONTEXT_RETRIES = 2;
+
+export function registerNeedsMoreContextRetry(
+  taskId: string,
+  retryCounts: Map<string, number>,
+): { retryAllowed: boolean; retryCount: number } {
+  const retryCount = retryCounts.get(taskId) ?? 0;
+  if (retryCount >= MAX_NEEDS_MORE_CONTEXT_RETRIES) return { retryAllowed: false, retryCount };
+  const nextRetryCount = retryCount + 1;
+  retryCounts.set(taskId, nextRetryCount);
+  return { retryAllowed: true, retryCount: nextRetryCount };
+}
 
 interface PlannedSubtask {
   taskId: string;
@@ -198,11 +210,20 @@ export async function runTeamExecution(input: {
 
   const initialFilesManifest: AgentHandoffFileEntry[] = [];
   const verifiedReadPaths = new Set<string>();
+  let cancelled = false;
   let remainingExcerptChars = 16000;
   for (const file of rankedFiles.slice(0, 8)) {
+    if (input.signal?.aborted) {
+      cancelled = true;
+      break;
+    }
     if (canRead && file.sizeBytes <= 512 * 1024 && remainingExcerptChars > 0) {
       try {
-        const read = readProjectFile(projectId, file.path);
+        const read = readProjectFile(projectId, file.path, input.signal);
+        if (input.signal?.aborted) {
+          cancelled = true;
+          break;
+        }
         verifiedReadPaths.add(read.path);
         const snippet = read.content.slice(0, Math.min(3000, remainingExcerptChars));
         remainingExcerptChars -= snippet.length;
@@ -213,6 +234,10 @@ export async function runTeamExecution(input: {
           excerpts: [{ startLine: 1, content: snippet }],
         });
       } catch {
+        if (input.signal?.aborted) {
+          cancelled = true;
+          break;
+        }
         initialFilesManifest.push({
           path: file.path,
           purpose: `Файл в списке проекта (${file.language})`,
@@ -243,7 +268,6 @@ export async function runTeamExecution(input: {
   const globalLimitations = new Set<string>();
   const globalQuestions = new Set<string>();
   let cyclesExecuted = 0;
-  let cancelled = false;
   const needsMoreContextRetries = new Map<string, number>();
 
   for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
@@ -380,6 +404,7 @@ export async function runTeamExecution(input: {
         : initialFilesManifest;
       const provisionedContext = buildProvisionedWorkerContext({
         workerId: childOpId,
+        taskId: task.taskId,
         files: taskFilesManifest,
       });
 
@@ -475,7 +500,20 @@ export async function runTeamExecution(input: {
       const confirmedReadForWorker = new Set<string>();
       const confirmedSearchForWorker = new Set<string>();
 
-      if (!provider) {
+      if (childSignal.aborted) {
+        workerResultRaw = {
+          schemaVersion: 1,
+          taskId: handoff.taskId,
+          operationId: handoff.operationId,
+          status: 'cancelled',
+          summary: 'Дочерняя операция отменена.',
+          findings: [],
+          filesInspected: [],
+          checks: [],
+          unresolvedQuestions: [],
+          limitations: ['Дочерняя операция отменена до запуска Worker.'],
+        };
+      } else if (!provider) {
         globalLimitations.add(`Для роли «${contract.title}» не настроен провайдер/модель с активным подключением.`);
         workerResultRaw = {
           schemaVersion: 1,
@@ -603,7 +641,7 @@ export async function runTeamExecution(input: {
         confirmedChecks: [],
       });
 
-      const finalWorkerResult: WorkerResultContract = validation.ok
+      let finalWorkerResult: WorkerResultContract = validation.ok
         ? validation.value!
         : {
             ...workerResultRaw,
@@ -613,7 +651,17 @@ export async function runTeamExecution(input: {
           };
 
       if (finalWorkerResult.status === 'needs_more_context') {
-        needsMoreContextRetries.set(task.taskId, (needsMoreContextRetries.get(task.taskId) ?? 0) + 1);
+        const retry = registerNeedsMoreContextRetry(task.taskId, needsMoreContextRetries);
+        if (!retry.retryAllowed) {
+          const limitation = `Подзадача ${task.taskId} заблокирована: исчерпан лимит из ${MAX_NEEDS_MORE_CONTEXT_RETRIES} повторных запросов контекста.`;
+          finalWorkerResult = {
+            ...finalWorkerResult,
+            status: 'blocked',
+            summary: limitation,
+            limitations: [...finalWorkerResult.limitations, limitation],
+          };
+          globalLimitations.add(limitation);
+        }
       }
       finalWorkerResult.filesInspected.forEach((p) => verifiedReadPaths.add(p));
       finalWorkerResult.limitations.forEach((l) => globalLimitations.add(l));

@@ -8,7 +8,12 @@ import { listKnowledgeDocuments, readApprovedKnowledgeDocument } from './knowled
 import { readAppSettings } from './settingsManager';
 import { normalizeSystemConfig } from '../src/data/systemConfig';
 import type { AgentTraceMetadata } from './agentJournal';
-import { MAX_TOOL_READ_CHARS, type ProvisionedWorkerContext } from './orchestration/contextBuilder';
+import {
+  extractLineFragment,
+  MAX_TOOL_READ_CHARS,
+  workerFragmentDeduplicationCache,
+  type ProvisionedWorkerContext,
+} from './orchestration/contextBuilder';
 
 type ChatMessage = {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -35,7 +40,7 @@ type AgentTool = {
     description: string;
     parameters: {
       type: 'object';
-      properties: Record<string, { type: string; description: string }>;
+      properties: Record<string, { type: 'string' | 'integer'; description: string }>;
       required: string[];
       additionalProperties: false;
     };
@@ -71,6 +76,8 @@ function buildTools(projectId: string, knowledgeRoot?: string): AgentTool[] {
             type: 'object',
             properties: {
               path: { type: 'string', description: 'Project-relative file path' },
+              startLine: { type: 'integer', description: 'Optional 1-based first line of the fragment' },
+              endLine: { type: 'integer', description: 'Optional 1-based last line of the fragment' },
             },
             required: ['path'],
             additionalProperties: false,
@@ -134,7 +141,7 @@ function buildTools(projectId: string, knowledgeRoot?: string): AgentTool[] {
   return tools;
 }
 
-function readInitialProjectContext(projectId: string, prompt: string): { context: string; readFiles: string[] } {
+function readInitialProjectContext(projectId: string, prompt: string, signal?: AbortSignal): { context: string; readFiles: string[] } {
   assertProjectToolAllowed(projectId, 'read_file');
   const files = listProjectFiles(projectId, 250);
   const terms = prompt.toLowerCase().match(/[a-zа-я0-9_./-]{3,}/gi) ?? [];
@@ -164,14 +171,17 @@ function readInitialProjectContext(projectId: string, prompt: string): { context
   let remainingChars = 24000;
   for (const file of ranked) {
     if (blocks.length >= 6 || remainingChars <= 0) break;
+    if (signal?.aborted) throw new Error('Подготовка контекста отменена.');
     if (file.sizeBytes > 2 * 1024 * 1024) continue;
     try {
-      const result = readProjectFile(projectId, file.path);
+      const result = readProjectFile(projectId, file.path, signal);
+      if (signal?.aborted) throw new Error('Подготовка контекста отменена.');
       const excerpt = result.content.slice(0, Math.min(6000, remainingChars));
       blocks.push(`### ${result.path}${excerpt.length < result.content.length ? ' (содержимое сокращено)' : ''}\n\`\`\`\n${excerpt}\n\`\`\``);
       readFiles.push(result.path);
       remainingChars -= excerpt.length;
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw new Error('Подготовка контекста отменена.');
       // A file is listed only after its contents have been read successfully.
     }
   }
@@ -196,7 +206,9 @@ async function executeTool(
   rawArguments: string,
   knowledgeRoot?: string,
   contextBudget?: { remainingChars: number },
+  signal?: AbortSignal,
 ): Promise<{ content: string; readFiles: string[]; searchedFiles: string[] }> {
+  if (signal?.aborted) throw new Error('Запрос отменён.');
   const args = parseArguments(rawArguments);
 
   if (name === 'list_knowledge_documents') {
@@ -241,20 +253,35 @@ async function executeTool(
     assertProjectToolAllowed(projectId, 'read_file');
     const filePath = typeof args.path === 'string' ? args.path.trim() : '';
     if (!filePath || filePath.length > 1024) throw new Error('Не задан корректный относительный путь файла.');
-    const file = readProjectFile(projectId, filePath);
+    const file = readProjectFile(projectId, filePath, signal);
+    if (signal?.aborted) throw new Error('Запрос отменён после чтения файла.');
+    const startLine = args.startLine === undefined ? undefined : Number(args.startLine);
+    const endLine = args.endLine === undefined ? undefined : Number(args.endLine);
+    const fragment = extractLineFragment(file.content, startLine, endLine);
     const budgetLimit = contextBudget ? Math.max(0, contextBudget.remainingChars) : MAX_TOOL_READ_CHARS;
     const contentLimit = Math.min(MAX_FILE_CONTENT_CHARS, MAX_TOOL_READ_CHARS, budgetLimit);
     if (contentLimit <= 0) throw new Error('Исчерпан общий бюджет контекста Worker (40 000 символов).');
-    const content = file.content.slice(0, contentLimit);
-    if (contextBudget) contextBudget.remainingChars -= content.length;
+    const boundedContent = fragment.content.slice(0, contentLimit);
+    const cachedFragment = workerFragmentDeduplicationCache.getFragment({
+      taskId: 'worker-task',
+      normalizedPath: file.path,
+      startLine: fragment.startLine,
+      endLine: fragment.endLine,
+      content: boundedContent,
+    });
+    if (contextBudget) contextBudget.remainingChars -= cachedFragment.content.length;
     return {
       content: JSON.stringify({
         path: file.path,
         sizeBytes: file.sizeBytes,
-        content,
-        truncated: content.length < file.content.length,
+        startLine: fragment.startLine,
+        endLine: fragment.endLine,
+        content: cachedFragment.content,
+        contentHash: cachedFragment.contentHash,
+        cacheHit: cachedFragment.cacheHit,
+        truncated: cachedFragment.content.length < fragment.content.length,
       }),
-      readFiles: content.length > 0 ? [file.path] : [],
+      readFiles: cachedFragment.content.length > 0 ? [file.path] : [],
       searchedFiles: [],
     };
   }
@@ -264,7 +291,7 @@ async function executeTool(
     assertProjectToolAllowed(projectId, 'read_file');
     const query = typeof args.query === 'string' ? args.query.trim() : '';
     if (!query || query.length > 300) throw new Error('Поисковый запрос должен содержать от 1 до 300 символов.');
-    const matches = searchProjectCode(projectId, query);
+    const matches = searchProjectCode(projectId, query, signal);
     return {
       content: JSON.stringify({ count: matches.length, matches }),
       readFiles: [],
@@ -286,6 +313,7 @@ export async function executeGeneralAgentTask(input: {
   onTrace?: (trace: AgentTraceMetadata, status: 'running' | 'completed' | 'failed' | 'cancelled', summary: string) => void;
 }): Promise<{ content: string; readFiles: string[]; searchedFiles: string[]; toolCalls: number }> {
   const projectId = input.projectId.trim();
+  if (input.signal?.aborted) throw new Error('Запрос отменён до подготовки контекста.');
   if (!projectId) throw new Error('Для анализа кода необходимо подключить проект.');
   const baseUrl = input.provider.baseUrl.trim().replace(/\/+$/, '');
   const model = input.provider.model.trim();
@@ -300,7 +328,7 @@ export async function executeGeneralAgentTask(input: {
   const prompt = [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
   const initialContext = input.provisionedContext
     ? { context: input.provisionedContext.context, readFiles: [] as string[] }
-    : readInitialProjectContext(projectId, prompt);
+    : readInitialProjectContext(projectId, prompt, input.signal);
   const contextBudget = input.provisionedContext
     ? { remainingChars: Math.max(0, input.provisionedContext.maxTotalChars - input.provisionedContext.initialChars) }
     : undefined;
@@ -447,6 +475,7 @@ export async function executeGeneralAgentTask(input: {
 
     for (const call of toolCalls) {
       totalToolCalls += 1;
+      if (input.signal?.aborted) throw new Error('Запрос отменён до вызова инструмента.');
       if (totalToolCalls > systemConfig.maxToolCalls) {
         throw new Error(`Достигнут лимит инструментальных вызовов (${systemConfig.maxToolCalls}). Сузьте область анализа.`);
       }
@@ -465,7 +494,7 @@ export async function executeGeneralAgentTask(input: {
       input.onToolCall?.(toolName, 'running', `Выполняется инструмент ${toolName}`, toolTrace);
 
       try {
-        const result = await executeTool(projectId, toolName, call.function?.arguments ?? '{}', input.knowledgeRoot, contextBudget);
+        const result = await executeTool(projectId, toolName, call.function?.arguments ?? '{}', input.knowledgeRoot, contextBudget, input.signal);
         result.readFiles.forEach((file) => readFiles.add(file));
         result.searchedFiles.forEach((file) => searchedFiles.add(file));
         messages.push({ role: 'tool', tool_call_id: toolCallId, content: result.content });
@@ -479,6 +508,10 @@ export async function executeGeneralAgentTask(input: {
         input.onToolCall?.(toolName, 'completed', `Инструмент ${toolName} выполнен`, completedTrace);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Ошибка инструмента';
+        if (input.signal?.aborted) {
+          input.onToolCall?.(toolName, 'cancelled', `Инструмент ${toolName}: ${errorMessage}`, { ...toolTrace, outputSummary: errorMessage.slice(0, 240) });
+          throw error;
+        }
         messages.push({
           role: 'tool',
           tool_call_id: toolCallId,

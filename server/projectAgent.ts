@@ -298,17 +298,40 @@ export function listProjectFiles(projectId: string, maxFiles = 200): RealProject
   return results;
 }
 
-export function readProjectFile(projectId: string, relPath: string): { path: string; content: string; sizeBytes: number } {
+function assertReadNotAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new Error('Запрос отменён до завершения чтения файла.');
+}
+
+function formatProjectReadError(error: unknown, relPath: string): Error {
+  const code = (error as NodeJS.ErrnoException | undefined)?.code;
+  if (code === 'ENOENT' || code === 'ENOTDIR') return new Error(`Файл не найден в проекте: ${relPath}`);
+  if (code === 'EACCES' || code === 'EPERM') return new Error(`Файл недоступен для чтения: ${relPath}`);
+  return new Error(`Не удалось прочитать файл проекта ${relPath}: ${error instanceof Error ? error.message : 'неизвестная ошибка'}`);
+}
+
+export function readProjectFile(projectId: string, relPath: string, signal?: AbortSignal): { path: string; content: string; sizeBytes: number } {
+  assertReadNotAborted(signal);
   const project = requireLocalProject(projectId);
+  assertReadNotAborted(signal);
   const full = safeResolveInside(project.folderPath, relPath);
-  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
-    throw new Error(`Файл не найден в проекте: ${relPath}`);
+  let stat: fs.Stats;
+  try {
+    stat = fs.statSync(full);
+  } catch (error) {
+    throw formatProjectReadError(error, relPath);
   }
-  const stat = fs.statSync(full);
+  if (!stat.isFile()) throw new Error(`Указанный путь не является файлом проекта: ${relPath}`);
   if (stat.size > 2 * 1024 * 1024) {
     throw new Error(`Файл слишком большой для чтения в контекст (${stat.size} байт)`);
   }
-  const content = fs.readFileSync(full, 'utf-8');
+  assertReadNotAborted(signal);
+  let content: string;
+  try {
+    content = fs.readFileSync(full, 'utf-8');
+  } catch (error) {
+    throw formatProjectReadError(error, relPath);
+  }
+  assertReadNotAborted(signal);
   const normalizedPath = path.relative(project.folderPath, full).split(path.sep).join('/');
   recordAgentEvent({
     category: 'project',
@@ -436,6 +459,7 @@ export function undoLastProjectAction(projectId: string): {
 export function searchProjectCode(
   projectId: string,
   query: string,
+  signal?: AbortSignal,
 ): Array<{ path: string; line: number; text: string }> {
   const q = query.trim();
   if (!q) return [];
@@ -445,9 +469,11 @@ export function searchProjectCode(
   const qLower = q.toLowerCase();
 
   for (const file of files) {
+    if (signal?.aborted) throw new Error('Поиск файлов отменён.');
     if (file.sizeBytes > 512 * 1024) continue;
     try {
-      const { content } = readProjectFile(projectId, file.path);
+      const { content } = readProjectFile(projectId, file.path, signal);
+      if (signal?.aborted) throw new Error('Поиск файлов отменён.');
       const lines = content.split(/\r?\n/);
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].toLowerCase().includes(qLower)) {
@@ -459,7 +485,8 @@ export function searchProjectCode(
           if (matches.length >= 60) return matches;
         }
       }
-    } catch {
+    } catch (error) {
+      if (signal?.aborted) throw new Error('Поиск файлов отменён.');
       // skip binary or unreadable files
     }
   }

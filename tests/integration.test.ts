@@ -26,13 +26,20 @@ import { expandUserPath, getDefaultModelsDir, getOneCoreHome, getVaultPath } fro
 import { getSecret, setEncryptedVaultSecret } from '../server/vault';
 import { listKnowledgeDocuments, readApprovedKnowledgeDocument } from '../server/knowledgeManager';
 import { deleteExternalReference, listExternalReferences, saveExternalReference } from '../server/externalReferences';
-import { recordProjectMemory, safeResolveInside } from '../server/projectAgent';
+import { readProjectFile, recordProjectMemory, safeResolveInside } from '../server/projectAgent';
 import { verifyCommandResult, verifyFileContent, verifyFileRemoved } from '../server/verificationGate';
 import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
 import { getActiveNavigationGroup, getActiveNavigationGroupId, isNavigationItemActive, NAV_GROUPS } from '../src/data/appNavigation';
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
-import { buildProvisionedWorkerContext, MAX_HANDOFF_EXCERPT_CHARS, MAX_WORKER_TOTAL_CHARS } from '../server/orchestration/contextBuilder';
+import {
+  buildProvisionedWorkerContext,
+  extractLineFragment,
+  FragmentDeduplicationCache,
+  MAX_HANDOFF_EXCERPT_CHARS,
+  MAX_WORKER_TOTAL_CHARS,
+} from '../server/orchestration/contextBuilder';
+import { registerNeedsMoreContextRetry } from '../server/orchestration/teamOrchestrator';
 import {
   createAppearanceStylesheet,
   DEFAULT_APPEARANCE_TOKENS,
@@ -4160,4 +4167,111 @@ test('Stage 4.1: provisioned Worker context is bounded and does not count as Wor
   assert.equal(multipleExcerpts.files[0].excerpts?.reduce((sum, excerpt) => sum + excerpt.content.length, 0), 6000);
   assert.equal(context.omittedFiles.some((file) => file.path === 'src/listed.ts'), true);
   assert.match(context.context, /не являются подтверждением самостоятельного чтения/i);
+});
+
+
+test('Stage 5: fragment deduplication uses contentHash and refreshes changed file content', () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage5-dedup-'));
+  const filePath = path.join(projectDir, 'target.ts');
+  const cache = new FragmentDeduplicationCache(4, 60_000);
+  const readFragment = () => {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const fragment = extractLineFragment(content, 1, 1);
+    return cache.getFragment({
+      taskId: 'stage5-task',
+      normalizedPath: 'src/target.ts',
+      startLine: fragment.startLine,
+      endLine: fragment.endLine,
+      content: fragment.content,
+    });
+  };
+
+  try {
+    fs.writeFileSync(filePath, 'export const value = 1;\\n', 'utf-8');
+    const first = readFragment();
+    const repeated = readFragment();
+    assert.equal(first.cacheHit, false);
+    assert.equal(repeated.cacheHit, true);
+    assert.equal(repeated.contentHash, first.contentHash);
+
+    fs.writeFileSync(filePath, 'export const value = 2;\\n', 'utf-8');
+    const changed = readFragment();
+    assert.equal(changed.cacheHit, false);
+    assert.notEqual(changed.contentHash, first.contentHash);
+    assert.equal(changed.content, 'export const value = 2;');
+  } finally {
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
+test('Stage 5: needs_more_context permits exactly two retries per taskId', () => {
+  const retryCounts = new Map<string, number>();
+  assert.deepEqual(registerNeedsMoreContextRetry('stage5-task', retryCounts), { retryAllowed: true, retryCount: 1 });
+  assert.deepEqual(registerNeedsMoreContextRetry('stage5-task', retryCounts), { retryAllowed: true, retryCount: 2 });
+  assert.deepEqual(registerNeedsMoreContextRetry('stage5-task', retryCounts), { retryAllowed: false, retryCount: 2 });
+  assert.equal(retryCounts.get('stage5-task'), 2);
+  assert.deepEqual(registerNeedsMoreContextRetry('other-task', retryCounts), { retryAllowed: true, retryCount: 1 });
+});
+
+test('Stage 5: cancelling one child operation does not cancel its parent or sibling', () => {
+  const parentSignal = startOperation({
+    id: 'stage5-parent-operation',
+    method: 'TEAM_RUN',
+    path: '/api/agents/team-run',
+  });
+  const childSignal = startOperation({
+    id: 'stage5-child-cancelled',
+    method: 'TEAM_WORKER',
+    path: '/api/agents/team-run/child-a',
+    parentOperationId: 'stage5-parent-operation',
+  });
+  const siblingSignal = startOperation({
+    id: 'stage5-child-sibling',
+    method: 'TEAM_WORKER',
+    path: '/api/agents/team-run/child-b',
+    parentOperationId: 'stage5-parent-operation',
+  });
+
+  assert.equal(cancelOperation('stage5-child-cancelled'), true);
+  assert.equal(childSignal.aborted, true);
+  assert.equal(siblingSignal.aborted, false);
+  assert.equal(parentSignal.aborted, false);
+
+  finishOperation('stage5-child-cancelled', 'cancelled');
+  finishOperation('stage5-child-sibling', 'completed');
+  finishOperation('stage5-parent-operation', 'completed');
+  assert.equal(getOperation('stage5-child-cancelled')?.status, 'cancelled');
+  assert.equal(getOperation('stage5-child-sibling')?.status, 'completed');
+});
+
+test('Stage 5: file reads report missing paths, reject traversal and validate line bounds', async () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'onecore-stage5-read-'));
+  fs.writeFileSync(path.join(projectDir, 'existing.ts'), 'first\\nsecond\\n', 'utf-8');
+  let projectId = '';
+
+  try {
+    const createRes = await jsonReq<{ ok: boolean; project: { id: string }; error?: string }>('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Stage 5 Read Errors',
+        folderSource: 'local',
+        folderPath: projectDir,
+      }),
+    });
+    assert.equal(createRes.status, 201, createRes.data.error);
+    projectId = createRes.data.project.id;
+
+    assert.throws(() => readProjectFile(projectId, 'missing.ts'), /Файл не найден в проекте/);
+    assert.throws(() => readProjectFile(projectId, '../outside.ts'), /запрещён|Недопустимый компонент пути/i);
+    assert.throws(() => extractLineFragment('first\\nsecond', 1, 3), /выходит за границы файла/);
+    assert.throws(() => readProjectFile(projectId, 'existing.ts', AbortSignal.abort()), /отменён/i);
+  } finally {
+    if (projectId) {
+      await jsonReq(`/api/projects/${encodeURIComponent(projectId)}`, {
+        method: 'DELETE',
+        body: JSON.stringify({ approved: true }),
+      });
+    }
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
 });
