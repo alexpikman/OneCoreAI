@@ -78,6 +78,12 @@ npm run build
 - [Architecture index](docs/architecture/README.md) — system map, operation lifecycle, security/approvals, implementation status, and test map.
 - [Knowledge base](docs/knowledge/README.md) — versioned roles, procedures, protocols, and schemas.
 
+### Runtime lifecycle and context protocols
+
+- [Operation Lifecycle](docs/architecture/OPERATION_LIFECYCLE.md) — operation identity, parent/child execution, cancellation, and verification; separates implemented behavior from remaining targets.
+- [File Content Provisioning Protocol](docs/knowledge/protocols/file-content-provisioning.md) — approved Worker file-context budgets, Evidence Registry isolation, fragment cache, retries, and cancellation behavior.
+- [Procedure Lifecycle](docs/knowledge/protocols/procedure-lifecycle.md) — review and approval lifecycle for knowledge-base procedures and protocols.
+
 ## Development documentation
 
 - [AI Working Rules](docs/governance/AI_WORKING_RULES.md)
