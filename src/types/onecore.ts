@@ -100,7 +100,7 @@ export type SettingsSectionId =
   | 'updates';
 
 export type GeneralAgentTabId = 'permissions' | 'directives' | 'instructions' | 'roles';
-export type SubAgentsTabId = 'delegation' | 'team-execution';
+export type SubAgentsTabId = 'delegation' | 'team-execution' | 'registry';
 export type AgentTeamSectionId =
   | 'roles'
   | 'permissions'
