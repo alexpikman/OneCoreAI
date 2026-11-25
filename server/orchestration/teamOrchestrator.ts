@@ -10,6 +10,7 @@ import { finishOperation, startOperation } from '../operationRegistry';
 import { validateAgentHandoff, validateWorkerResult } from './contractValidator';
 import { intersectCapabilities, resolveRoleContract } from './roleContracts';
 import { runLifecycleHooks } from './hookRunner';
+import { buildProvisionedWorkerContext } from './contextBuilder';
 import type {
   AgentHandoffContract,
   AgentHandoffFileEntry,
@@ -243,6 +244,7 @@ export async function runTeamExecution(input: {
   const globalQuestions = new Set<string>();
   let cyclesExecuted = 0;
   let cancelled = false;
+  const needsMoreContextRetries = new Map<string, number>();
 
   for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
     if (input.signal?.aborted) {
@@ -350,6 +352,10 @@ export async function runTeamExecution(input: {
 
     // Execute specialists strictly sequentially
     for (const task of plannedSubtasks) {
+      if ((needsMoreContextRetries.get(task.taskId) ?? 0) >= 2) {
+        globalLimitations.add(`Подзадача ${task.taskId} достигла лимита повторных запросов контекста (2).`);
+        continue;
+      }
       if (input.signal?.aborted) {
         cancelled = true;
         break;
@@ -372,6 +378,10 @@ export async function runTeamExecution(input: {
       const taskFilesManifest = taskFilePaths.size > 0
         ? initialFilesManifest.filter((file) => taskFilePaths.has(file.path))
         : initialFilesManifest;
+      const provisionedContext = buildProvisionedWorkerContext({
+        workerId: childOpId,
+        files: taskFilesManifest,
+      });
 
       const handoff: AgentHandoffContract = {
         schemaVersion: 1,
@@ -532,6 +542,7 @@ export async function runTeamExecution(input: {
               { role: 'system', content: `Strict contract worker (${contract.knowledgeDocId}). Allowed capabilities: ${allowedCapabilities.join(', ')}.` },
               { role: 'user', content: workerPrompt },
             ],
+            provisionedContext,
             signal: input.signal ? AbortSignal.any([childSignal, input.signal]) : childSignal,
           });
 
@@ -599,6 +610,9 @@ export async function runTeamExecution(input: {
             limitations: [...(Array.isArray(workerResultRaw.limitations) ? workerResultRaw.limitations : []), ...validation.errors],
           };
 
+      if (finalWorkerResult.status === 'needs_more_context') {
+        needsMoreContextRetries.set(task.taskId, (needsMoreContextRetries.get(task.taskId) ?? 0) + 1);
+      }
       finalWorkerResult.filesInspected.forEach((p) => verifiedReadPaths.add(p));
       finalWorkerResult.limitations.forEach((l) => globalLimitations.add(l));
       finalWorkerResult.unresolvedQuestions.forEach((q) => globalQuestions.add(q));

@@ -32,6 +32,7 @@ import { inferAgentMode, routeAgentPrompt } from '../src/utils/agentRouter';
 import { getActiveNavigationGroup, getActiveNavigationGroupId, isNavigationItemActive, NAV_GROUPS } from '../src/data/appNavigation';
 import { LEFT_MENU_VISIBILITY, type VisibilityElement } from '../src/data/navigationVisibility';
 import { validateAgentHandoff, validateWorkerResult } from '../server/orchestration/contractValidator';
+import { buildProvisionedWorkerContext, MAX_HANDOFF_EXCERPT_CHARS, MAX_WORKER_TOTAL_CHARS } from '../server/orchestration/contextBuilder';
 import {
   createAppearanceStylesheet,
   DEFAULT_APPEARANCE_TOKENS,
@@ -4119,4 +4120,28 @@ test('Stage 2: Worker evidence is isolated and cannot reuse another Worker or pa
   assert.ok(validation.errors.some((error) => error.includes('src/worker-a-only.ts')));
   assert.ok(validation.errors.some((error) => error.includes('README.md')));
   assert.equal(validation.errors.some((error) => error.includes('src/worker-b-only.ts')), false);
+});
+
+
+test('Stage 4.1: provisioned Worker context is bounded and does not count as Worker read evidence', () => {
+  const context = buildProvisionedWorkerContext({
+    workerId: 'worker-evidence-id',
+    files: [{
+      path: 'src/provided.ts',
+      purpose: 'Initial context',
+      evidence: 'read',
+      excerpts: [{ startLine: 1, content: 'x'.repeat(7000) }],
+    }, {
+      path: 'src/listed.ts',
+      purpose: 'Listed only',
+      evidence: 'listed',
+    }],
+  });
+
+  assert.equal(context.workerId, 'worker-evidence-id');
+  assert.ok(context.initialChars <= MAX_HANDOFF_EXCERPT_CHARS + 1000);
+  assert.equal(context.maxTotalChars, MAX_WORKER_TOTAL_CHARS);
+  assert.deepEqual(context.providedFiles, ['src/provided.ts']);
+  assert.equal(context.omittedFiles.some((file) => file.path === 'src/listed.ts'), true);
+  assert.match(context.context, /не являются подтверждением самостоятельного чтения/i);
 });
