@@ -25,6 +25,7 @@ export const PageSubNavigation: React.FC = () => {
     setGeneralAgentTab,
     setSubAgentsTab,
     setAgentTeamFocus,
+    setActiveNavSubItemId,
   } = useOneCoreStore();
 
   if (activeTab === 'workstation') return null;
@@ -77,6 +78,7 @@ export const PageSubNavigation: React.FC = () => {
           if (item.tab === 'tools-hooks') setToolsHooksSection(item.toolsHooksSection ?? 'all');
           if (item.id === 'github') setSshGithubSection('github');
           if (item.id === 'ssh' || item.id === 'remote-connection') setSshGithubSection('ssh-keys');
+          setActiveNavSubItemId(item.subItems?.[0]?.id ?? null);
           setActiveTab(item.tab);
         }}
       />

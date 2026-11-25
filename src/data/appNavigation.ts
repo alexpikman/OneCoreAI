@@ -83,7 +83,16 @@ export const NAV_GROUPS: NavigationGroup[] = [
     label: 'Контекст',
     icon: 'folder',
     items: [
-      { id: 'projects', label: 'Проекты', icon: 'folder', tab: 'projects' },
+      {
+        id: 'projects',
+        label: 'Проекты',
+        icon: 'folder',
+        tab: 'projects',
+        subItems: [
+          { id: 'sub-projects-list', label: 'Список проектов', tab: 'projects' },
+          { id: 'sub-projects-tools', label: 'Разрешённые инструменты', tab: 'projects' },
+        ],
+      },
       { id: 'tasks', label: 'Задачи', icon: 'tasks', tab: 'tasks' },
       { id: 'processes', label: 'Процессы', icon: 'workflow', tab: 'processes' },
       { id: 'files', label: 'Файлы', icon: 'files', tab: 'files' },

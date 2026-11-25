@@ -2,23 +2,12 @@ import React, { useState } from 'react';
 import { Check, Container, Laptop, Plus, Server, Trash2, Webhook, Wrench } from 'lucide-react';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
-import { SecondaryTabBar } from '../../components/layout/SecondaryTabBar';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
-import type { AppHookEvent, ExecutionEnvKind, ToolsHooksSectionId } from '../../types/onecore';
+import type { AppHookEvent, ExecutionEnvKind } from '../../types/onecore';
 import { cn } from '../../utils/cn';
 import { requestDeleteWarning } from '../../utils/deleteWarning';
 import { getPageUiTokens } from '../../utils/uiStyle';
-
-const PROJECT_TOOL_CATALOG = [
-  { id: 'read_file', label: 'read_file', desc: 'Чтение файлов проекта' },
-  { id: 'search_code', label: 'search_code', desc: 'Поиск по кодовой базе' },
-  { id: 'list_files', label: 'list_files', desc: 'Просмотр дерева каталогов' },
-  { id: 'write_file', label: 'write_file', desc: 'Запись и изменение файлов' },
-  { id: 'run_command', label: 'run_command', desc: 'Запуск команд в терминале проекта' },
-  { id: 'web_search', label: 'web_search', desc: 'Веб-поиск через браузерные инструменты' },
-  { id: 'web_read', label: 'web_read', desc: 'Чтение веб-страниц по URL' },
-];
 
 const HOOK_EVENTS: { id: AppHookEvent; label: string }[] = [
   { id: 'pre_file_write', label: 'pre_file_write (перед записью файла)' },
@@ -205,40 +194,18 @@ export const ExecutionEnvironmentPanel: React.FC = () => {
 export const ToolsHooksPage: React.FC = () => {
   const {
     uiStyle,
-    projects,
-    activeProjectId,
-    updateProjectAllowedTools,
     hooks,
     addHook,
     updateHook,
     deleteHook,
     toolsHooksSection,
-    setToolsHooksSection,
   } = useOneCoreStore();
 
   const tokens = getPageUiTokens(uiStyle);
-  const [selectedProjectId, setSelectedProjectId] = useState(activeProjectId || projects[0]?.id || '');
-  const [toolsStatus, setToolsStatus] = useState<string | null>(null);
-
   const [hookName, setHookName] = useState('');
   const [hookEvent, setHookEvent] = useState<AppHookEvent>('post_file_write');
   const [hookCommand, setHookCommand] = useState('');
   const [hookTimeout, setHookTimeout] = useState(15000);
-
-  const activeProject = projects.find((p) => p.id === (selectedProjectId || activeProjectId)) ?? projects[0] ?? null;
-  const currentTools = activeProject?.allowedTools ?? [];
-
-  const handleToggleTool = async (toolId: string) => {
-    if (!activeProject) return;
-    const next = currentTools.includes(toolId)
-      ? currentTools.filter((item) => item !== toolId)
-      : [...currentTools, toolId];
-    setToolsStatus(null);
-    const res = await updateProjectAllowedTools(activeProject.id, next);
-    setToolsStatus(
-      res.ok ? `Права проекта «${activeProject.name}» обновлены.` : res.error || 'Не удалось обновить права.',
-    );
-  };
 
   const handleAddHook = (event: React.FormEvent) => {
     event.preventDefault();
@@ -254,7 +221,6 @@ export const ToolsHooksPage: React.FC = () => {
     setHookCommand('');
   };
 
-  const showTools = toolsHooksSection === 'all' || toolsHooksSection === 'tools';
   const showHooks = toolsHooksSection === 'all' || toolsHooksSection === 'hooks';
 
   return (
@@ -273,92 +239,7 @@ export const ToolsHooksPage: React.FC = () => {
       </PageHeader>
       <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-          <SecondaryTabBar
-            ariaLabel="Разделы Tools и Hooks"
-            items={[
-              { id: 'all', label: 'Все' },
-              { id: 'tools', label: 'Tools', icon: <Wrench className="h-3.5 w-3.5" /> },
-              { id: 'hooks', label: 'Hooks', icon: <Webhook className="h-3.5 w-3.5" /> },
-            ]}
-            selectedId={toolsHooksSection}
-            onSelect={(id) => setToolsHooksSection(id as ToolsHooksSectionId)}
-          />
-
           <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
-
-          {/* Per-project tool whitelist */}
-          {showTools && (
-          <section className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
-                  Разрешённые инструменты проекта (Runtime Guard)
-                </h2>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-                  Сервер проверяет этот список перед записью файлов, выполнением команд и веб-инструментами.
-                </p>
-              </div>
-              {projects.length > 0 && (
-                <select
-                  value={activeProject?.id ?? ''}
-                  onChange={(e) => {
-                    setSelectedProjectId(e.target.value);
-                    setToolsStatus(null);
-                  }}
-                  className={cn(
-                    'h-9 px-3 border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-xs',
-                    tokens.inputRadius,
-                  )}
-                >
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            {toolsStatus && <p className="text-xs text-emerald-600 dark:text-emerald-400">{toolsStatus}</p>}
-
-            {!activeProject ? (
-              <p className="text-xs text-zinc-500">Подключите проект, чтобы настраивать его инструменты.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {PROJECT_TOOL_CATALOG.map((tool) => {
-                  const enabled = currentTools.includes(tool.id);
-                  return (
-                    <label
-                      key={tool.id}
-                      className={cn(
-                        'p-3 border flex items-start justify-between gap-3 cursor-pointer transition-colors',
-                        tokens.cardRadius,
-                        enabled
-                          ? tokens.activeHighlight
-                          : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-950/60',
-                      )}
-                    >
-                      <div className="min-w-0">
-                        <div className="font-mono text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-                          {tool.label}
-                        </div>
-                        <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{tool.desc}</div>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={enabled}
-                        onChange={() => void handleToggleTool(tool.id)}
-                        className="mt-1 accent-blue-600 shrink-0"
-                      />
-                    </label>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-          )}
-
-          {toolsHooksSection === 'all' && <ExecutionEnvironmentPanel />}
 
           {/* Lifecycle Hooks */}
           {showHooks && (
