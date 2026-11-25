@@ -151,6 +151,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
         subItems: [
           { id: 'sub-pipeline', label: 'Субагенты и делегирование', tab: 'models', section: 'subagents-delegation', subAgentsTab: 'delegation', initialSection: 'delegation', agentFocus: 'pipeline' },
           { id: 'sub-orchestration', label: 'Командное выполнение', tab: 'models', section: 'subagents-delegation', subAgentsTab: 'team-execution', initialSection: 'team-execution', agentFocus: 'orchestration' },
+          { id: 'sub-registry', label: 'Реестр субагентов', tab: 'models', section: 'subagents-delegation', subAgentsTab: 'registry' },
         ],
       },
     ],
