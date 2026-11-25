@@ -277,11 +277,7 @@ export const AppNavigation: React.FC = () => {
             {showNav('nav.ai-settings') && showNav('nav.ai-settings.icon') && (
               <button
                 type="button"
-                onClick={() => {
-                  setAiSettingsCategory(modelCategory);
-                  setSettingsSection('providers');
-                  setActiveTab('models');
-                }}
+                onClick={() => window.dispatchEvent(new CustomEvent('onecore:open-model-switcher'))}
                 title="Настройки провайдеров ИИ"
                 aria-label="Открыть настройки провайдеров ИИ"
                 className="ml-1 h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
