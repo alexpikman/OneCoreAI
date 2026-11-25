@@ -233,7 +233,7 @@ export const AppNavigation: React.FC = () => {
         {/* Top Brand + Mascot + Status + AI Settings */}
         <div className="shrink-0 pb-3">
           {showNav('brand.logo') && (showNav('brand.logo.icon') || showNav('brand.logo.label')) && (
-            <div className="flex h-9 items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-2 lg:px-3 overflow-hidden">
+            <div className="flex h-9 items-center pt-1 pb-3 gap-2 border-b border-zinc-200 dark:border-zinc-800 px-2 lg:px-3 overflow-hidden">
               <img
                 src="/public/assets/aistudio/OneCoreAI_300px_5d88fd24.png"
                 alt="ONE CORE AI"
