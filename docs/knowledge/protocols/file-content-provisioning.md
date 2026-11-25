@@ -81,7 +81,7 @@ When a file or excerpt is omitted or truncated, the provisioning context records
 
 - The orchestrator runs no more than `MAX_CYCLES = 4` cycles. The caller's `maxCycles` is clamped to the range 1–4 and defaults to 1.
 - Each `taskId` may request at most 2 additional context attempts. A retry is scheduled for a subsequent cycle and is prioritized ahead of newly planned tasks.
-- Reaching two retries requires at least three available cycles (`maxCycles >= 3)); the default `maxCycles = 1` does not provide retry cycles.
+- Reaching two retries requires at least three available cycles (`maxCycles >= 3`); the default `maxCycles = 1` does not provide retry cycles.
 - Every retry uses a new `childOpId`/`workerId`, keeps the original `taskId` and team `parentOperationId`, and receives a separate Evidence Registry scope.
 - A further `needs_more_context` result after the two permitted retries is converted to `blocked`. The retry count is scoped to the current team execution and keyed by `taskId`.
 
