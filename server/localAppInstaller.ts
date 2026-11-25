@@ -69,7 +69,9 @@ export async function getLocalAiAppStatus(app: LocalAiAppId): Promise<LocalAiApp
     "$paths = ConvertFrom-Json $env:ONECORE_CANDIDATES",
     "$exe = $paths | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1",
     "$running = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match $env:ONECORE_PROCESS_PATTERN }).Count -gt 0",
-    "[pscustomobject]@{ installed = ([bool]$entry -or [bool]$exe); running = [bool]$running; executablePath = $exe; displayName = if ($entry) { [string]$entry.DisplayName } else { $null } } | ConvertTo-Json -Compress"
+    "$displayName = $null",
+    "if ($entry) { $displayName = [string]$entry.DisplayName }",
+    "[pscustomobject]@{ installed = ([bool]$entry -or [bool]$exe); running = [bool]$running; executablePath = $exe; displayName = $displayName } | ConvertTo-Json -Compress"
   ].join('\r\n');
   const encoded = Buffer.from(script, 'utf16le').toString('base64');
   const result = await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded], {
