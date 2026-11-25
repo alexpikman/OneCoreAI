@@ -290,7 +290,12 @@ export async function clearProviderSecret(providerId: string): Promise<void> {
   await deleteSecret(`settings:provider:${providerId}`);
 }
 
-export async function saveAppSettings(settings: PersistedAppSettings): Promise<SettingsManifest> {
+export async function saveAppSettings(incomingSettings: PersistedAppSettings): Promise<SettingsManifest> {
+  const existing = await readInternalAppSettings();
+  const settings: PersistedAppSettings = {
+    ...incomingSettings,
+    generalAgentConfig: incomingSettings.generalAgentConfig ?? existing?.settings.generalAgentConfig,
+  };
   if (
     !settings ||
     typeof settings !== 'object' ||
