@@ -61,6 +61,7 @@ import { deleteExternalReference, listExternalReferences, saveExternalReference 
 import { listKnowledgeDocuments, readApprovedKnowledgeDocument } from './knowledgeManager';
 import { loadKnowledgeSchemas } from './orchestration/contractValidator';
 import { runTeamExecution } from './orchestration/teamOrchestrator';
+import { ROLE_CONTRACTS } from './orchestration/roleContracts';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
 import { getOneCoreHome } from './paths';
@@ -536,6 +537,47 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       res.json({ ok: true, documents: listKnowledgeDocuments(knowledgeRoot) });
     } catch (error) {
       res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось прочитать справочник знаний.' });
+    }
+  });
+
+  app.get('/api/agents/registry', (_req, res) => {
+    try {
+      const knowledgeRoot = path.join(rootDir, 'docs', 'knowledge');
+      const documents = listKnowledgeDocuments(knowledgeRoot);
+      const documentsById = new Map(documents.map((document) => [document.id, document]));
+      const roles = Object.values(ROLE_CONTRACTS).map((contract) => {
+        const summary = documentsById.get(contract.knowledgeDocId);
+        let knowledgeContent: string | null = null;
+        if (summary?.status === 'approved') {
+          try {
+            knowledgeContent = readApprovedKnowledgeDocument(knowledgeRoot, contract.knowledgeDocId).content;
+          } catch {
+            knowledgeContent = null;
+          }
+        }
+        return {
+          ...contract,
+          runtimeKind: contract.roleKey === 'coordinator'
+            ? 'primary-agent'
+            : contract.roleKey === 'manager' || contract.roleKey === 'dispatcher'
+              ? 'orchestration'
+              : 'specialist',
+          knowledgeDocument: summary
+            ? {
+                id: summary.id,
+                version: summary.version,
+                status: summary.status,
+                relativePath: summary.relativePath,
+                title: summary.title,
+                content: knowledgeContent,
+              }
+            : null,
+        };
+      });
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, roles });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось загрузить реестр ролей агентов.' });
     }
   });
 
