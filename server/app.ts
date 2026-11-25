@@ -55,6 +55,7 @@ import { normalizeSystemConfig } from '../src/data/systemConfig';
 import { getModelMetrics, recordModelRequest } from './modelMetrics';
 import { listLlamaRequestHistory, recordLlamaRequest as appendLlamaRequestRecord } from './llamaRequestHistory';
 import { warmOllamaModel } from './ollamaRuntime';
+import { downloadLocalAiAppInstaller, getLocalAiAppStatus } from './localAppInstaller';
 import { getLlamaCppStatus, startLlamaCppServer, stopLlamaCppServer } from './llamaCppRuntime';
 import { downloadLlamaCppRuntime, getLlamaCppInstallationStatus, getLlamaCppOperationHistory, getLlamaCppOperationProgress, installLlamaCppArchive, installLlamaCppRuntime, removeDownloadedLlamaCppRuntime, uninstallLlamaCppRuntime, updateLlamaCppOperationProgress } from './llamaCppInstaller';
 import { deleteExternalReference, listExternalReferences, saveExternalReference } from './externalReferences';
@@ -1405,6 +1406,26 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       res.json({ ok: true, ...installation, running });
     } catch (error) {
       res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось проверить llama-server.' });
+    }
+  });
+
+  app.get('/api/models/local-apps/checks', async (_req, res) => {
+    try {
+      const [ollama, lmstudio] = await Promise.all([getLocalAiAppStatus('ollama'), getLocalAiAppStatus('lmstudio')]);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, apps: { ollama, lmstudio } });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось проверить локальные приложения.' });
+    }
+  });
+
+  app.post('/api/models/local-apps/:app/download', async (req, res) => {
+    if (!requireSideEffectApproval(req, res, 'model.download', String(req.params.app || 'local-app-installer'))) return;
+    try {
+      const result = await downloadLocalAiAppInstaller(req.params.app);
+      res.json({ ok: true, ...result });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось скачать установщик.' });
     }
   });
 

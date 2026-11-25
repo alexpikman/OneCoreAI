@@ -21,6 +21,10 @@ type LlamaServerChecks = {
   executablePath: string | null;
 };
 
+type LocalAiAppId = 'ollama' | 'lmstudio';
+type LocalAiAppStatus = { installed: boolean; running: boolean; executablePath: string | null; displayName: string | null };
+type LocalAiAppsStatus = Record<LocalAiAppId, LocalAiAppStatus>;
+
 type ModelChoice =
   | { key: string; kind: 'gguf'; model: LocalModel; label: string }
   | { key: string; kind: 'provider'; provider: FreeProviderProfile; modelName: string; label: string };
@@ -55,11 +59,16 @@ export const ModelSwitcherModal: React.FC = () => {
   const [error, setError] = useState('');
   const [checksFinished, setChecksFinished] = useState(false);
   const [llamaChecks, setLlamaChecks] = useState<LlamaServerChecks | null>(null);
+  const [localAiAppsChecks, setLocalAiAppsChecks] = useState<LocalAiAppsStatus | null>(null);
+  const [localAiAppsChecking, setLocalAiAppsChecking] = useState(false);
+  const [installerBusy, setInstallerBusy] = useState<LocalAiAppId | null>(null);
+  const [installerMessages, setInstallerMessages] = useState<Partial<Record<LocalAiAppId, string>>>({});
   const [checkSteps, setCheckSteps] = useState<LlamaCheckStep[]>([
     { label: 'Определение текущего состояния llama-server…', state: 'pending' },
     { label: 'Поиск системных файлов llama-server…', state: 'pending' },
     { label: 'Проверка установленных компонентов llama-server…', state: 'pending' },
-    { label: 'Проверка текущего состояния llama-server…', state: 'pending' },
+    { label: 'Проверка состояния сервера…', state: 'pending' },
+    { label: 'Запуск llama-server…', state: 'pending' },
   ]);
 
   const inspectLlamaServer = useCallback(async () => {
@@ -67,7 +76,8 @@ export const ModelSwitcherModal: React.FC = () => {
       { label: 'Определение текущего состояния llama-server…', state: 'pending' },
       { label: 'Поиск системных файлов llama-server…', state: 'pending' },
       { label: 'Проверка установленных компонентов llama-server…', state: 'pending' },
-      { label: 'Проверка текущего состояния llama-server…', state: 'pending' },
+      { label: 'Проверка состояния сервера…', state: 'pending' },
+      { label: 'Запуск llama-server…', state: 'pending' },
     ];
     setChecksFinished(false);
     setLlamaChecks(null);
@@ -81,8 +91,8 @@ export const ModelSwitcherModal: React.FC = () => {
     };
 
     try {
-      await refreshLocalModels();
       updateStep(0, { state: 'checking' });
+      await refreshLocalModels();
       const initialResponse = await apiFetch('/api/models/llama-cpp/status');
       const initialStatus = await initialResponse.json() as { ok?: boolean; status?: string; error?: string };
       if (!initialResponse.ok || !initialStatus.ok) throw new Error(initialStatus.error || 'Не удалось определить состояние llama-server.');
@@ -124,6 +134,12 @@ export const ModelSwitcherModal: React.FC = () => {
 
       updateStep(3, { state: 'checking' });
       let running = checks.running === true || initialStatus.status === 'ready';
+      updateStep(3, {
+        state: 'success',
+        detail: running ? 'Сервер запущен и отвечает.' : 'Сервер остановлен.',
+      });
+
+      updateStep(4, { state: 'checking' });
       if (!running && checks.downloaded === true && installed) {
         await refreshLocalModels();
         const state = useOneCoreStore.getState();
@@ -151,14 +167,14 @@ export const ModelSwitcherModal: React.FC = () => {
             throw new Error(startData.error || 'Автоматический запуск llama-server не подтвердил готовность.');
           }
           running = true;
-          updateStep(3, { state: 'success', detail: 'Сервер автоматически запущен.' });
+          updateStep(4, { state: 'success', detail: 'Сервер автоматически запущен.' });
         } else {
-          updateStep(3, { state: 'error', detail: 'Нет выбранной готовой GGUF-модели для запуска.' });
+          updateStep(4, { state: 'error', detail: 'Нет выбранной готовой GGUF-модели для запуска.' });
         }
       } else {
-        updateStep(3, {
-          state: running ? 'success' : 'error',
-          detail: running ? 'llama-server запущен и отвечает.' : 'Сервер остановлен; автоматический запуск невозможен без скачанного и установленного runtime.',
+        updateStep(4, {
+          state: 'success',
+          detail: running ? 'Запуск не требуется: сервер уже работает.' : 'Запуск пропущен: runtime не скачан или не установлен.',
         });
       }
 
@@ -184,6 +200,42 @@ export const ModelSwitcherModal: React.FC = () => {
     }
   }, [refreshLocalModels, refreshLlamaCppStatus]);
 
+  const inspectLocalAiApps = useCallback(async () => {
+    setLocalAiAppsChecking(true);
+    try {
+      const response = await apiFetch('/api/models/local-apps/checks');
+      const data = await response.json() as { ok?: boolean; apps?: LocalAiAppsStatus; error?: string };
+      if (!response.ok || !data.ok || !data.apps) throw new Error(data.error || 'Не удалось проверить локальные приложения.');
+      setLocalAiAppsChecks(data.apps);
+      return data.apps;
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Не удалось проверить локальные приложения.');
+      return null;
+    } finally {
+      setLocalAiAppsChecking(false);
+    }
+  }, []);
+
+  const downloadLocalAiApp = useCallback(async (app: LocalAiAppId) => {
+    if (installerBusy) return;
+    setInstallerBusy(app);
+    setInstallerMessages((current) => ({ ...current, [app]: 'Скачивание официального установщика…' }));
+    try {
+      const response = await apiFetch(`/api/models/local-apps/${app}/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved: true }),
+      });
+      const data = await response.json() as { ok?: boolean; installerPath?: string; error?: string };
+      if (!response.ok || !data.ok) throw new Error(data.error || 'Не удалось скачать установщик.');
+      setInstallerMessages((current) => ({ ...current, [app]: `Установщик сохранён: ${data.installerPath || 'OneCoreAI\\installers'}` }));
+    } catch (cause) {
+      setInstallerMessages((current) => ({ ...current, [app]: cause instanceof Error ? cause.message : 'Не удалось скачать установщик.' }));
+    } finally {
+      setInstallerBusy(null);
+    }
+  }, [installerBusy]);
+
   useEffect(() => {
     const show = () => {
       setOpen(true);
@@ -195,10 +247,11 @@ export const ModelSwitcherModal: React.FC = () => {
       );
       void Promise.all(providersToCheck.map((provider) => fetchProviderModels(provider.id)));
       void inspectLlamaServer();
+      void inspectLocalAiApps();
     };
     window.addEventListener('onecore:open-model-switcher', show);
     return () => window.removeEventListener('onecore:open-model-switcher', show);
-  }, [fetchProviderModels, inspectLlamaServer]);
+  }, [fetchProviderModels, inspectLlamaServer, inspectLocalAiApps]);
 
   const choices = useMemo<ModelChoice[]>(() => {
     const local: ModelChoice[] = (llamaChecks?.installed || llamaChecks?.running ? localModels.filter(isGguf) : []).map((model) => ({
@@ -375,8 +428,6 @@ export const ModelSwitcherModal: React.FC = () => {
   const cloudGroups = providerGroups.filter((group) =>
     group.id !== 'llama-cpp' && !freeProviders.find((provider) => provider.id === group.id)?.isLocal,
   );
-  const ollamaProvider = freeProviders.find((provider) => provider.kind === 'ollama');
-  const lmStudioProvider = freeProviders.find((provider) => provider.kind === 'lmstudio');
   const cloudProviders = freeProviders.filter((provider) => provider.kind !== 'llama-cpp' && !provider.isLocal && provider.enabled !== false);
   const cloudStatus = cloudProviders.some((provider) => provider.status === 'connected') ? 'connected' : cloudProviders.some((provider) => provider.status === 'checking') ? 'checking' : 'error';
   const llamaGroups = providerGroups.filter((group) => group.id === 'llama-cpp');
@@ -422,15 +473,47 @@ export const ModelSwitcherModal: React.FC = () => {
     );
   }) : <p className="px-3 py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">Нет доступных моделей у этого типа провайдеров.</p>;
 
-  const providerStatusButton = (provider: FreeProviderProfile | undefined, label: string) => {
-    if (!provider) return null;
-    const connected = provider.status === 'connected';
-    const checking = provider.status === 'checking';
-    return (
-      <button key={provider.id} type="button" onClick={() => void fetchProviderModels(provider.id)} disabled={checking || busy} title={provider.lastCheckMessage || provider.name} className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold transition disabled:opacity-60 ${connected ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400' : 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-400'}`}>
-        {label}: {checking ? 'ПРОВЕРКА' : connected ? 'ONLINE' : 'OFFLINE'}
-      </button>
-    );
+  const renderFlatChoices = (groups: typeof providerGroups) => {
+    const choices = groups.flatMap((group) => group.choices);
+    if (!choices.length) return <p className="px-3 py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">Нет доступных локальных моделей.</p>;
+    return <div className="space-y-1">{choices.map((choice) => {
+      const selected = selectedKey === choice.key;
+      const active = choice.kind === 'gguf'
+        ? choice.model.id === activeModelId && activeProviderId === 'prov-llama-cpp'
+        : choice.provider.id === activeProviderId && choice.modelName === choice.provider.selectedModel;
+      return <button key={choice.key} type="button" disabled={busy} onClick={() => setSelectedKey(choice.key)} className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${selected ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60'}`}>
+        <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-300 dark:border-zinc-600'}`}>{selected && <Check className="h-3 w-3" />}</span>
+        <span className="min-w-0 flex-1 truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">{choice.label}</span>
+        {active && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активна</span>}
+      </button>;
+    })}</div>;
+  };
+
+  const renderLocalAiAppStatus = (app: LocalAiAppId, label: string) => {
+    const status = localAiAppsChecks?.[app];
+    const states = [
+      { key: 'installed', label: 'УСТАНОВЛЕН', value: status?.installed },
+      { key: 'running', label: 'ЗАПУЩЕН', value: status?.running },
+    ] as const;
+    return <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {states.map(({ key, label: stateLabel, value }) => {
+          const Icon = localAiAppsChecking ? Loader2 : value ? CheckCircle2 : AlertCircle;
+          const stateClass = localAiAppsChecking ? 'animate-spin text-amber-500' : value
+            ? 'text-emerald-600 drop-shadow-[0_0_7px_rgba(16,185,129,0.55)] dark:text-emerald-400'
+            : 'text-rose-600 dark:text-rose-400';
+          return <div key={key} className="flex flex-col items-center gap-1 rounded-lg bg-zinc-50 px-2 py-2 dark:bg-zinc-900/70">
+            <span className="text-[9px] font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">{stateLabel}</span>
+            <Icon className={`h-5 w-5 transition-colors ${stateClass}`} aria-label={value === true ? `${stateLabel}: успешно` : value === false ? `${stateLabel}: не выполнено` : `${stateLabel}: проверяется`} />
+          </div>;
+        })}
+      </div>
+      {!localAiAppsChecking && !status?.installed && <button type="button" onClick={() => void downloadLocalAiApp(app)} disabled={installerBusy !== null} className="rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-[10px] font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 dark:hover:bg-blue-950/50">
+        {installerBusy === app ? <><Loader2 className="mr-1 inline h-3 w-3 animate-spin" />Скачивание…</> : `Скачать установщик ${label}`}
+      </button>}
+      {installerMessages[app] && <p className="mt-2 break-all text-[10px] text-zinc-500 dark:text-zinc-400">{installerMessages[app]}</p>}
+      {status?.executablePath && <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={status.executablePath}>{status.executablePath}</p>}
+    </div>;
   };
 
   if (!open) return null;
@@ -452,19 +535,13 @@ export const ModelSwitcherModal: React.FC = () => {
           <div className="border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
             <NavigationRibbon ariaLabel="Разделы выбора модели" items={[
               { id: "llama", label: "Локальный сервер", icon: <Server className={`h-3.5 w-3.5 ${llamaChecks?.running ? "text-emerald-500" : checksFinished ? "text-rose-500" : "animate-pulse text-amber-500"}`} /> },
-              { id: "ollama", label: "Ollama", icon: <Cpu className={`h-3.5 w-3.5 ${statusIconClass(ollamaProvider?.status === "connected" ? "connected" : ollamaProvider?.status === "checking" ? "checking" : "error")}`} /> },
-              { id: "lmstudio", label: "LM Studio", icon: <Cpu className={`h-3.5 w-3.5 ${statusIconClass(lmStudioProvider?.status === "connected" ? "connected" : lmStudioProvider?.status === "checking" ? "checking" : "error")}`} /> },
+              { id: "ollama", label: "Ollama", icon: <Cpu className={`h-3.5 w-3.5 ${localAiAppsChecking ? "animate-pulse text-amber-500" : localAiAppsChecks?.ollama.running ? "text-emerald-500" : localAiAppsChecks?.ollama.installed ? "text-amber-500" : "text-rose-500"}`} /> },
+              { id: "lmstudio", label: "LM Studio", icon: <Cpu className={`h-3.5 w-3.5 ${localAiAppsChecking ? "animate-pulse text-amber-500" : localAiAppsChecks?.lmstudio.running ? "text-emerald-500" : localAiAppsChecks?.lmstudio.installed ? "text-amber-500" : "text-rose-500"}`} /> },
               { id: "cloud", label: "Облачные модели", icon: <Cloud className={`h-3.5 w-3.5 ${statusIconClass(cloudStatus)}`} /> },
             ]} selectedId={page} onSelect={(id) => setPage(id as typeof page)} />
           </div>
         </header>
         {page === 'llama' && <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <div className="mb-2 flex items-center justify-between gap-3">
-
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-              {checksFinished ? 'Проверка завершена' : 'Выполняется проверка…'}
-            </span>
-          </div>
           <div className="mb-3 grid grid-cols-3 gap-2">
             {([
               { key: 'downloaded', label: 'СКАЧАН', Icon: Download },
@@ -495,7 +572,7 @@ export const ModelSwitcherModal: React.FC = () => {
                   : step.state === 'checking' ? Loader2 : Circle;
               return (
                 <div key={index} className="flex items-start gap-2 text-[10px]">
-                  <span className="min-w-0 flex-1 text-zinc-600 dark:text-zinc-400">{step.label}</span>
+                  <span className="min-w-0 flex-1 text-zinc-600 dark:text-zinc-400">{step.state === 'checking' ? 'Выполняется проверка: ' : step.state === 'success' ? 'Проверено: ' : step.state === 'error' ? 'Ошибка проверки: ' : 'Ожидает проверки: '}{step.label}</span>
                   <StepIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
                     step.state === 'success' ? 'text-emerald-600 dark:text-emerald-400'
                       : step.state === 'error' ? 'text-rose-600 dark:text-rose-400'
@@ -505,16 +582,12 @@ export const ModelSwitcherModal: React.FC = () => {
                 </div>
               );
             })}
+            {checksFinished && <div className="flex items-start gap-2 text-[10px]"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" /><span className="text-emerald-600 dark:text-emerald-400">Проверка завершена</span></div>}
           </div>
-          {llamaChecks?.version && (
-            <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>
-              {llamaChecks.version} · {llamaChecks.executablePath}
-            </p>
-          )}
         </div>}
-        {page === "llama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderProviderGroups(llamaGroups)}</div>}
-        {page === "ollama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"><div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, "Ollama")}</div>{renderProviderGroups(ollamaGroups)}</div>}
-        {page === "lmstudio" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"><div className="flex flex-wrap items-center gap-2">{providerStatusButton(lmStudioProvider, "LM Studio")}</div>{renderProviderGroups(lmStudioGroups)}</div>}
+        {page === "llama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderFlatChoices(llamaGroups)}</div>}
+        {page === "ollama" && <><div className="shrink-0">{renderLocalAiAppStatus('ollama', 'Ollama')}</div><div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{renderProviderGroups(ollamaGroups)}</div></>}
+        {page === "lmstudio" && <><div className="shrink-0">{renderLocalAiAppStatus('lmstudio', 'LM Studio')}</div><div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{renderProviderGroups(lmStudioGroups)}</div></>}
         {page === "cloud" && <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{renderProviderGroups(cloudGroups)}</div>}
         {error && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
         <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
