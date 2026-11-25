@@ -79,7 +79,6 @@ export const NAV_GROUPS: NavigationGroup[] = [
       { id: 'terminal', label: 'Терминал', icon: 'terminal', tab: 'terminal' },
       { id: 'browser', label: 'Браузер', icon: 'world', tab: 'browser' },
       { id: 'notes', label: 'Заметки', icon: 'book', tab: 'notes' },
-      { id: 'debug-flow', label: 'Отладчик запросов', icon: 'bug', tab: 'debug-flow' },
     ],
   },
   {

@@ -502,7 +502,14 @@ export const AppNavigation: React.FC = () => {
             {/* DEBUG / PROD Switch */}
             <button
               type="button"
-              onClick={toggleDebugMode}
+              onClick={() => {
+                toggleDebugMode();
+                if (!debugMode) {
+                  setActiveTab('debug-flow');
+                } else if (activeTab === 'debug-flow') {
+                  setActiveTab('workstation');
+                }
+              }}
               aria-label={`Режим отладки ${debugMode ? 'DEBUG' : 'PROD'}. Переключить`}
               aria-pressed={debugMode}
               title="Переключить режим DEBUG / PROD"
