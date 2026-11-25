@@ -166,6 +166,7 @@ export async function runTeamExecution(input: {
   const maxCycles = Math.min(Math.max(Number(input.maxCycles ?? 1), 1), MAX_CYCLES);
   const knowledgeRoot = path.join(input.rootDir, 'docs', 'knowledge');
   const rootOpId = input.parentOperationId || `team-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  let cancelled = Boolean(input.signal?.aborted);
 
   // Load approved governance documents dynamically from knowledge base
   const teamProcDoc = safeReadApproved(knowledgeRoot, 'procedure.team-execution');
@@ -204,13 +205,12 @@ export async function runTeamExecution(input: {
 
   // Deterministic Discovery stage (never spend LLM tokens scanning filesystem)
   const canRead = isProjectToolAllowed(projectId, 'read_file');
-  const projectFiles = canRead ? listProjectFiles(projectId, 200) : [];
+  const projectFiles = canRead && !cancelled ? listProjectFiles(projectId, 200) : [];
   const rankedFiles = rankFilesForObjective(projectFiles, objective);
   const workspaceData = getProjectWorkspaceData(projectId);
 
   const initialFilesManifest: AgentHandoffFileEntry[] = [];
   const verifiedReadPaths = new Set<string>();
-  let cancelled = false;
   let remainingExcerptChars = 16000;
   for (const file of rankedFiles.slice(0, 8)) {
     if (input.signal?.aborted) {

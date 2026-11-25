@@ -103,7 +103,7 @@ export function extractLineFragment(
   requestedStartLine?: number,
   requestedEndLine?: number,
 ): { content: string; startLine: number; endLine: number } {
-  const lines = content.split(/\\r\\n|\\n|\\r/);
+  const lines = content.split(/\r\n|\n|\r/);
   const startLine = requestedStartLine ?? 1;
   const endLine = requestedEndLine ?? lines.length;
   if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine < 1 || endLine < startLine) {
@@ -112,7 +112,7 @@ export function extractLineFragment(
   if (startLine > lines.length || endLine > lines.length) {
     throw new Error(`Диапазон строк ${startLine}-${endLine} выходит за границы файла (${lines.length} строк).`);
   }
-  return { content: lines.slice(startLine - 1, endLine).join('\\n'), startLine, endLine };
+  return { content: lines.slice(startLine - 1, endLine).join('\n'), startLine, endLine };
 }
 
 export interface ProvisionedWorkerContext {

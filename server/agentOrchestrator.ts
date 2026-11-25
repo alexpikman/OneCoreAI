@@ -143,6 +143,7 @@ function buildTools(projectId: string, knowledgeRoot?: string): AgentTool[] {
 
 function readInitialProjectContext(projectId: string, prompt: string, signal?: AbortSignal): { context: string; readFiles: string[] } {
   assertProjectToolAllowed(projectId, 'read_file');
+  if (signal?.aborted) throw new Error('Подготовка контекста отменена.');
   const files = listProjectFiles(projectId, 250);
   const terms = prompt.toLowerCase().match(/[a-zа-я0-9_./-]{3,}/gi) ?? [];
   const priority = [
@@ -206,6 +207,7 @@ async function executeTool(
   rawArguments: string,
   knowledgeRoot?: string,
   contextBudget?: { remainingChars: number },
+  taskId?: string,
   signal?: AbortSignal,
 ): Promise<{ content: string; readFiles: string[]; searchedFiles: string[] }> {
   if (signal?.aborted) throw new Error('Запрос отменён.');
@@ -263,7 +265,7 @@ async function executeTool(
     if (contentLimit <= 0) throw new Error('Исчерпан общий бюджет контекста Worker (40 000 символов).');
     const boundedContent = fragment.content.slice(0, contentLimit);
     const cachedFragment = workerFragmentDeduplicationCache.getFragment({
-      taskId: 'worker-task',
+      taskId: taskId ?? `direct:${projectId}`,
       normalizedPath: file.path,
       startLine: fragment.startLine,
       endLine: fragment.endLine,
@@ -494,7 +496,7 @@ export async function executeGeneralAgentTask(input: {
       input.onToolCall?.(toolName, 'running', `Выполняется инструмент ${toolName}`, toolTrace);
 
       try {
-        const result = await executeTool(projectId, toolName, call.function?.arguments ?? '{}', input.knowledgeRoot, contextBudget, input.signal);
+        const result = await executeTool(projectId, toolName, call.function?.arguments ?? '{}', input.knowledgeRoot, contextBudget, input.provisionedContext?.taskId ?? `direct:${projectId}`, input.signal);
         result.readFiles.forEach((file) => readFiles.add(file));
         result.searchedFiles.forEach((file) => searchedFiles.add(file));
         messages.push({ role: 'tool', tool_call_id: toolCallId, content: result.content });
