@@ -10,6 +10,7 @@ import type {
   InstructionsSectionId,
   IntelligenceSectionId,
   LlamaModelsSectionId,
+  ProjectsSectionId,
   SettingsSectionId,
   SkillsSectionId,
   SshGithubSectionId,
@@ -30,6 +31,7 @@ export type NavigationSubItem = {
   sshGithubSection?: SshGithubSectionId;
   ggufTab?: GgufHubTabId;
   llamaModelsSection?: LlamaModelsSectionId;
+  projectsSection?: ProjectsSectionId;
   skillsSection?: SkillsSectionId;
   instructionsSection?: InstructionsSectionId;
   intelligenceSection?: IntelligenceSectionId;
@@ -47,6 +49,7 @@ export type NavigationItem = {
   providerCategory?: AiProviderCategory;
   ggufTab?: GgufHubTabId;
   llamaModelsSection?: LlamaModelsSectionId;
+  projectsSection?: ProjectsSectionId;
   toolsHooksSection?: ToolsHooksSectionId;
   subItems?: NavigationSubItem[];
 };
@@ -88,9 +91,10 @@ export const NAV_GROUPS: NavigationGroup[] = [
         label: 'Проекты',
         icon: 'folder',
         tab: 'projects',
+        projectsSection: 'list',
         subItems: [
-          { id: 'sub-projects-list', label: 'Список проектов', tab: 'projects' },
-          { id: 'sub-projects-tools', label: 'Разрешённые инструменты', tab: 'projects' },
+          { id: 'sub-projects-list', label: 'Список проектов', tab: 'projects', projectsSection: 'list' },
+          { id: 'sub-projects-tools', label: 'Разрешённые инструменты', tab: 'projects', projectsSection: 'allowed-tools' },
         ],
       },
       { id: 'tasks', label: 'Задачи', icon: 'tasks', tab: 'tasks' },
@@ -192,7 +196,8 @@ export const NAV_GROUPS: NavigationGroup[] = [
         section: 'llama-models',
         llamaModelsSection: 'launch',
         subItems: [
-          { id: 'sub-gguf-launch', label: 'Модели и запуск', tab: 'models', section: 'llama-models', llamaModelsSection: 'launch' },
+          { id: 'sub-gguf-launch', label: 'Управление запуском', tab: 'models', section: 'llama-models', llamaModelsSection: 'launch' },
+          { id: 'sub-gguf-installed', label: 'Установленные модели', tab: 'models', section: 'llama-models', llamaModelsSection: 'installed' },
         ],
       },
     ],
@@ -288,8 +293,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
         ],
       },
       { id: 'execution-env', label: 'Execution Environments', icon: 'cpu', tab: 'settings', section: 'execution-env' },
-      { id: 'tools-item', label: 'Tools', icon: 'tool', tab: 'tools-hooks', toolsHooksSection: 'tools' },
-      { id: 'hooks-item', label: 'Hooks', icon: 'tool', tab: 'tools-hooks', toolsHooksSection: 'hooks' },
+      { id: 'hooks-item', label: 'Hooks', icon: 'hook', tab: 'tools-hooks', toolsHooksSection: 'hooks' },
       { id: 'mcp', label: 'MCP', icon: 'plug', tab: 'mcp' },
     ],
   },
@@ -337,7 +341,9 @@ export function getActiveNavigationGroupId(
       isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
     ),
   );
-  return activeGroup?.id ?? groups[0]?.id ?? null;
+  if (activeGroup) return activeGroup.id;
+  if (activeTab === 'dashboard') return null;
+  return groups[0]?.id ?? null;
 }
 
 export function getActiveNavigationGroup(
@@ -358,7 +364,9 @@ export function getActiveNavigationGroup(
       isNavigationItemActive(item, activeTab, settingsSection, sshGithubSection, aiSettingsCategory, toolsHooksSection, ggufHubTab),
     ),
   );
-  return activeGroup?.label ?? groups[0]?.label ?? 'Чат';
+  if (activeGroup) return activeGroup.label;
+  if (activeTab === 'dashboard') return 'Дашборд';
+  return groups[0]?.label ?? 'Чат';
 }
 
 export function isNavigationItemActive(
@@ -398,8 +406,7 @@ export function isNavigationItemActive(
     return activeTab === 'settings' && settingsSection === 'ssh-github';
   }
   if (item.tab === 'tools-hooks' && activeTab === 'tools-hooks') {
-    if (item.id === 'hooks-item') return toolsHooksSection === 'hooks';
-    if (item.id === 'tools-item') return toolsHooksSection !== 'hooks';
+    return item.id === 'hooks-item';
   }
   if (activeTab !== item.tab) return false;
   if (item.section && settingsSection !== item.section) return false;

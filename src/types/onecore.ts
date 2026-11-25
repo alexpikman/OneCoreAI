@@ -132,6 +132,7 @@ export type IntelligenceSectionId =
   | 'implementation'
   | 'sources';
 export type DirectoriesSectionId = 'data' | 'terms' | 'constants' | 'search';
+export type ProjectsSectionId = 'list' | 'allowed-tools';
 export type ToolsHooksSectionId = 'all' | 'tools' | 'hooks';
 
 export type AgentMode = 'plan' | 'act';

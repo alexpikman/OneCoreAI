@@ -31,6 +31,7 @@ export const LlamaServerModelsPage: React.FC = () => {
     setActiveRole,
     setSettingsSection,
     setGgufHubTab,
+    setActiveNavSubItemId,
     setActiveTab,
     serverStatus,
   } = useOneCoreStore();
@@ -78,6 +79,7 @@ export const LlamaServerModelsPage: React.FC = () => {
                   onClick={() => {
                     setSettingsSection('llama-gguf');
                     setGgufHubTab('search');
+                    setActiveNavSubItemId('sub-gguf-catalog');
                     setActiveTab('models');
                   }}
                   className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:underline dark:text-blue-400"
@@ -145,6 +147,8 @@ export const LlamaServerModelsPage: React.FC = () => {
                       onClick={() => {
                         setSettingsSection('llama-gguf');
                         setGgufHubTab('search');
+                        setActiveNavSubItemId('sub-gguf-catalog');
+                        setActiveTab('models');
                       }}
                       className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-blue-600 px-3 text-xs font-medium text-white hover:bg-blue-500"
                     >

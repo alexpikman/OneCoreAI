@@ -236,6 +236,7 @@ export const DashboardPage: React.FC = () => {
     <PageLayout>
       <PageHeader
         showSave={false}
+        showSubNavigation={false}
         status={{ label: systemReady ? 'Система доступна' : 'Есть проблемы', variant: systemReady ? 'success' : 'warning' }}
       >
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">

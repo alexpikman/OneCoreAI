@@ -4,6 +4,7 @@ import { cn } from '../../utils/cn';
 export interface NavigationRibbonItem {
   id: string;
   label: string;
+  ariaLabel?: string;
   icon?: React.ReactNode;
 }
 
@@ -32,6 +33,8 @@ export const NavigationRibbon: React.FC<NavigationRibbonProps> = ({
           type="button"
           onClick={() => onSelect(item.id)}
           aria-current={active ? 'page' : undefined}
+          aria-label={!item.label ? item.ariaLabel : undefined}
+          title={!item.label ? item.ariaLabel : undefined}
           className={cn(
             'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-zinc-800',
             active
@@ -40,7 +43,7 @@ export const NavigationRibbon: React.FC<NavigationRibbonProps> = ({
           )}
         >
           {item.icon && <span className="shrink-0">{item.icon}</span>}
-          <span>{item.label}</span>
+          {item.label && <span>{item.label}</span>}
         </button>
       );
     })}

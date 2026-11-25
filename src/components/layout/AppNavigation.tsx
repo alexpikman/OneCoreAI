@@ -64,6 +64,8 @@ export const AppNavigation: React.FC = () => {
     setGgufHubTab,
     llamaModelsSection,
     setLlamaModelsSection,
+    projectsSection,
+    setProjectsSection,
     skillsSection,
     setSkillsSection,
     instructionsSection,
@@ -79,7 +81,7 @@ export const AppNavigation: React.FC = () => {
   } = useOneCoreStore();
 
   const [mobileExpanded, setMobileExpanded] = useState(false);
-  const [activeNavGroup, setActiveNavGroup] = useState('workspace');
+  const [activeNavGroup, setActiveNavGroup] = useState('chat-group');
   const [popupGroupId, setPopupGroupId] = useState<string | null>(null);
   const [popupAnchor, setPopupAnchor] = useState<{ top: number; left: number; width: number } | null>(null);
   const [workspaceModalOpen, setWorkspaceModalOpen] = useState(false);
@@ -145,7 +147,8 @@ export const AppNavigation: React.FC = () => {
     if (item.providerCategory) setAiSettingsCategory(item.providerCategory);
     if (item.ggufTab) setGgufHubTab(item.ggufTab);
     if (item.llamaModelsSection) setLlamaModelsSection(item.llamaModelsSection);
-    if (item.tab === 'tools-hooks') setToolsHooksSection(item.toolsHooksSection ?? 'all');
+    if (item.projectsSection) setProjectsSection(item.projectsSection);
+    if (item.tab === 'tools-hooks') setToolsHooksSection(item.toolsHooksSection ?? 'hooks');
     if (item.id === 'github') setSshGithubSection('github');
     if (item.id === 'ssh') setSshGithubSection('ssh-keys');
     if (item.id === 'remote-connection') setSshGithubSection('github');
@@ -165,7 +168,7 @@ export const AppNavigation: React.FC = () => {
     if (item.id === 'intelligence-library') {
       setIntelligenceSection('all');
     }
-    setActiveNavSubItemId(item.subItems?.[0]?.id ?? null);
+    setActiveNavSubItemId(item.id === 'intelligence-library' ? null : item.subItems?.[0]?.id ?? null);
     setActiveTab(item.tab);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) setMobileExpanded(false);
   };
@@ -184,6 +187,7 @@ export const AppNavigation: React.FC = () => {
     else if (sub.id === 'ssh') setSshGithubSection('ssh-keys');
     if (sub.ggufTab) setGgufHubTab(sub.ggufTab);
     if (sub.llamaModelsSection) setLlamaModelsSection(sub.llamaModelsSection);
+    if (sub.projectsSection) setProjectsSection(sub.projectsSection);
     if (sub.skillsSection) setSkillsSection(sub.skillsSection);
     if (sub.instructionsSection) setInstructionsSection(sub.instructionsSection);
     if (sub.intelligenceSection) setIntelligenceSection(sub.intelligenceSection);
@@ -226,13 +230,13 @@ export const AppNavigation: React.FC = () => {
       >
         {/* Top Brand + Mascot + Status + AI Settings */}
         <div className="shrink-0 pb-3">
-          {showNav('brand.logo') && (
+          {showNav('brand.logo') && (showNav('brand.logo.icon') || showNav('brand.logo.label')) && (
             <div className="flex h-9 items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-2 lg:px-3">
               {showNav('brand.logo.icon') && (
                 <Bot className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
               )}
               {showNav('brand.logo.label') && (
-                <span className="hidden truncate text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100 lg:inline">
+                <span className={cn('truncate text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100', mobileExpanded ? 'inline' : 'hidden lg:inline')}>
                   ONE CORE AI
                 </span>
               )}
@@ -247,10 +251,13 @@ export const AppNavigation: React.FC = () => {
                 activity={agentActivity}
                 persona={activeRole.persona}
                 roleName={activeRoleLabel}
-                onClick={() => setActiveTab('workstation')}
+                onClick={() => {
+                  setPopupGroupId(null);
+                  setActiveTab('workstation');
+                }}
               />
             )}
-            <div className="hidden min-w-0 flex-1 flex-col gap-0.5 lg:flex">
+            <div className={cn('min-w-0 flex-1 flex-col gap-0.5', mobileExpanded ? 'flex' : 'hidden lg:flex')}>
               {showNav('brand.role') && (
                 <div className="flex min-w-0 items-center gap-1.5">
                   {showNav('brand.role.icon') && (
@@ -276,7 +283,10 @@ export const AppNavigation: React.FC = () => {
             {showNav('nav.ai-settings') && showNav('nav.ai-settings.icon') && (
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('onecore:open-model-switcher'))}
+                onClick={() => {
+                  setPopupGroupId(null);
+                  window.dispatchEvent(new CustomEvent('onecore:open-model-switcher'));
+                }}
                 title="Выбор модели ИИ"
                 aria-label="Открыть выбор модели ИИ"
                 className="ml-1 h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950"
@@ -293,16 +303,28 @@ export const AppNavigation: React.FC = () => {
             <section className="shrink-0 rounded-2xl border border-zinc-200/70 bg-zinc-50/90 p-1.5 shadow-inner dark:border-zinc-800 dark:bg-zinc-900/70">
               <div className="flex flex-col gap-0.5">
                 {navigationGroups.map((group) => {
-                  const hasVisibleItems = group.items.some(
+                  const visibleGroupItems = group.items.filter(
                     (item) =>
                       showNav(`item.${item.id}`) &&
                       (showNav(`item.${item.id}.icon`) || showNav(`item.${item.id}.label`)),
                   );
                   if (
                     !showNav(`group.${group.id}`) ||
-                    !hasVisibleItems ||
+                    visibleGroupItems.length === 0 ||
                     (!showNav(`group.${group.id}.icon`) && !showNav(`group.${group.id}.label`))
                   ) {
+                    return null;
+                  }
+                  const isDirectChatGroup =
+                    group.items.length === 1 &&
+                    group.items[0].tab === 'workstation' &&
+                    !group.items[0].subItems?.length;
+                  const directChatItem = isDirectChatGroup ? group.items[0] : null;
+                  const showGroupIcon =
+                    showNav(`group.${group.id}.icon`) && (!directChatItem || showNav(`item.${directChatItem.id}.icon`));
+                  const showGroupLabel =
+                    showNav(`group.${group.id}.label`) && (!directChatItem || showNav(`item.${directChatItem.id}.label`));
+                  if (!showGroupIcon && !showGroupLabel) {
                     return null;
                   }
                   const active = activeNavGroup === group.id;
@@ -314,8 +336,8 @@ export const AppNavigation: React.FC = () => {
                       type="button"
                       data-nav-group-trigger="true"
                       onClick={(event) => {
-                        if (group.id === 'chat-group') {
-                          setActiveTab('workstation');
+                        if (directChatItem) {
+                          handleSelectNavItem(directChatItem);
                           setPopupGroupId(null);
                           return;
                         }
@@ -326,32 +348,34 @@ export const AppNavigation: React.FC = () => {
                       }}
                       title={group.label}
                       aria-label={group.label}
-                      aria-haspopup={group.id === 'chat-group' ? undefined : 'menu'}
-                      aria-expanded={group.id === 'chat-group' ? undefined : popupOpen}
+                      aria-haspopup={isDirectChatGroup ? undefined : 'menu'}
+                      aria-expanded={isDirectChatGroup ? undefined : popupOpen}
                       className={cn(
-                        'w-full h-8 px-2.5 lg:px-3 inline-flex items-center justify-center lg:justify-between gap-2 rounded-xl text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950',
+                        'w-full h-8 px-2.5 lg:px-3 inline-flex items-center gap-2 rounded-xl text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950',
+                        mobileExpanded ? 'justify-between' : 'justify-center lg:justify-between',
                         active || popupOpen
                           ? 'bg-white text-blue-600 shadow-sm ring-1 ring-zinc-200/80 dark:bg-zinc-800 dark:text-blue-400 dark:ring-zinc-700'
                           : 'text-zinc-600 hover:bg-white/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/70 dark:hover:text-zinc-100',
                       )}
                     >
                       <span className="inline-flex min-w-0 items-center gap-2">
-                        {showNav(`group.${group.id}.icon`) && (
+                        {showGroupIcon && (
                           <NavTablerIcon
                             name={group.icon}
                             className={cn('h-4 w-4 shrink-0', active || popupOpen ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400')}
                           />
                         )}
-                        {showNav(`group.${group.id}.label`) && (
+                        {showGroupLabel && (
                           <span className={cn('truncate', mobileExpanded ? 'inline' : 'hidden lg:inline')}>
                             {group.label}
                           </span>
                         )}
                       </span>
-                      {group.id !== 'chat-group' && (
+                      {!isDirectChatGroup && (
                         <ChevronRight
                           className={cn(
-                            'hidden lg:block h-3.5 w-3.5 shrink-0 transition-transform',
+                            'h-3.5 w-3.5 shrink-0 transition-transform',
+                            mobileExpanded ? 'block' : 'hidden lg:block',
                             popupOpen ? 'text-blue-500 translate-x-0.5' : 'text-zinc-400',
                           )}
                         />
@@ -365,7 +389,10 @@ export const AppNavigation: React.FC = () => {
             {showNav('nav.mobile-toggle') && showNav('nav.mobile-toggle.icon') && (
               <button
                 type="button"
-                onClick={() => setMobileExpanded((v) => !v)}
+                onClick={() => {
+                  setPopupGroupId(null);
+                  setMobileExpanded((v) => !v);
+                }}
                 aria-expanded={mobileExpanded}
                 aria-label={mobileExpanded ? 'Свернуть панель' : 'Развернуть панель'}
                 title={mobileExpanded ? 'Свернуть панель' : 'Развернуть панель'}
@@ -385,9 +412,11 @@ export const AppNavigation: React.FC = () => {
                 className="w-full min-h-9 px-2.5 inline-flex items-center justify-between gap-2 rounded-xl border border-zinc-200 bg-white/80 text-left text-xs transition-colors hover:border-blue-500 dark:border-zinc-800 dark:bg-zinc-900/60"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                    Проект
-                  </span>
+                  {showNav('workspace.project-title') && (
+                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      Проект
+                    </span>
+                  )}
                   <span className="block truncate font-medium text-zinc-900 dark:text-zinc-100">
                     {activeProject ? activeProject.name : 'Выбрать проект…'}
                   </span>
@@ -395,35 +424,41 @@ export const AppNavigation: React.FC = () => {
                 <FolderOpen className="h-4 w-4 shrink-0 text-zinc-400" />
               </button>
 
-              {activeProject && (
-                <div className="grid grid-cols-3 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openWorkspaceModal('project')}
-                    title="Файлы и действия проекта"
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
-                  >
-                    <FolderOpen className="h-3 w-3 shrink-0" />
-                    <span className="tabular-nums">{files.length}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openWorkspaceModal('tasks')}
-                    title="Задачи проекта"
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
-                  >
-                    <ListTodo className="h-3 w-3 shrink-0" />
-                    <span className="tabular-nums">{projectWorkspace.tasks.length}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openWorkspaceModal('logs')}
-                    title="Журнал действий"
-                    className="inline-flex h-8 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
-                  >
-                    <Activity className="h-3 w-3 shrink-0" />
-                    <span className="tabular-nums">{projectLogs.length}</span>
-                  </button>
+              {activeProject && (showNav('workspace.project-files') || showNav('workspace.tasks') || showNav('workspace.action-log')) && (
+                <div className="flex items-center gap-1">
+                  {showNav('workspace.project-files') && (
+                    <button
+                      type="button"
+                      onClick={() => openWorkspaceModal('project')}
+                      title="Файлы и действия проекта"
+                      className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
+                    >
+                      {showNav('workspace.project-files.icon') && <FolderOpen className="h-3 w-3 shrink-0" />}
+                      <span className="tabular-nums">{files.length}</span>
+                    </button>
+                  )}
+                  {showNav('workspace.tasks') && (
+                    <button
+                      type="button"
+                      onClick={() => openWorkspaceModal('tasks')}
+                      title="Задачи проекта"
+                      className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
+                    >
+                      <ListTodo className="h-3 w-3 shrink-0" />
+                      <span className="tabular-nums">{projectWorkspace.tasks.length}</span>
+                    </button>
+                  )}
+                  {showNav('workspace.action-log') && (
+                    <button
+                      type="button"
+                      onClick={() => openWorkspaceModal('logs')}
+                      title="Журнал действий"
+                      className="inline-flex h-8 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg border border-zinc-200 text-[11px] font-medium text-zinc-600 hover:border-blue-500 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:text-zinc-100"
+                    >
+                      <Activity className="h-3 w-3 shrink-0" />
+                      <span className="tabular-nums">{projectLogs.length}</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -454,10 +489,10 @@ export const AppNavigation: React.FC = () => {
                 {showNav('nav.mode-switch.label') && (
                   <>
                     <span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'plan' ? 'text-white' : 'text-zinc-500')}>
-                      PLAN
+                      P<span className={mobileExpanded ? 'inline' : 'hidden lg:inline'}>LAN</span>
                     </span>
                     <span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'act' ? 'text-white' : 'text-zinc-500')}>
-                      ACT
+                      A<span className={mobileExpanded ? 'inline' : 'hidden lg:inline'}>CT</span>
                     </span>
                   </>
                 )}
@@ -484,6 +519,7 @@ export const AppNavigation: React.FC = () => {
         sshGithubSection={sshGithubSection}
         ggufHubTab={ggufHubTab}
         llamaModelsSection={llamaModelsSection}
+        projectsSection={projectsSection}
         skillsSection={skillsSection}
         instructionsSection={instructionsSection}
         intelligenceSection={intelligenceSection}

@@ -17,6 +17,7 @@ export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initi
     setAgentTeamSection,
     setAgentTeamFocus,
     setGeneralAgentTab,
+    setActiveNavSubItemId,
     setSettingsSection,
     setActiveTab,
     pipelineStages,
@@ -88,7 +89,9 @@ export const SubAgentsPage: React.FC<{ initialTab?: SubAgentsTabId }> = ({ initi
                   type="button"
                   onClick={() => {
                     setGeneralAgentTab('permissions');
+                    setAgentTeamSection('permissions');
                     setAgentTeamFocus('permissions');
+                    setActiveNavSubItemId('sub-permissions');
                     setSettingsSection('roles-pipeline');
                     setActiveTab('models');
                   }}

@@ -73,6 +73,7 @@ import type {
   ProjectFolderSource,
   ProjectPlan,
   ProjectRecord,
+  ProjectsSectionId,
   ProjectTask,
   ProjectWorkspaceData,
   PersistedAppSettings,
@@ -157,6 +158,7 @@ interface OneCoreStore {
   agentTeamFocus: AgentTeamFocusId;
   ggufHubTab: GgufHubTabId;
   llamaModelsSection: LlamaModelsSectionId;
+  projectsSection: ProjectsSectionId;
   skillsSection: SkillsSectionId;
   instructionsSection: InstructionsSectionId;
   intelligenceSection: IntelligenceSectionId;
@@ -314,6 +316,7 @@ interface OneCoreStore {
   setAgentTeamFocus: (focus: AgentTeamFocusId) => void;
   setGgufHubTab: (tab: GgufHubTabId) => void;
   setLlamaModelsSection: (section: LlamaModelsSectionId) => void;
+  setProjectsSection: (section: ProjectsSectionId) => void;
   setSkillsSection: (section: SkillsSectionId) => void;
   setInstructionsSection: (section: InstructionsSectionId) => void;
   setIntelligenceSection: (section: IntelligenceSectionId) => void;
@@ -564,6 +567,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   agentTeamFocus: 'permissions',
   ggufHubTab: 'search',
   llamaModelsSection: 'launch',
+  projectsSection: 'list',
   skillsSection: 'catalog',
   instructionsSection: 'catalog',
   intelligenceSection: 'all',
@@ -1301,6 +1305,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   setAgentTeamFocus: (focus) => set({ agentTeamFocus: focus }),
   setGgufHubTab: (tab) => set({ ggufHubTab: tab }),
   setLlamaModelsSection: (section) => set({ llamaModelsSection: section }),
+  setProjectsSection: (section) => set({ projectsSection: section }),
   setSkillsSection: (section) => set({ skillsSection: section }),
   setInstructionsSection: (section) => set({ instructionsSection: section }),
   setIntelligenceSection: (section) => set({ intelligenceSection: section }),

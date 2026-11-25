@@ -27,7 +27,7 @@ const CONTEXT_TITLES: Record<string, string> = {
   skills: 'Библиотека навыков',
   instructions: 'Регламенты и схемы',
   mcp: 'Серверы MCP',
-  'tools-hooks': 'Инструменты и хуки',
+  'tools-hooks': 'Lifecycle Hooks',
   settings: 'Параметры приложения',
   permissions: 'Разрешения и политики',
   security: 'Безопасность',
@@ -334,10 +334,12 @@ export const PageContextSidebar: React.FC<PageContextSidebarProps> = ({
               <div className="text-[11px] text-zinc-500">Сохранение настроек</div>
               <div className="mt-1 text-xs font-medium capitalize text-zinc-900 dark:text-zinc-100">{settingsSaveStatus}</div>
             </div>
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
-              <div className="text-[11px] text-zinc-500">Активный раздел</div>
-              <div className="mt-1 text-xs font-medium text-zinc-900 dark:text-zinc-100">{settingsSection}</div>
-            </div>
+            {activeTab === 'settings' && (
+              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
+                <div className="text-[11px] text-zinc-500">Активный раздел</div>
+                <div className="mt-1 text-xs font-medium text-zinc-900 dark:text-zinc-100">{settingsSection}</div>
+              </div>
+            )}
             {activeTab === 'permissions' && (
               <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-3">
                 <div className="text-[11px] text-zinc-500">Правила политик</div>

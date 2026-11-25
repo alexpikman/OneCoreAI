@@ -56,7 +56,6 @@ export const LEFT_MENU_VISIBILITY: VisibilityGroup[] = [
       { id: 'item.remote-connection', label: 'Remote connection' },
       { id: 'item.messenger-gateway', label: 'Messaging Gateway' },
       { id: 'item.execution-env', label: 'Execution Environments' },
-      { id: 'item.tools-item', label: 'Tools' },
       { id: 'item.hooks-item', label: 'Hooks' },
       { id: 'item.mcp', label: 'MCP' },
     ]},

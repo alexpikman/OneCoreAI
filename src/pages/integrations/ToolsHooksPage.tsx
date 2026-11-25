@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Container, Laptop, Plus, Server, Trash2, Webhook, Wrench } from 'lucide-react';
+import { Check, Container, Laptop, Plus, Server, Trash2, Webhook } from 'lucide-react';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { PageLayout } from '../../components/layout/StandardPageLayout';
@@ -198,7 +198,6 @@ export const ToolsHooksPage: React.FC = () => {
     addHook,
     updateHook,
     deleteHook,
-    toolsHooksSection,
   } = useOneCoreStore();
 
   const tokens = getPageUiTokens(uiStyle);
@@ -221,20 +220,12 @@ export const ToolsHooksPage: React.FC = () => {
     setHookCommand('');
   };
 
-  const showHooks = toolsHooksSection === 'all' || toolsHooksSection === 'hooks';
-
   return (
     <PageLayout>
       <PageHeader>
         <div className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100">
-          <Wrench className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-xl font-semibold">
-            {toolsHooksSection === 'hooks'
-              ? 'Lifecycle Hooks'
-              : toolsHooksSection === 'tools'
-                ? 'Разрешённые инструменты (Tools)'
-                : 'Инструменты и Hooks'}
-          </h1>
+          <Webhook className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+          <h1 className="text-xl font-semibold">Lifecycle Hooks</h1>
         </div>
       </PageHeader>
       <PageContent scrollable={false} contentClassName="flex min-h-0 flex-1 flex-col">
@@ -242,7 +233,6 @@ export const ToolsHooksPage: React.FC = () => {
           <div className="min-h-0 flex-1 overflow-y-auto py-5 space-y-5">
 
           {/* Lifecycle Hooks */}
-          {showHooks && (
           <section className={cn('p-6 border space-y-4', tokens.cardRadius, tokens.cardBg, tokens.cardBorder)}>
             <div>
               <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
@@ -382,7 +372,6 @@ export const ToolsHooksPage: React.FC = () => {
               </div>
             )}
           </section>
-          )}
           </div>
         </div>
       </PageContent>

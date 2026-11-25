@@ -2,8 +2,12 @@ import { NAV_GROUPS } from './appNavigation';
 import type {
   AiProviderCategory,
   AppTab,
+  GgufHubTabId,
+  LlamaModelsSectionId,
+  ProjectsSectionId,
   SettingsSectionId,
   SshGithubSectionId,
+  ToolsHooksSectionId,
 } from '../types/onecore';
 
 export interface BuiltinPageComponent {
@@ -32,6 +36,10 @@ export interface BuiltinNavigationBinding {
     section?: SettingsSectionId;
     providerCategory?: AiProviderCategory;
     sshGithubSection?: SshGithubSectionId;
+    ggufTab?: GgufHubTabId;
+    llamaModelsSection?: LlamaModelsSectionId;
+    projectsSection?: ProjectsSectionId;
+    toolsHooksSection?: ToolsHooksSectionId;
   };
   supportsGroupMove: true;
   supportsItemReorder: true;
@@ -66,10 +74,8 @@ const NAVIGATION_COMPONENT_IDS: Record<string, string> = {
   ssh: 'page.ssh',
   'messenger-gateway': 'page.gateway',
   'execution-env': 'page.execution-env',
-  'tools-item': 'page.tools',
   'hooks-item': 'page.hooks',
   mcp: 'page.mcp',
-  'tools-hooks': 'page.tools-hooks',
   interface: 'page.interface',
   permissions: 'page.permissions',
   security: 'page.security',
@@ -116,9 +122,7 @@ export const BUILTIN_COMPONENT_REGISTRY: readonly BuiltinPageComponent[] = [
   { id: 'page.gateway', kind: 'page', label: 'Messaging Gateway', renderer: 'GatewayPage', category: 'integrations', protected: false, constraints: ['settings-section:gateway'], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.execution-env', kind: 'page', label: 'Execution Environments', renderer: 'ExecutionEnvPage', category: 'integrations', protected: false, constraints: ['settings-section:execution-env'], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.mcp', kind: 'page', label: 'MCP', renderer: 'McpPage', category: 'integrations', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
-  { id: 'page.tools', kind: 'page', label: 'Tools', renderer: 'ToolsHooksPage', category: 'integrations', variant: 'toolsHooksSection:tools', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.hooks', kind: 'page', label: 'Hooks', renderer: 'ToolsHooksPage', category: 'integrations', variant: 'toolsHooksSection:hooks', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
-  { id: 'page.tools-hooks', kind: 'page', label: 'Инструменты и Hooks', renderer: 'ToolsHooksPage', category: 'integrations', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.interface', kind: 'page', label: 'Интерфейс', renderer: 'InterfaceSettingsPage', category: 'settings', protected: false, constraints: ['settings-section:ui-chat'], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.permissions', kind: 'page', label: 'Разрешения', renderer: 'PermissionsPage', category: 'settings', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
   { id: 'page.security', kind: 'page', label: 'Безопасность', renderer: 'SecurityPage', category: 'settings', protected: false, constraints: [], supportsNavigationPlacement: true, supportsPageBlockReorder: false },
@@ -143,8 +147,12 @@ export const BUILTIN_NAVIGATION_REGISTRY: readonly BuiltinNavigationBinding[] = 
       tab: item.tab,
       ...(item.section ? { section: item.section } : {}),
       ...(item.providerCategory ? { providerCategory: item.providerCategory } : {}),
-      ...(item.id === 'github' ? { sshGithubSection: 'github' as const } : {}),
-      ...(item.id === 'ssh' || item.id === 'remote-connection' ? { sshGithubSection: 'ssh-keys' as const } : {}),
+      ...(item.ggufTab ? { ggufTab: item.ggufTab } : {}),
+      ...(item.llamaModelsSection ? { llamaModelsSection: item.llamaModelsSection } : {}),
+      ...(item.projectsSection ? { projectsSection: item.projectsSection } : {}),
+      ...(item.toolsHooksSection ? { toolsHooksSection: item.toolsHooksSection } : {}),
+      ...(item.id === 'github' || item.id === 'remote-connection' ? { sshGithubSection: 'github' as const } : {}),
+      ...(item.id === 'ssh' ? { sshGithubSection: 'ssh-keys' as const } : {}),
     },
     supportsGroupMove: true as const,
     supportsItemReorder: true as const,

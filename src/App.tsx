@@ -21,7 +21,6 @@ import { FilesPage } from './pages/context/FilesPage';
 import { ProcessesPage } from './pages/context/ProcessesPage';
 import { ProjectHistoryPage } from './pages/context/ProjectHistoryPage';
 import { ProjectsPage } from './pages/context/ProjectsPage';
-import { ProjectAllowedToolsPage } from './pages/context/ProjectAllowedToolsPage';
 import { TasksPage } from './pages/context/TasksPage';
 import { ExecutionEnvPage } from './pages/integrations/ExecutionEnvPage';
 import { GatewayPage } from './pages/integrations/GatewayPage';
@@ -50,7 +49,6 @@ import { getUiTokens } from './utils/uiStyle';
 export default function App() {
   const {
     activeTab,
-    activeNavSubItemId,
     settingsSection,
     setActiveTab,
     setSettingsSection,
@@ -211,7 +209,6 @@ export default function App() {
       case 'notes':
         return <NotesPage />;
       case 'projects':
-        if (activeNavSubItemId === 'sub-projects-tools') return <ProjectAllowedToolsPage />;
         return (
           <ProjectsPage
             planModalOpen={projectPlanModalOpen}

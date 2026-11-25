@@ -74,9 +74,15 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
 
   useEffect(() => {
     if (open) {
-      setSection(initialSection);
+      if (initialSection === 'tasks' && !showNav('workspace.tasks')) {
+        setSection('project');
+      } else if (initialSection === 'logs' && !showNav('workspace.action-log')) {
+        setSection('project');
+      } else {
+        setSection(initialSection);
+      }
     }
-  }, [open, initialSection]);
+  }, [open, initialSection, navigationVisibility]);
 
   useEffect(() => {
     if (!open) return;
@@ -174,41 +180,47 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                 <FolderCog className="h-3.5 w-3.5" />
                 <span>Проект и среда</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setSection('tasks')}
-                className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
-                  section === 'tasks'
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800',
-                )}
-              >
-                <ListTodo className="h-3.5 w-3.5" />
-                <span>Задачи ({projectWorkspace.tasks.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSection('logs')}
-                className={cn(
-                  'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
-                  section === 'logs'
-                    ? 'bg-blue-600 text-white'
-                    : 'border border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800',
-                )}
-              >
-                <Activity className="h-3.5 w-3.5" />
-                <span>Журнал действий ({projectLogs.length})</span>
-              </button>
+              {showNav('workspace.tasks') && (
+                <button
+                  type="button"
+                  onClick={() => setSection('tasks')}
+                  className={cn(
+                    'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+                    section === 'tasks'
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800',
+                  )}
+                >
+                  <ListTodo className="h-3.5 w-3.5" />
+                  <span>Задачи ({projectWorkspace.tasks.length})</span>
+                </button>
+              )}
+              {showNav('workspace.action-log') && (
+                <button
+                  type="button"
+                  onClick={() => setSection('logs')}
+                  className={cn(
+                    'inline-flex h-7 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors',
+                    section === 'logs'
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800',
+                  )}
+                >
+                  <Activity className="h-3.5 w-3.5" />
+                  <span>Журнал действий ({projectLogs.length})</span>
+                </button>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {section === 'project' && (
                 <>
                   <div className="space-y-2">
-                    <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                      Активный проект
-                    </label>
+                    {showNav('workspace.project-title') && (
+                      <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                        Активный проект
+                      </label>
+                    )}
                     <div className="flex flex-wrap items-center gap-2">
                       {showNav('workspace.project-select') && (
                         <select
@@ -239,26 +251,30 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                           )}
                         </select>
                       )}
-                      {showNav('workspace.project-create') && (
+                      {showNav('workspace.project-create') && (showNav('workspace.project-create.icon') || showNav('workspace.project-create.label')) && (
                         <button
                           type="button"
                           onClick={() => {
                             setEditingProject(null);
                             setModalOpen(true);
                           }}
+                          title="Новый проект"
+                          aria-label="Новый проект"
                           className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
-                          <Plus className="h-3.5 w-3.5" />
-                          <span>Новый</span>
+                          {showNav('workspace.project-create.icon') && <Plus className="h-3.5 w-3.5" />}
+                          {showNav('workspace.project-create.label') && <span>Новый</span>}
                         </button>
                       )}
-                      {showNav('workspace.project-edit') && activeProject && (
+                      {showNav('workspace.project-edit') && showNav('workspace.project-edit.icon') && activeProject && (
                         <button
                           type="button"
                           onClick={() => {
                             setEditingProject(activeProject);
                             setModalOpen(true);
                           }}
+                          title="Настроить проект"
+                          aria-label="Настроить проект"
                           className="inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-800"
                         >
                           <FolderCog className="h-3.5 w-3.5" />
@@ -283,12 +299,17 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                           const Icon = env.icon;
                           const active = executionEnv.activeEnv === env.id;
                           if (!showNav(`workspace.env.${env.id}`)) return null;
+                          const showEnvIcon = showNav(`workspace.env.${env.id}.icon`);
+                          const showEnvLabel = showNav(`workspace.env.${env.id}.label`);
+                          if (!showEnvIcon && !showEnvLabel) return null;
                           return (
                             <button
                               key={env.id}
                               type="button"
                               onClick={() => setActiveExecutionEnv(env.id)}
                               aria-pressed={active}
+                              aria-label={env.label}
+                              title={env.label}
                               className={cn(
                                 'min-h-9 px-3 inline-flex items-center justify-center gap-2 border text-xs font-medium transition-colors',
                                 tokens.inputRadius,
@@ -297,8 +318,8 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                                   : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800',
                               )}
                             >
-                              <Icon className="h-3.5 w-3.5 shrink-0" />
-                              <span>{env.label}</span>
+                              {showEnvIcon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+                              {showEnvLabel && <span>{env.label}</span>}
                             </button>
                           );
                         })}
@@ -312,14 +333,15 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                         Быстрые операции с проектом
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        {chatVisibility.showProjectTree && showNav('workspace.project-files') && (
+                        {chatVisibility.showProjectTree && showNav('workspace.project-files') && (showNav('workspace.project-files.icon') || showNav('workspace.project-files.label')) && (
                           <button
                             type="button"
                             onClick={() => setFilesModalOpen(true)}
+                            aria-label="Файлы проекта"
                             className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:border-blue-500 dark:border-zinc-800 dark:text-zinc-200"
                           >
-                            <FolderOpen className="h-3.5 w-3.5" />
-                            <span>Файлы проекта</span>
+                            {showNav('workspace.project-files.icon') && <FolderOpen className="h-3.5 w-3.5" />}
+                            {showNav('workspace.project-files.label') && <span>Файлы проекта</span>}
                             <span className="font-mono tabular-nums text-zinc-400">{files.length}</span>
                           </button>
                         )}
@@ -329,7 +351,7 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                             onClick={() => setNewFileOpen((v) => !v)}
                             className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:border-blue-500 dark:border-zinc-800 dark:text-zinc-200"
                           >
-                            <FilePlus2 className="h-3.5 w-3.5" />
+                            {showNav('workspace.new-file.icon') && <FilePlus2 className="h-3.5 w-3.5" />}
                             <span>Новый файл</span>
                           </button>
                         )}
@@ -339,7 +361,7 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                             onClick={() => void handleQuickGitStatus()}
                             className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:border-blue-500 dark:border-zinc-800 dark:text-zinc-200"
                           >
-                            <GitBranch className="h-3.5 w-3.5" />
+                            {showNav('workspace.git-status.icon') && <GitBranch className="h-3.5 w-3.5" />}
                             <span>git status</span>
                           </button>
                         )}
@@ -349,7 +371,7 @@ export const WorkspaceControlsModal: React.FC<WorkspaceControlsModalProps> = ({
                             onClick={() => void handleQuickUndo()}
                             className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border border-zinc-200 px-3 text-xs font-medium text-zinc-700 hover:border-amber-500 dark:border-zinc-800 dark:text-zinc-200"
                           >
-                            <RotateCcw className="h-3.5 w-3.5" />
+                            {showNav('workspace.undo.icon') && <RotateCcw className="h-3.5 w-3.5" />}
                             <span>Откат (/undo)</span>
                           </button>
                         )}

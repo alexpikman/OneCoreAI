@@ -308,7 +308,7 @@ test('page-level navigation shares the primary catalog and resolves active desti
       'Журналы',
     ],
   );
-  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [1, 3, 5, 2, 2, 2, 4, 6, 5, 5]);
+  assert.deepEqual(NAV_GROUPS.map((group) => group.items.length), [1, 3, 5, 2, 2, 2, 4, 5, 5, 5]);
   for (const group of NAV_GROUPS) {
     assert.ok(group.items.length <= 6, `Group ${group.id} exceeds 6 items`);
   }
@@ -363,7 +363,7 @@ test('page-level navigation shares the primary catalog and resolves active desti
   );
   assert.deepEqual(
     ggufGroup?.items[1]?.subItems?.map((sub) => sub.label),
-    ['Модели и запуск'],
+    ['Управление запуском', 'Установленные модели'],
   );
 
   const appSourceForRoutes = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
@@ -396,19 +396,24 @@ test('page-level navigation shares the primary catalog and resolves active desti
   const integrations = NAV_GROUPS.find((group) => group.label === 'Интеграции');
   assert.deepEqual(
     integrations?.items.map((item) => item.label),
-    ['Remote connection', 'Messaging Gateway', 'Execution Environments', 'Tools', 'Hooks', 'MCP'],
+    ['Remote connection', 'Messaging Gateway', 'Execution Environments', 'Hooks', 'MCP'],
   );
   const remoteConnection = integrations?.items.find((item) => item.id === 'remote-connection');
-  const toolsItem = integrations?.items.find((item) => item.id === 'tools-item');
   const hooksItem = integrations?.items.find((item) => item.id === 'hooks-item');
   assert.ok(remoteConnection);
-  assert.ok(toolsItem);
   assert.ok(hooksItem);
   assert.equal(isNavigationItemActive(remoteConnection, 'settings', 'ssh-github', 'github'), true);
   assert.equal(isNavigationItemActive(remoteConnection, 'settings', 'ssh-github', 'ssh-hosts'), true);
-  assert.equal(isNavigationItemActive(toolsItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'tools'), true);
-  assert.equal(isNavigationItemActive(hooksItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'tools'), false);
   assert.equal(isNavigationItemActive(hooksItem, 'tools-hooks', 'ui-chat', 'ssh-keys', 'local', 'hooks'), true);
+
+  const contextGroup = NAV_GROUPS.find((group) => group.id === 'context');
+  const projectsItem = contextGroup?.items.find((item) => item.id === 'projects');
+  assert.deepEqual(
+    projectsItem?.subItems?.map((sub) => sub.label),
+    ['Список проектов', 'Разрешённые инструменты'],
+  );
+  assert.equal(getActiveNavigationGroup('dashboard', 'ui-chat'), 'Дашборд');
+  assert.equal(getActiveNavigationGroupId('dashboard', 'ui-chat'), null);
 });
 
 test('navigation visibility catalog exactly matches rendered groups and destinations', () => {
@@ -509,6 +514,7 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
     'src/pages/ai-resources/InstructionsCatalogPage.tsx',
     'src/pages/ai-resources/IntelligenceLibraryPage.tsx',
     'src/pages/ai-resources/DirectoriesPage.tsx',
+    'src/pages/context/ProjectsPage.tsx',
     'src/pages/integrations/SshGithubPage.tsx',
     'src/pages/integrations/ToolsHooksPage.tsx',
   ]) {
@@ -683,8 +689,8 @@ test('shared navigation ribbon uses a single-row neutral track and pages share u
     'src/pages/ai-resources/InstructionsCatalogPage.tsx',
     'src/pages/ai-resources/IntelligenceLibraryPage.tsx',
     'src/pages/ai-resources/DirectoriesPage.tsx',
+    'src/pages/context/ProjectsPage.tsx',
     'src/pages/integrations/SshGithubPage.tsx',
-    'src/pages/integrations/ToolsHooksPage.tsx',
     'src/pages/settings/SystemPage.tsx',
   ]) {
     assert.match(readSource(tabbedPage), /<SecondaryTabBar/);

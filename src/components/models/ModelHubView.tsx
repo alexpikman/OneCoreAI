@@ -106,6 +106,7 @@ export const ModelHubView: React.FC<{ title?: string }> = ({ title = 'Поиск
     setGgufHubTab,
     setSettingsSection,
     setLlamaModelsSection,
+    setActiveNavSubItemId,
   } = useOneCoreStore();
 
   const hubTab = ggufHubTab;
@@ -584,6 +585,7 @@ export const ModelHubView: React.FC<{ title?: string }> = ({ title = 'Поиск
                   type="button"
                   onClick={() => {
                     setLlamaModelsSection('launch');
+                    setActiveNavSubItemId('sub-gguf-launch');
                     setSettingsSection('llama-models');
                     setActiveTab('models');
                   }}
