@@ -16,6 +16,7 @@ export interface FragmentCacheInput {
   startLine: number;
   endLine: number;
   content: string;
+  contentHash?: string;
 }
 
 export interface FragmentCacheResult {
@@ -48,7 +49,7 @@ export class FragmentDeduplicationCache {
   getFragment(input: FragmentCacheInput): FragmentCacheResult {
     const normalizedPath = path.posix.normalize(input.normalizedPath.replace(/\\/g, '/')).replace(/^\.\//, '');
     const identity = JSON.stringify([input.taskId, normalizedPath, input.startLine, input.endLine]);
-    const contentHash = createHash('sha256').update(input.content, 'utf-8').digest('hex');
+    const contentHash = input.contentHash ?? createHash('sha256').update(input.content, 'utf-8').digest('hex');
     const key = JSON.stringify([input.taskId, normalizedPath, input.startLine, input.endLine, contentHash]);
     const now = Date.now();
 
@@ -61,7 +62,7 @@ export class FragmentDeduplicationCache {
       this.entries.delete(key);
       this.entries.set(key, { ...cached, expiresAt: now + this.ttlMs });
       this.latestKeys.set(identity, key);
-      return { content: cached.content, contentHash, cacheHit: true };
+      return { content: input.content, contentHash, cacheHit: true };
     }
 
     this.entries.set(key, {

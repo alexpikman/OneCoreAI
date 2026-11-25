@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   listProjectFiles,
   readProjectFile,
@@ -270,6 +271,7 @@ async function executeTool(
       startLine: fragment.startLine,
       endLine: fragment.endLine,
       content: boundedContent,
+      contentHash: createHash('sha256').update(fragment.content, 'utf-8').digest('hex'),
     });
     if (contextBudget) contextBudget.remainingChars -= cachedFragment.content.length;
     return {

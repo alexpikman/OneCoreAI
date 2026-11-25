@@ -463,6 +463,7 @@ export function searchProjectCode(
 ): Array<{ path: string; line: number; text: string }> {
   const q = query.trim();
   if (!q) return [];
+  if (signal?.aborted) throw new Error('Поиск файлов отменён.');
   assertProjectToolAllowed(projectId, 'search_code');
   const files = listProjectFiles(projectId, 250);
   const matches: Array<{ path: string; line: number; text: string }> = [];
