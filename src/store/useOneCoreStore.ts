@@ -2292,7 +2292,9 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
       }
     }
 
-    const activeRole = state.roles.find((r) => r.id === state.activeRoleId) ?? state.roles[0];
+    const activeRole = state.enabledRoleIds.length === 0
+      ? { ...(state.roles.find((r) => r.id === state.activeRoleId) ?? state.roles[0]), id: 'general-agent', name: 'Общий агент' }
+      : state.roles.find((r) => r.id === state.activeRoleId) ?? state.roles[0];
     const enabledRoles = state.roles.filter((role) => state.enabledRoleIds.includes(role.id));
     const localModel = state.localModels.find((m) => m.id === state.activeModelId);
     const activeProvider =
