@@ -3982,7 +3982,7 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
     }
 
     workerPrompt = request.messages?.find((message) => message.role === 'user')?.content ?? '';
-    const handoffMatch = workerPrompt.match(/Handoff \\(JSON\\):\n([\\s\\S]*?)\n\nВЕРНИ СТРОГО/);
+    const handoffMatch = workerPrompt.match(/Handoff \(JSON\):\n([\s\S]*?)\n\nВЕРНИ СТРОГО/);
     assert.ok(handoffMatch, 'Worker prompt must contain the serialized handoff');
     const handoff = JSON.parse(handoffMatch[1]) as { taskId: string; operationId: string };
     res.end(JSON.stringify({
