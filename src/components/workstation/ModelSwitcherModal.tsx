@@ -66,6 +66,7 @@ export const ModelSwitcherModal: React.FC = () => {
     setChecksFinished(false);
     setLlamaChecks(null);
     setCheckSteps(initialSteps);
+    let discoveredChecks: LlamaServerChecks | null = null;
     const updateStep = (index: number, patch: Partial<LlamaCheckStep>) => {
       setCheckSteps((current) => current.map((step, stepIndex) =>
         stepIndex === index ? { ...step, ...patch } : step,
@@ -73,6 +74,7 @@ export const ModelSwitcherModal: React.FC = () => {
     };
 
     try {
+      await refreshLocalModels();
       updateStep(0, { state: 'checking' });
       const initialResponse = await apiFetch('/api/models/llama-cpp/status');
       const initialStatus = await initialResponse.json() as { ok?: boolean; status?: string; error?: string };
@@ -91,14 +93,22 @@ export const ModelSwitcherModal: React.FC = () => {
         error?: string;
       };
       if (!checksResponse.ok || !checks.ok) throw new Error(checks.error || 'Не удалось выполнить поиск системных файлов llama-server.');
-      const executableFound = Boolean(checks.executablePath && checks.installed);
+      const installed = checks.installed === true;
+      discoveredChecks = {
+        downloaded: checks.downloaded === true,
+        installed,
+        running: checks.running === true || initialStatus.status === 'ready',
+        version: checks.version ?? null,
+        executablePath: checks.executablePath ?? null,
+      };
+      setLlamaChecks(discoveredChecks);
+      const executableFound = Boolean(checks.executablePath && installed);
       updateStep(1, {
         state: executableFound ? 'success' : 'error',
         detail: executableFound ? checks.executablePath ?? undefined : 'Исполняемый файл llama-server не найден.',
       });
 
       updateStep(2, { state: 'checking' });
-      const installed = checks.installed === true;
       updateStep(2, {
         state: installed ? 'success' : 'error',
         detail: installed ? checks.version || 'Компоненты llama-server установлены.' : 'Установленные компоненты llama-server не обнаружены.',
@@ -153,6 +163,9 @@ export const ModelSwitcherModal: React.FC = () => {
       if (running) await refreshLlamaCppStatus();
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Не удалось проверить llama-server.';
+      setLlamaChecks(discoveredChecks
+        ? { ...discoveredChecks, running: false }
+        : { downloaded: false, installed: false, running: false, version: null, executablePath: null });
       setError(message);
       setCheckSteps((current) => current.map((step) =>
         step.state === 'checking' ? { ...step, state: 'error', detail: message } : step,
@@ -166,7 +179,6 @@ export const ModelSwitcherModal: React.FC = () => {
     const show = () => {
       setOpen(true);
       setError('');
-      void refreshLocalModels();
       const connected = useOneCoreStore.getState().freeProviders.filter(
         (provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false && provider.status === 'connected',
       );
