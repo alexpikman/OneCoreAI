@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, BookOpen, Loader2, Search, ShieldCheck, Users } from 'lucide-react';
 import { MarkdownLite } from '../../components/agent/MarkdownLite';
+import { apiFetch } from '../../utils/apiFetch';
 
 type KnowledgeDocument = {
   id: string;
@@ -62,7 +63,7 @@ export const SubAgentsRegistryPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/agents/registry', {
+        const response = await apiFetch('/api/agents/registry', {
           signal: controller.signal,
           headers: { Accept: 'application/json' },
         });
