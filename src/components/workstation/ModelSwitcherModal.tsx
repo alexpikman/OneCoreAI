@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Check, CheckCircle2, Circle, Download, Loader2, PackageCheck, PlayCircle, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Circle, Cloud, Cpu, Loader2, Server, X } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { FreeProviderProfile, LocalModel } from '../../types/onecore';
 import { apiFetch } from '../../utils/apiFetch';
@@ -40,8 +40,13 @@ export const ModelSwitcherModal: React.FC = () => {
     setModelCategory,
     saveSettings,
     refreshLlamaCppStatus,
+    roles,
+    activeRoleId,
+    enabledRoleIds,
+    setActiveRole,
   } = useOneCoreStore();
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState<'local' | 'cloud' | 'role'>('local');
   const [selectedKey, setSelectedKey] = useState('');
   const [expandedProviderId, setExpandedProviderId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -182,10 +187,12 @@ export const ModelSwitcherModal: React.FC = () => {
     const show = () => {
       setOpen(true);
       setError('');
-      const connected = useOneCoreStore.getState().freeProviders.filter(
-        (provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false && provider.status === 'connected',
+      setPage('local');
+      const providersToCheck = useOneCoreStore.getState().freeProviders.filter(
+        (provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false
+          && (provider.isLocal || provider.status === 'connected'),
       );
-      void Promise.all(connected.map((provider) => fetchProviderModels(provider.id)));
+      void Promise.all(providersToCheck.map((provider) => fetchProviderModels(provider.id)));
       void inspectLlamaServer();
     };
     window.addEventListener('onecore:open-model-switcher', show);
@@ -200,7 +207,7 @@ export const ModelSwitcherModal: React.FC = () => {
       label: model.name || model.filename,
     }));
     const providers: ModelChoice[] = freeProviders
-      .filter((provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false && provider.status === 'connected')
+      .filter((provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false)
       .flatMap((provider) => provider.availableModels.map((modelName) => ({
         key: `provider:${provider.id}:${modelName}`,
         kind: 'provider' as const,
@@ -213,15 +220,24 @@ export const ModelSwitcherModal: React.FC = () => {
 
   const providerGroups = useMemo(() => {
     const groups = new Map<string, { id: string; name: string; choices: ModelChoice[] }>();
+    freeProviders.filter((provider) => provider.enabled !== false).forEach((provider) => {
+      const id = provider.kind === 'llama-cpp' ? 'llama-cpp' : provider.id;
+      const label = provider.kind === 'llama-cpp' ? 'llama.cpp'
+        : provider.kind === 'ollama' ? 'Ollama'
+          : provider.kind === 'lmstudio' ? 'LM Studio' : provider.name;
+      groups.set(id, {
+        id,
+        name: `${provider.isLocal ? 'Локальные модели' : 'Облачные модели'} · ${label}`,
+        choices: [],
+      });
+    });
     choices.forEach((choice) => {
       const id = choice.kind === 'gguf' ? 'llama-cpp' : choice.provider.id;
-      const name = choice.kind === 'gguf' ? 'Локальные модели · llama.cpp' : choice.provider.name;
-      const group = groups.get(id) ?? { id, name, choices: [] };
-      group.choices.push(choice);
-      groups.set(id, group);
+      const group = groups.get(id);
+      if (group) group.choices.push(choice);
     });
     return Array.from(groups.values());
-  }, [choices]);
+  }, [choices, freeProviders]);
 
   useEffect(() => {
     if (!open) return;
@@ -355,133 +371,135 @@ export const ModelSwitcherModal: React.FC = () => {
     }
   };
 
+  const localGroups = providerGroups.filter((group) =>
+    group.id === 'llama-cpp' || freeProviders.find((provider) => provider.id === group.id)?.isLocal,
+  );
+  const cloudGroups = providerGroups.filter((group) =>
+    group.id !== 'llama-cpp' && !freeProviders.find((provider) => provider.id === group.id)?.isLocal,
+  );
+  const ollamaProvider = freeProviders.find((provider) => provider.kind === 'ollama');
+  const lmStudioProvider = freeProviders.find((provider) => provider.kind === 'lmstudio');
+  const currentRoleName = enabledRoleIds.length === 0
+    ? 'Общий агент'
+    : roles.find((role) => role.id === activeRoleId)?.name ?? 'Общий агент';
+  const renderProviderGroups = (groups: typeof providerGroups) => groups.length ? groups.map((group) => {
+    const expanded = expandedProviderId === group.id;
+    const groupHasSelection = group.choices.some((choice) => choice.key === selectedKey);
+    const groupHasActive = group.choices.some((choice) => choice.kind === 'gguf'
+      ? choice.model.id === activeModelId && activeProviderId === 'prov-llama-cpp'
+      : choice.provider.id === activeProviderId && choice.modelName === choice.provider.selectedModel);
+    return (
+      <section key={group.id} className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <button type="button" disabled={busy} aria-expanded={expanded} onClick={() => setExpandedProviderId(expanded ? '' : group.id)} className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">{group.name}</span>
+            <span className="mt-0.5 block text-[10px] text-zinc-500 dark:text-zinc-400">{group.choices.length} моделей</span>
+          </span>
+          {groupHasActive && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активен</span>}
+          {groupHasSelection && !groupHasActive && <span className="text-[10px] text-blue-600 dark:text-blue-400">Выбрано</span>}
+          <span className="text-zinc-400"><span className={`inline-block transition-transform ${expanded ? 'rotate-180' : ''}`}>⌄</span></span>
+        </button>
+        {expanded && <div className="space-y-1 border-t border-zinc-200 p-2 dark:border-zinc-800">
+          {group.choices.length === 0
+            ? <p className="px-2 py-3 text-[10px] text-zinc-500 dark:text-zinc-400">Модели не обнаружены. Проверьте подключение провайдера.</p>
+            : group.choices.map((choice) => {
+              const selected = selectedKey === choice.key;
+              const active = choice.kind === 'gguf'
+                ? choice.model.id === activeModelId && activeProviderId === 'prov-llama-cpp'
+                : choice.provider.id === activeProviderId && choice.modelName === choice.provider.selectedModel;
+              return <button key={choice.key} type="button" disabled={busy} onClick={() => setSelectedKey(choice.key)} className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${selected ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60'}`}>
+                <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-300 dark:border-zinc-600'}`}>{selected && <Check className="h-3 w-3" />}</span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">{choice.label}</span>
+                {active && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активна</span>}
+              </button>;
+            })}
+        </div>}
+      </section>
+    );
+  }) : <p className="px-3 py-8 text-center text-xs text-zinc-500 dark:text-zinc-400">Нет доступных моделей у этого типа провайдеров.</p>;
+
+  const providerStatusButton = (provider: FreeProviderProfile | undefined, label: string) => {
+    if (!provider) return null;
+    const connected = provider.status === 'connected';
+    const checking = provider.status === 'checking';
+    return (
+      <button key={provider.id} type="button" onClick={() => void fetchProviderModels(provider.id)} disabled={checking || busy} title={provider.lastCheckMessage || provider.name} className={`rounded-lg border px-3 py-1.5 text-[10px] font-semibold transition disabled:opacity-60 ${connected ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400' : 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-400'}`}>
+        {label}: {checking ? 'ПРОВЕРКА' : connected ? 'ONLINE' : 'OFFLINE'}
+      </button>
+    );
+  };
+
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="model-switcher-title" className="flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-[#12161d]">
-        <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <h2 id="model-switcher-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Выбор модели</h2>
-          <button type="button" onClick={close} disabled={busy} aria-label="Закрыть" className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"><X className="h-4 w-4" /></button>
-        </header>
-        <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
-            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-              {checksFinished ? 'Проверка завершена' : 'Выполняется проверка…'}
-            </span>
+        <header className="border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center justify-between gap-3 px-5 py-3">
+            <h2 id="model-switcher-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Параметры основного Агента «OneCoreAI»</h2>
+            <button type="button" onClick={close} disabled={busy} aria-label="Закрыть" className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"><X className="h-4 w-4" /></button>
           </div>
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            {([
-              { key: 'downloaded', label: 'СКАЧАН', Icon: Download },
-              { key: 'installed', label: 'УСТАНОВЛЕН', Icon: PackageCheck },
-              { key: 'running', label: 'ЗАПУЩЕН', Icon: PlayCircle },
-            ] as const).map(({ key, label, Icon }) => {
-              const value = llamaChecks?.[key];
-              const checking = checkSteps.some((step) => step.state === 'checking');
-              const stateClass = value === true
-                ? 'text-emerald-600 drop-shadow-[0_0_7px_rgba(16,185,129,0.55)] dark:text-emerald-400'
-                : value === false
-                  ? 'text-rose-600 dark:text-rose-400'
-                  : checking
-                    ? 'animate-pulse text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.65)]'
-                    : 'text-zinc-300 opacity-60 dark:text-zinc-600';
-              return (
-                <div key={key} className="flex flex-col items-center gap-1 rounded-lg bg-zinc-50 px-2 py-2 dark:bg-zinc-900/70">
-                  <span className="text-[9px] font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
-                  <Icon className={`h-5 w-5 transition-colors ${stateClass}`} aria-label={value === true ? `${label}: успешно` : value === false ? `${label}: не выполнено` : `${label}: проверяется`} />
-                </div>
-              );
-            })}
-          </div>
-          <div className="space-y-1.5">
-            {checkSteps.map((step, index) => {
-              const StepIcon = step.state === 'success' ? CheckCircle2
-                : step.state === 'error' ? AlertCircle
-                  : step.state === 'checking' ? Loader2 : Circle;
-              return (
-                <div key={index} className="flex items-start gap-2 text-[10px]">
-                  <span className="min-w-0 flex-1 text-zinc-600 dark:text-zinc-400">{step.label}</span>
-                  <StepIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
-                    step.state === 'success' ? 'text-emerald-600 dark:text-emerald-400'
-                      : step.state === 'error' ? 'text-rose-600 dark:text-rose-400'
-                        : step.state === 'checking' ? 'animate-spin text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.7)]'
-                          : 'text-zinc-300 dark:text-zinc-600'
-                  }`} />
-                </div>
-              );
-            })}
-          </div>
-          {llamaChecks?.version && (
-            <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>
-              {llamaChecks.version} · {llamaChecks.executablePath}
-            </p>
-          )}
-        </div>
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-          {!checksFinished ? (
-            <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Определение доступных моделей…
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+            <div className="flex items-center gap-2" aria-label="Состояние runtime">
+              <span title="llama-server" className={llamaChecks?.running ? 'text-emerald-500' : checksFinished ? 'text-rose-500' : 'animate-pulse text-amber-500'}><Server className="h-4 w-4" /></span>
+              <span title="Ollama" className={ollamaProvider?.status === 'connected' ? 'text-emerald-500' : ollamaProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cpu className="h-4 w-4" /></span>
+              <span title="LM Studio" className={lmStudioProvider?.status === 'connected' ? 'text-emerald-500' : lmStudioProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cloud className="h-4 w-4" /></span>
             </div>
-          ) : providerGroups.length ? providerGroups.map((group) => {
-            const expanded = expandedProviderId === group.id;
-            const groupHasSelection = group.choices.some((choice) => choice.key === selectedKey);
-            const groupHasActive = group.choices.some((choice) => choice.kind === 'gguf'
-              ? choice.model.id === activeModelId && activeProviderId === 'prov-llama-cpp'
-              : choice.provider.id === activeProviderId && choice.modelName === choice.provider.selectedModel);
-            return (
-              <section key={group.id} className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
-                <button
-                  type="button"
-                  disabled={busy}
-                  aria-expanded={expanded}
-                  onClick={() => setExpandedProviderId(expanded ? '' : group.id)}
-                  className="flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-zinc-900 dark:text-zinc-100">{group.name}</span>
-                    <span className="mt-0.5 block text-[10px] text-zinc-500 dark:text-zinc-400">{group.choices.length} моделей</span>
-                  </span>
-                  {groupHasActive && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активен</span>}
-                  {groupHasSelection && !groupHasActive && <span className="text-[10px] text-blue-600 dark:text-blue-400">Выбрано</span>}
-                  <span className="text-zinc-400"><span className={`inline-block transition-transform ${expanded ? 'rotate-180' : ''}`}>⌄</span></span>
-                </button>
-                {expanded && (
-                  <div className="space-y-1 border-t border-zinc-200 p-2 dark:border-zinc-800">
-                    {group.choices.map((choice) => {
-                      const selected = selectedKey === choice.key;
-                      const active = choice.kind === 'gguf'
-                        ? choice.model.id === activeModelId && activeProviderId === 'prov-llama-cpp'
-                        : choice.provider.id === activeProviderId && choice.modelName === choice.provider.selectedModel;
-                      return (
-                        <button
-                          key={choice.key}
-                          type="button"
-                          disabled={busy}
-                          onClick={() => setSelectedKey(choice.key)}
-                          className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition ${selected ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-transparent hover:bg-zinc-50 dark:hover:bg-zinc-800/60'}`}
-                        >
-                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selected ? 'border-blue-500 bg-blue-500 text-white' : 'border-zinc-300 dark:border-zinc-600'}`}>{selected && <Check className="h-3 w-3" />}</span>
-                          <span className="min-w-0 flex-1 truncate text-xs font-medium text-zinc-900 dark:text-zinc-100">{choice.label}</span>
-                          {active && <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">Активна</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-            );
-          }) : <p className="px-3 py-8 text-center text-xs text-zinc-500">Нет доступных моделей. Подключите провайдера или добавьте GGUF-файл.</p>}
-        </div>
-        {error && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
-        <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+            <nav className="flex items-center gap-1" aria-label="Разделы выбора модели">
+              {([{ id: 'local', label: 'Локальные модели' }, { id: 'cloud', label: 'Облачные модели' }, { id: 'role', label: 'Роль агента' }] as const).map((item) => (
+                <button key={item.id} type="button" onClick={() => setPage(item.id)} className={`rounded-lg px-3 py-2 text-[10px] font-semibold transition-colors ${page === item.id ? 'bg-blue-600 text-white' : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100'}`}>{item.label}</button>
+              ))}
+            </nav>
+          </div>
+        </header>
+
+        {page === 'local' && (
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
+            <section className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
+                <span className={`text-[10px] font-bold ${checksFinished && llamaChecks?.running ? 'text-emerald-600 dark:text-emerald-400' : checksFinished ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500'}`}>{!checksFinished ? 'ПРОВЕРКА…' : llamaChecks?.running ? 'ONLINE' : 'OFFLINE'}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                {checkSteps.map((step, index) => {
+                  const StepIcon = step.state === 'success' ? CheckCircle2 : step.state === 'error' ? AlertCircle : step.state === 'checking' ? Loader2 : Circle;
+                  return <span key={index} title={step.detail || step.label} className="inline-flex items-center gap-1 text-[10px] text-zinc-600 dark:text-zinc-400"><StepIcon className={`h-3 w-3 ${step.state === 'success' ? 'text-emerald-500' : step.state === 'error' ? 'text-rose-500' : step.state === 'checking' ? 'animate-spin text-amber-500' : 'text-zinc-400'}`} />{step.label.replace(/…$/, '')}</span>;
+                })}
+              </div>
+              {!llamaChecks?.running && checksFinished && <p className="mt-2 text-[10px] text-rose-600 dark:text-rose-400">{error || checkSteps.find((step) => step.state === 'error')?.detail || 'llama-server не запущен.'}</p>}
+              {llamaChecks?.version && <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>{llamaChecks.version} · {llamaChecks.executablePath}</p>}
+            </section>
+            <div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, 'Ollama')}{providerStatusButton(lmStudioProvider, 'LM Studio')}</div>
+            {!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderProviderGroups(localGroups)}
+          </div>
+        )}
+
+        {page === 'cloud' && <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{renderProviderGroups(cloudGroups)}</div>}
+
+        {page === 'role' && (
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+            <button type="button" onClick={() => setActiveRole('general-agent')} className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${enabledRoleIds.length === 0 ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60'}`}>
+              <span><span className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">Общий агент</span><span className="mt-0.5 block text-[10px] text-zinc-500 dark:text-zinc-400">Универсальный режим OneCoreAI</span></span>
+              {enabledRoleIds.length === 0 && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+            </button>
+            {roles.map((role) => {
+              const active = enabledRoleIds.includes(role.id);
+              return <button key={role.id} type="button" onClick={() => setActiveRole(role.id)} className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${active ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60'}`}>
+                <span className="min-w-0"><span className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">{role.name}</span><span className="mt-0.5 block truncate text-[10px] text-zinc-500 dark:text-zinc-400">{role.tagline}</span></span>
+                {active && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+              </button>;
+            })}
+            <p className="px-1 pt-1 text-[10px] text-zinc-500 dark:text-zinc-400">Текущая роль: {currentRoleName}</p>
+          </div>
+        )}
+
+        {error && page !== 'local' && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
+        {page !== 'role' && <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <span className="min-w-0 truncate text-[11px] text-zinc-500 dark:text-zinc-400">{busy ? stage : 'Выберите модель из доступного списка'}</span>
-          <button type="button" onClick={() => void connect()} disabled={busy || !selectedKey} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-bold tracking-[0.12em] text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-55">
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {busy ? 'ПОДКЛЮЧЕНИЕ…' : 'ПОДКЛЮЧИТЬ МОДЕЛЬ'}
+          <button type="button" onClick={() => void connect()} disabled={busy || !selectedKey || (page === 'local' ? !localGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)) : !cloudGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)))} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-bold tracking-[0.12em] text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-55">
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{busy ? 'ПОДКЛЮЧЕНИЕ…' : 'ПОДКЛЮЧИТЬ МОДЕЛЬ'}
           </button>
-        </footer>
+        </footer>}
       </section>
     </div>
   );
