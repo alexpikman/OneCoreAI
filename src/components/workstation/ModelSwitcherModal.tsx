@@ -441,9 +441,9 @@ export const ModelSwitcherModal: React.FC = () => {
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
             <div className="flex items-center gap-2" aria-label="Состояние runtime">
-              <span title="llama-server" className={llamaChecks?.running ? 'text-emerald-500' : checksFinished ? 'text-rose-500' : 'animate-pulse text-amber-500'}><Server className="h-4 w-4" /></span>
-              <span title="Ollama" className={ollamaProvider?.status === 'connected' ? 'text-emerald-500' : ollamaProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cpu className="h-4 w-4" /></span>
-              <span title="LM Studio" className={lmStudioProvider?.status === 'connected' ? 'text-emerald-500' : lmStudioProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cloud className="h-4 w-4" /></span>
+              <span className={llamaChecks?.running ? 'text-emerald-500' : checksFinished ? 'text-rose-500' : 'animate-pulse text-amber-500'}><Server className="h-4 w-4" /></span>
+              <span className={ollamaProvider?.status === 'connected' ? 'text-emerald-500' : ollamaProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cpu className="h-4 w-4" /></span>
+              <span className={lmStudioProvider?.status === 'connected' ? 'text-emerald-500' : lmStudioProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cloud className="h-4 w-4" /></span>
             </div>
             <nav className="flex items-center gap-1" aria-label="Разделы выбора модели">
               {([{ id: 'local', label: 'Локальные модели' }, { id: 'cloud', label: 'Облачные модели' }, { id: 'role', label: 'Роль агента' }] as const).map((item) => (
@@ -460,13 +460,13 @@ export const ModelSwitcherModal: React.FC = () => {
                 <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
                 <span className={`text-[10px] font-bold ${checksFinished && llamaChecks?.running ? 'text-emerald-600 dark:text-emerald-400' : checksFinished ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500'}`}>{!checksFinished ? 'ПРОВЕРКА…' : llamaChecks?.running ? 'ONLINE' : 'OFFLINE'}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex items-center gap-x-3 overflow-x-auto whitespace-nowrap">
                 {checkSteps.map((step, index) => {
                   const StepIcon = step.state === 'success' ? CheckCircle2 : step.state === 'error' ? AlertCircle : step.state === 'checking' ? Loader2 : Circle;
                   return <span key={index} title={step.detail || step.label} className="inline-flex items-center gap-1 text-[10px] text-zinc-600 dark:text-zinc-400"><StepIcon className={`h-3 w-3 ${step.state === 'success' ? 'text-emerald-500' : step.state === 'error' ? 'text-rose-500' : step.state === 'checking' ? 'animate-spin text-amber-500' : 'text-zinc-400'}`} />{step.label.replace(/…$/, '')}</span>;
                 })}
               </div>
-              {!llamaChecks?.running && checksFinished && <p className="mt-2 text-[10px] text-rose-600 dark:text-rose-400">{error || checkSteps.find((step) => step.state === 'error')?.detail || 'llama-server не запущен.'}</p>}
+              {!llamaChecks?.running && checksFinished && <p className="mt-2 text-[10px] text-rose-600 dark:text-rose-400">{checkSteps.find((step) => step.state === 'error')?.detail || 'llama-server не запущен.'}</p>}
               {llamaChecks?.version && <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>{llamaChecks.version} · {llamaChecks.executablePath}</p>}
             </section>
             <div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, 'Ollama')}{providerStatusButton(lmStudioProvider, 'LM Studio')}</div>
@@ -493,7 +493,7 @@ export const ModelSwitcherModal: React.FC = () => {
           </div>
         )}
 
-        {error && page !== 'local' && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
+        {error && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
         {page !== 'role' && <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <span className="min-w-0 truncate text-[11px] text-zinc-500 dark:text-zinc-400">{busy ? stage : 'Выберите модель из доступного списка'}</span>
           <button type="button" onClick={() => void connect()} disabled={busy || !selectedKey || (page === 'local' ? !localGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)) : !cloudGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)))} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-bold tracking-[0.12em] text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-55">
