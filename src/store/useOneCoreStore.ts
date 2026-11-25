@@ -98,6 +98,7 @@ import type {
   SubagentRun,
   TrayNotification,
   UiStylePreset,
+  DebugStepRecord,
 } from '../types/onecore';
 import { fetchLatestRelease } from '../utils/appUpdates';
 import { DEFAULT_NAVIGATION_VISIBILITY } from '../data/navigationVisibility';
@@ -205,6 +206,11 @@ interface OneCoreStore {
   refreshChatHistory: () => Promise<void>;
   saveChatHistory: () => Promise<{ ok: boolean; error?: string }>;
   agentMode: AgentMode;
+  debugMode: boolean;
+  debugSteps: DebugStepRecord[];
+  toggleDebugMode: () => void;
+  addDebugStep: (step: Omit<DebugStepRecord, 'id' | 'timestamp'>) => void;
+  clearDebugSteps: () => void;
   centerPaneMode: 'chat' | 'file';
 
   roles: ModelRole[];
@@ -632,6 +638,8 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   chatHistoryLoaded: false,
   chatHistoryError: null,
   agentMode: 'act',
+  debugMode: false,
+  debugSteps: [],
   centerPaneMode: 'chat',
 
   roles: INITIAL_ROLES,
@@ -1760,6 +1768,25 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         s.id === state.activeSessionId ? { ...s, mode } : s,
       ),
     })),
+
+  toggleDebugMode: () =>
+    set((state) => ({
+      debugMode: !state.debugMode,
+    })),
+
+  addDebugStep: (step) =>
+    set((state) => ({
+      debugSteps: [
+        {
+          ...step,
+          id: `debug-step-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          timestamp: new Date().toISOString(),
+        },
+        ...state.debugSteps,
+      ].slice(0, 100),
+    })),
+
+  clearDebugSteps: () => set({ debugSteps: [] }),
 
   toggleAgentRole: (roleId) => {
     const current = get();

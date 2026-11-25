@@ -43,6 +43,7 @@ import { DashboardPage } from './pages/workspace/DashboardPage';
 import { NotesPage } from './pages/workspace/NotesPage';
 import { TerminalPage } from './pages/workspace/TerminalPage';
 import { WorkstationPage } from './pages/workspace/WorkstationPage';
+import { DebugFlowPage } from './pages/context/DebugFlowPage';
 import { useOneCoreStore } from './store/useOneCoreStore';
 import { cn } from './utils/cn';
 import { getUiTokens } from './utils/uiStyle';
@@ -203,6 +204,8 @@ export default function App() {
         return <DashboardPage />;
       case 'workstation':
         return <WorkstationPage />;
+      case 'debug-flow':
+        return <DebugFlowPage />;
       case 'terminal':
         return <TerminalPage />;
       case 'browser':

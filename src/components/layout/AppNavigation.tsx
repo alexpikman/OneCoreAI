@@ -40,6 +40,8 @@ export const AppNavigation: React.FC = () => {
     setSshGithubSection,
     agentMode,
     setAgentMode,
+    debugMode,
+    toggleDebugMode,
     roles,
     activeRoleId,
     enabledRoleIds,
@@ -465,9 +467,10 @@ export const AppNavigation: React.FC = () => {
           )}
         </div>
 
-        {/* PLAN / ACT Switch (pinned at bottom) */}
-        <div className="mt-auto shrink-0 border-t border-zinc-200 pt-2.5 dark:border-zinc-800">
-          <div className="flex items-center gap-1.5">
+        {/* PLAN/ACT & DEBUG/PROD 50/50 Split Switches (pinned at bottom) */}
+        <div className="mt-auto shrink-0 border-t border-zinc-200 pt-2.5 px-2 pb-2 dark:border-zinc-800 space-y-2">
+          <div className="grid grid-cols-2 gap-1.5">
+            {/* PLAN / ACT Switch */}
             {showNav('nav.mode-switch') && (
               <button
                 type="button"
@@ -476,28 +479,50 @@ export const AppNavigation: React.FC = () => {
                 aria-pressed={agentMode === 'act'}
                 title="Переключить режим ACT / PLAN"
                 className={cn(
-                  'relative inline-flex h-9 min-w-0 flex-1 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950',
+                  'relative inline-flex h-8 min-w-0 w-full items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70',
                   agentMode === 'act' ? 'border-blue-500/40 bg-blue-500/10' : 'border-amber-500/40 bg-amber-500/10',
                 )}
               >
                 <span
                   className={cn(
-                    'absolute h-6 w-[calc(50%-4px)] rounded-full shadow-sm transition-transform',
-                    agentMode === 'act' ? 'translate-x-[calc(100%+4px)] bg-blue-600' : 'translate-x-1 bg-amber-500',
+                    'absolute h-5 w-[calc(50%-3px)] rounded-full shadow-sm transition-transform',
+                    agentMode === 'act' ? 'translate-x-[calc(100%+2px)] bg-blue-600' : 'translate-x-0.5 bg-amber-500',
                   )}
                 />
-                {showNav('nav.mode-switch.label') && (
-                  <>
-                    <span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'plan' ? 'text-white' : 'text-zinc-500')}>
-                      P<span className={mobileExpanded ? 'inline' : 'hidden lg:inline'}>LAN</span>
-                    </span>
-                    <span className={cn('relative z-10 w-1/2 text-[9px] font-bold', agentMode === 'act' ? 'text-white' : 'text-zinc-500')}>
-                      A<span className={mobileExpanded ? 'inline' : 'hidden lg:inline'}>CT</span>
-                    </span>
-                  </>
-                )}
+                <span className={cn('relative z-10 w-1/2 text-[8px] font-bold text-center', agentMode === 'plan' ? 'text-white' : 'text-zinc-500')}>
+                  PLAN
+                </span>
+                <span className={cn('relative z-10 w-1/2 text-[8px] font-bold text-center', agentMode === 'act' ? 'text-white' : 'text-zinc-500')}>
+                  ACT
+                </span>
               </button>
             )}
+
+            {/* DEBUG / PROD Switch */}
+            <button
+              type="button"
+              onClick={toggleDebugMode}
+              aria-label={`Режим отладки ${debugMode ? 'DEBUG' : 'PROD'}. Переключить`}
+              aria-pressed={debugMode}
+              title="Переключить режим DEBUG / PROD"
+              className={cn(
+                'relative inline-flex h-8 min-w-0 w-full items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/70',
+                debugMode ? 'border-purple-500/40 bg-purple-500/10' : 'border-emerald-500/40 bg-emerald-500/10',
+              )}
+            >
+              <span
+                className={cn(
+                  'absolute h-5 w-[calc(50%-3px)] rounded-full shadow-sm transition-transform',
+                  debugMode ? 'translate-x-[calc(100%+2px)] bg-purple-600' : 'translate-x-0.5 bg-emerald-600',
+                )}
+              />
+              <span className={cn('relative z-10 w-1/2 text-[8px] font-bold text-center', !debugMode ? 'text-white' : 'text-zinc-500')}>
+                PROD
+              </span>
+              <span className={cn('relative z-10 w-1/2 text-[8px] font-bold text-center', debugMode ? 'text-white' : 'text-zinc-500')}>
+                DEBUG
+              </span>
+            </button>
           </div>
         </div>
       </aside>

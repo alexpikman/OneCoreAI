@@ -86,6 +86,7 @@ const NAVIGATION_COMPONENT_IDS: Record<string, string> = {
   memory: 'page.memory',
   'tasks-history': 'page.tasks-history',
   'agent-history': 'page.agent-history',
+  'debug-flow': 'page.debug-flow',
 };
 
 export const BUILTIN_NAVIGATION_ICON_IDS: readonly string[] = Array.from(new Set(

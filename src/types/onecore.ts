@@ -25,7 +25,21 @@ export type AppTab =
   | 'hooks'
   | 'tools-hooks'
   | 'permissions'
-  | 'security';
+  | 'security'
+  | 'debug-flow';
+
+export interface DebugStepRecord {
+  id: string;
+  timestamp: string;
+  stepNumber: number;
+  title: string;
+  sender: string;
+  receiver: string;
+  guidanceOrRule: string;
+  payload: Record<string, unknown>;
+  result?: Record<string, unknown>;
+  status: 'pending' | 'active' | 'completed' | 'paused' | 'failed';
+}
 
 export type AgentJournalCategory =
   | 'agent'
