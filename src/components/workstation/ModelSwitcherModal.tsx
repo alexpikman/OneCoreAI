@@ -47,7 +47,7 @@ export const ModelSwitcherModal: React.FC = () => {
     setActiveRole,
   } = useOneCoreStore();
   const [open, setOpen] = useState(false);
-  const [page, setPage] = useState<'local' | 'cloud' | 'role'>('local');
+  const [page, setPage] = useState<'llama' | 'ollama' | 'lmstudio' | 'cloud'>('llama');
   const [selectedKey, setSelectedKey] = useState('');
   const [expandedProviderId, setExpandedProviderId] = useState('');
   const [busy, setBusy] = useState(false);
@@ -188,7 +188,7 @@ export const ModelSwitcherModal: React.FC = () => {
     const show = () => {
       setOpen(true);
       setError('');
-      setPage('local');
+      setPage('llama');
       const providersToCheck = useOneCoreStore.getState().freeProviders.filter(
         (provider) => provider.kind !== 'llama-cpp' && provider.enabled !== false
           && (provider.isLocal || provider.status === 'connected'),
@@ -372,17 +372,18 @@ export const ModelSwitcherModal: React.FC = () => {
     }
   };
 
-  const localGroups = providerGroups.filter((group) =>
-    group.id === 'llama-cpp' || freeProviders.find((provider) => provider.id === group.id)?.isLocal,
-  );
   const cloudGroups = providerGroups.filter((group) =>
     group.id !== 'llama-cpp' && !freeProviders.find((provider) => provider.id === group.id)?.isLocal,
   );
   const ollamaProvider = freeProviders.find((provider) => provider.kind === 'ollama');
   const lmStudioProvider = freeProviders.find((provider) => provider.kind === 'lmstudio');
-  const currentRoleName = enabledRoleIds.length === 0
-    ? 'Общий агент'
-    : roles.find((role) => role.id === activeRoleId)?.name ?? 'Общий агент';
+  const cloudProviders = freeProviders.filter((provider) => provider.kind !== 'llama-cpp' && !provider.isLocal && provider.enabled !== false);
+  const cloudStatus = cloudProviders.some((provider) => provider.status === 'connected') ? 'connected' : cloudProviders.some((provider) => provider.status === 'checking') ? 'checking' : 'error';
+  const llamaGroups = providerGroups.filter((group) => group.id === 'llama-cpp');
+  const ollamaGroups = providerGroups.filter((group) => freeProviders.some((provider) => provider.id === group.id && provider.kind === 'ollama'));
+  const lmStudioGroups = providerGroups.filter((group) => freeProviders.some((provider) => provider.id === group.id && provider.kind === 'lmstudio'));
+  const pageGroups = page === 'llama' ? llamaGroups : page === 'ollama' ? ollamaGroups : page === 'lmstudio' ? lmStudioGroups : cloudGroups;
+  const statusIconClass = (status: 'connected' | 'checking' | 'error') => status === 'connected' ? 'text-emerald-500' : status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500';
   const renderProviderGroups = (groups: typeof providerGroups) => groups.length ? groups.map((group) => {
     const expanded = expandedProviderId === group.id;
     const groupHasSelection = group.choices.some((choice) => choice.key === selectedKey);
@@ -436,29 +437,30 @@ export const ModelSwitcherModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="model-switcher-title" className="flex max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-[#12161d]">
+      <section role="dialog" aria-modal="true" aria-labelledby="model-switcher-title" className="flex h-[80vh] max-h-[80vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-700 dark:bg-[#12161d]">
         <header className="border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center justify-between gap-3 px-5 py-3">
-            <h2 id="model-switcher-title" className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Параметры основного Агента «OneCoreAI»</h2>
+            <div className="min-w-0 flex-1">
+              <h2 id="model-switcher-title" className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Параметры основного Агента «OneCoreAI»</h2>
+              <select aria-label="Роль агента" value={enabledRoleIds.length === 0 ? "general-agent" : activeRoleId} onChange={(event) => setActiveRole(event.target.value)} className="w-full max-w-xs rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-blue-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                <option value="general-agent">Общий агент</option>
+                {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+              </select>
+            </div>
             <button type="button" onClick={close} disabled={busy} aria-label="Закрыть" className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 disabled:opacity-40 dark:hover:bg-zinc-800"><X className="h-4 w-4" /></button>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-            <div className="flex items-center gap-2" aria-label="Состояние runtime">
-              <span className={llamaChecks?.running ? 'text-emerald-500' : checksFinished ? 'text-rose-500' : 'animate-pulse text-amber-500'}><Server className="h-4 w-4" /></span>
-              <span className={ollamaProvider?.status === 'connected' ? 'text-emerald-500' : ollamaProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cpu className="h-4 w-4" /></span>
-              <span className={lmStudioProvider?.status === 'connected' ? 'text-emerald-500' : lmStudioProvider?.status === 'checking' ? 'animate-pulse text-amber-500' : 'text-rose-500'}><Cloud className="h-4 w-4" /></span>
-            </div>
-            <NavigationRibbon
-              ariaLabel="Разделы выбора модели"
-              items={[{ id: 'local', label: 'Локальные модели' }, { id: 'cloud', label: 'Облачные модели' }, { id: 'role', label: 'Роль агента' }]}
-              selectedId={page}
-              onSelect={(id) => setPage(id as typeof page)}
-            />
+          <div className="border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
+            <NavigationRibbon ariaLabel="Разделы выбора модели" items={[
+              { id: "llama", label: "Локальный сервер", icon: <Server className={`h-3.5 w-3.5 ${llamaChecks?.running ? "text-emerald-500" : checksFinished ? "text-rose-500" : "animate-pulse text-amber-500"}`} /> },
+              { id: "ollama", label: "Ollama", icon: <Cpu className={`h-3.5 w-3.5 ${statusIconClass(ollamaProvider?.status === "connected" ? "connected" : ollamaProvider?.status === "checking" ? "checking" : "error")}`} /> },
+              { id: "lmstudio", label: "LM Studio", icon: <Cpu className={`h-3.5 w-3.5 ${statusIconClass(lmStudioProvider?.status === "connected" ? "connected" : lmStudioProvider?.status === "checking" ? "checking" : "error")}`} /> },
+              { id: "cloud", label: "Облачные модели", icon: <Cloud className={`h-3.5 w-3.5 ${statusIconClass(cloudStatus)}`} /> },
+            ]} selectedId={page} onSelect={(id) => setPage(id as typeof page)} />
           </div>
         </header>
-        <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+        {page === 'llama' && <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
+
             <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
               {checksFinished ? 'Проверка завершена' : 'Выполняется проверка…'}
             </span>
@@ -509,41 +511,18 @@ export const ModelSwitcherModal: React.FC = () => {
               {llamaChecks.version} · {llamaChecks.executablePath}
             </p>
           )}
-        </div>
-
-        {page === 'local' && (
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-            <div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, 'Ollama')}{providerStatusButton(lmStudioProvider, 'LM Studio')}</div>
-            {!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderProviderGroups(localGroups)}
-          </div>
-        )}
-
-        {page === 'cloud' && <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{renderProviderGroups(cloudGroups)}</div>}
-
-        {page === 'role' && (
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-            <button type="button" onClick={() => setActiveRole('general-agent')} className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${enabledRoleIds.length === 0 ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60'}`}>
-              <span><span className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">Общий агент</span><span className="mt-0.5 block text-[10px] text-zinc-500 dark:text-zinc-400">Универсальный режим OneCoreAI</span></span>
-              {enabledRoleIds.length === 0 && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-            </button>
-            {roles.map((role) => {
-              const active = enabledRoleIds.includes(role.id);
-              return <button key={role.id} type="button" onClick={() => setActiveRole(role.id)} className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${active ? 'border-blue-400 bg-blue-50 dark:border-blue-500/60 dark:bg-blue-500/10' : 'border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/60'}`}>
-                <span className="min-w-0"><span className="block text-xs font-semibold text-zinc-900 dark:text-zinc-100">{role.name}</span><span className="mt-0.5 block truncate text-[10px] text-zinc-500 dark:text-zinc-400">{role.tagline}</span></span>
-                {active && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
-              </button>;
-            })}
-            <p className="px-1 pt-1 text-[10px] text-zinc-500 dark:text-zinc-400">Текущая роль: {currentRoleName}</p>
-          </div>
-        )}
-
+        </div>}
+        {page === "llama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderProviderGroups(llamaGroups)}</div>}
+        {page === "ollama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"><div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, "Ollama")}</div>{renderProviderGroups(ollamaGroups)}</div>}
+        {page === "lmstudio" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3"><div className="flex flex-wrap items-center gap-2">{providerStatusButton(lmStudioProvider, "LM Studio")}</div>{renderProviderGroups(lmStudioGroups)}</div>}
+        {page === "cloud" && <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">{renderProviderGroups(cloudGroups)}</div>}
         {error && <p role="alert" className="border-t border-rose-200 px-5 py-3 text-xs text-rose-600 dark:border-rose-900/60 dark:text-rose-400">{error}</p>}
-        {page !== 'role' && <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <footer className="flex items-center justify-between gap-3 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
           <span className="min-w-0 truncate text-[11px] text-zinc-500 dark:text-zinc-400">{busy ? stage : 'Выберите модель из доступного списка'}</span>
-          <button type="button" onClick={() => void connect()} disabled={busy || !selectedKey || (page === 'local' ? !localGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)) : !cloudGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey)))} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-bold tracking-[0.12em] text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-55">
+          <button type="button" onClick={() => void connect()} disabled={busy || !selectedKey || !pageGroups.some((group) => group.choices.some((choice) => choice.key === selectedKey))} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-[10px] font-bold tracking-[0.12em] text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-55">
             {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}{busy ? 'ПОДКЛЮЧЕНИЕ…' : 'ПОДКЛЮЧИТЬ МОДЕЛЬ'}
           </button>
-        </footer>}
+        </footer>
       </section>
     </div>
   );
