@@ -235,26 +235,6 @@ export const NAV_GROUPS: NavigationGroup[] = [
         ],
       },
       {
-        id: 'directories',
-        label: 'Справочники',
-        icon: 'clipboard',
-        tab: 'directories',
-        subItems: [
-          { id: 'sub-dir-data', label: 'Данные', tab: 'directories', directoriesSection: 'data' },
-          { id: 'sub-dir-terms', label: 'Термины', tab: 'directories', directoriesSection: 'terms' },
-          { id: 'sub-dir-const', label: 'Константы', tab: 'directories', directoriesSection: 'constants' },
-          { id: 'sub-dir-search', label: 'Поиск', tab: 'directories', directoriesSection: 'search' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'intelligence-library-group',
-    label: 'Intelligence Library',
-    icon: 'workflow',
-    description: 'Канонические спецификации и архитектурные контракты General Agent.',
-    items: [
-      {
         id: 'intelligence-library',
         label: 'Intelligence Library',
         icon: 'workflow',
@@ -268,6 +248,18 @@ export const NAV_GROUPS: NavigationGroup[] = [
           { id: 'sub-intel-rt', label: 'Runtime', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'runtime' },
           { id: 'sub-intel-impl', label: 'Реализация', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'implementation' },
           { id: 'sub-intel-src', label: 'Источники', tab: 'instructions', section: 'intelligence-library', intelligenceSection: 'sources' },
+        ],
+      },
+      {
+        id: 'directories',
+        label: 'Справочники',
+        icon: 'clipboard',
+        tab: 'directories',
+        subItems: [
+          { id: 'sub-dir-data', label: 'Данные', tab: 'directories', directoriesSection: 'data' },
+          { id: 'sub-dir-terms', label: 'Термины', tab: 'directories', directoriesSection: 'terms' },
+          { id: 'sub-dir-const', label: 'Константы', tab: 'directories', directoriesSection: 'constants' },
+          { id: 'sub-dir-search', label: 'Поиск', tab: 'directories', directoriesSection: 'search' },
         ],
       },
     ],
