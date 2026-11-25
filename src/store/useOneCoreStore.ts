@@ -609,7 +609,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
   roles: INITIAL_ROLES,
   generalAgentConfig: INITIAL_GENERAL_AGENT_CONFIG,
   activeRoleId: INITIAL_ROLES[0].id,
-  enabledRoleIds: ['role-developer'],
+  enabledRoleIds: [],
   permissions: INITIAL_PERMISSIONS,
   directives: INITIAL_DIRECTIVES,
   pipelineStages: INITIAL_PIPELINE_STAGES,
@@ -1400,7 +1400,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         roles: saved.roles,
         generalAgentConfig: saved.generalAgentConfig ?? INITIAL_GENERAL_AGENT_CONFIG,
         activeRoleId: saved.activeRoleId,
-        enabledRoleIds: (saved.enabledRoleIds ?? [saved.activeRoleId]).slice(0, 1),
+        enabledRoleIds: [],
         permissions: saved.permissions,
         directives: saved.directives?.some((directive) => directive.id === 'dir-general-agent')
           ? saved.directives
@@ -1744,6 +1744,11 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
     set((state) => ({ generalAgentConfig: { ...state.generalAgentConfig, ...patch } })),
 
   setActiveRole: (roleId, syncTemp = true) => {
+    if (roleId === 'general-agent') {
+      set({ enabledRoleIds: [] });
+      void get().saveSettings();
+      return;
+    }
     const role = get().roles.find((r) => r.id === roleId);
     if (!role) return;
     set((state) => ({
@@ -1754,6 +1759,7 @@ export const useOneCoreStore = create<OneCoreStore>((set, get) => ({
         ? { ...state.inferenceSettings, temperature: role.recommendedTemp }
         : state.inferenceSettings,
     }));
+    void get().saveSettings();
   },
 
   addCustomRole: (role) => {
