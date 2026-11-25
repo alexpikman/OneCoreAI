@@ -193,7 +193,7 @@ export const ModelSwitcherModal: React.FC = () => {
   }, [fetchProviderModels, inspectLlamaServer]);
 
   const choices = useMemo<ModelChoice[]>(() => {
-    const local: ModelChoice[] = localModels.filter(isGguf).map((model) => ({
+    const local: ModelChoice[] = (llamaChecks?.installed || llamaChecks?.running ? localModels.filter(isGguf) : []).map((model) => ({
       key: `gguf:${model.id}`,
       kind: 'gguf',
       model,
@@ -209,7 +209,7 @@ export const ModelSwitcherModal: React.FC = () => {
         label: modelName,
       })));
     return [...local, ...providers];
-  }, [localModels, freeProviders]);
+  }, [localModels, freeProviders, llamaChecks]);
 
   const providerGroups = useMemo(() => {
     const groups = new Map<string, { id: string; name: string; choices: ModelChoice[] }>();
