@@ -233,15 +233,16 @@ export const AppNavigation: React.FC = () => {
         {/* Top Brand + Mascot + Status + AI Settings */}
         <div className="shrink-0 pb-3">
           {showNav('brand.logo') && (showNav('brand.logo.icon') || showNav('brand.logo.label')) && (
-            <div className="flex h-9 items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-2 lg:px-3">
-              {showNav('brand.logo.icon') && (
+            <div className="flex h-9 items-center gap-2 border-b border-zinc-200 dark:border-zinc-800 px-2 lg:px-3 overflow-hidden">
+              <img
+                src="/public/assets/aistudio/OneCoreAI_300px_5d88fd24.png"
+                alt="ONE CORE AI"
+                style={{ width: '250px', height: '30px' }}
+                className={cn('object-contain shrink-0', mobileExpanded ? 'inline' : 'hidden lg:inline')}
+              />
+              <span className={cn('truncate text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100', mobileExpanded ? 'hidden' : 'inline lg:hidden')}>
                 <Bot className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
-              )}
-              {showNav('brand.logo.label') && (
-                <span className={cn('truncate text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100', mobileExpanded ? 'inline' : 'hidden lg:inline')}>
-                  ONE CORE AI
-                </span>
-              )}
+              </span>
             </div>
           )}
           <div className="mt-2 flex min-w-0 items-center gap-2 px-2 pt-1 lg:px-3">

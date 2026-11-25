@@ -285,7 +285,7 @@ export const GeneralAgentInstructionsPage: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={(e) => void handleCreateSubagent(e)} className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-800 dark:bg-zinc-900/40 md:grid-cols-2">
+        <form onSubmit={(e) => void handleCreateSubagent(e)} className="grid grid-cols-1 gap-3 rounded-xl border border-zinc-200 bg-transparent p-4 dark:border-zinc-800 dark:bg-transparent md:grid-cols-2">
           <input
             value={subName}
             onChange={(e) => setSubName(e.target.value)}
