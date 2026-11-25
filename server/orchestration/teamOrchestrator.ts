@@ -181,11 +181,11 @@ export async function runTeamExecution(input: {
   let cancelled = Boolean(input.signal?.aborted);
 
   // Load approved governance documents dynamically from knowledge base
-  const teamProcDoc = safeReadApproved(knowledgeRoot, 'procedure.team-execution');
-  const handoffProtoDoc = safeReadApproved(knowledgeRoot, 'protocol.task-handoff');
-  const resultProtoDoc = safeReadApproved(knowledgeRoot, 'protocol.worker-result');
-  const managerDoc = safeReadApproved(knowledgeRoot, 'role.manager');
-  const dispatcherDoc = safeReadApproved(knowledgeRoot, 'role.dispatcher');
+  const teamProcDoc = cancelled ? null : safeReadApproved(knowledgeRoot, 'procedure.team-execution');
+  const handoffProtoDoc = cancelled ? null : safeReadApproved(knowledgeRoot, 'protocol.task-handoff');
+  const resultProtoDoc = cancelled ? null : safeReadApproved(knowledgeRoot, 'protocol.worker-result');
+  const managerDoc = cancelled ? null : safeReadApproved(knowledgeRoot, 'role.manager');
+  const dispatcherDoc = cancelled ? null : safeReadApproved(knowledgeRoot, 'role.dispatcher');
 
   const procedureRefs: Array<{ id: string; version: string }> = [
     ...(teamProcDoc ? [{ id: teamProcDoc.id, version: teamProcDoc.version }] : []),
@@ -219,7 +219,7 @@ export async function runTeamExecution(input: {
   const canRead = isProjectToolAllowed(projectId, 'read_file');
   const projectFiles = canRead && !cancelled ? listProjectFiles(projectId, 200) : [];
   const rankedFiles = rankFilesForObjective(projectFiles, objective);
-  const workspaceData = getProjectWorkspaceData(projectId);
+  const workspaceData = cancelled ? { tasks: [], plan: null } : getProjectWorkspaceData(projectId);
 
   const initialFilesManifest: AgentHandoffFileEntry[] = [];
   const verifiedReadPaths = new Set<string>();
@@ -599,6 +599,7 @@ export async function runTeamExecution(input: {
             provisionedContext,
             signal: input.signal ? AbortSignal.any([childSignal, input.signal]) : childSignal,
           });
+          if (childSignal.aborted || input.signal?.aborted) throw new Error('Дочерняя операция отменена после выполнения Worker.');
 
           usedLiveLlm = true;
           agentOutcome.readFiles.forEach((p) => confirmedReadForWorker.add(p));

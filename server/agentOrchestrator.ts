@@ -404,6 +404,7 @@ export async function executeGeneralAgentTask(input: {
       throw error;
     }
 
+    if (input.signal?.aborted) throw new Error('Запрос отменён после ответа провайдера.');
     if (!response.ok) {
       const errorText = (await response.text()).slice(0, 500);
       input.onTrace?.({ ...providerTrace, outputSummary: `HTTP ${response.status} · ${errorText.slice(0, 180)}` }, 'failed', 'Провайдер вернул ошибку');
@@ -434,6 +435,7 @@ export async function executeGeneralAgentTask(input: {
         };
       }>;
     };
+    if (input.signal?.aborted) throw new Error('Запрос отменён после разбора ответа провайдера.');
     input.onTrace?.({ ...providerTrace, outputSummary: `HTTP ${response.status} · ответ получен` }, 'completed', 'Модель вернула ответ');
     const message = payload.choices?.[0]?.message;
     if (!message) throw new Error('Провайдер вернул ответ без сообщения.');
