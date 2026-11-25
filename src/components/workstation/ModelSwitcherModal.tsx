@@ -542,6 +542,26 @@ export const ModelSwitcherModal: React.FC = () => {
           </div>
         </header>
         {page === 'llama' && <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                    <div className="mb-3 flex min-h-5 items-center gap-2 text-[10px]" role="status" aria-live="polite">
+            {!checksFinished ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-500" />
+                <span className="text-zinc-600 dark:text-zinc-400">
+                  Статус проверки: {checkSteps.find((step) => step.state === 'checking')?.label ?? checkSteps[0]?.label}
+                </span>
+              </>
+            ) : checkSteps.some((step) => step.state === 'error') ? (
+              <>
+                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-rose-500" />
+                <span className="text-rose-600 dark:text-rose-400">Статус проверки: Проверка завершена с ошибками</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400">Статус проверки: Проверка завершена</span>
+              </>
+            )}
+          </div>
           <div className="mb-3 grid grid-cols-3 gap-2">
             {([
               { key: 'downloaded', label: 'СКАЧАН', Icon: Download },
@@ -565,26 +585,7 @@ export const ModelSwitcherModal: React.FC = () => {
               );
             })}
           </div>
-          <div className="mb-3 flex min-h-5 items-center gap-2 text-[10px]" role="status" aria-live="polite">
-            {!checksFinished ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-amber-500" />
-                <span className="text-zinc-600 dark:text-zinc-400">
-                  Статус проверки: {checkSteps.find((step) => step.state === 'checking')?.label ?? checkSteps[0]?.label}
-                </span>
-              </>
-            ) : checkSteps.some((step) => step.state === 'error') ? (
-              <>
-                <AlertCircle className="h-3.5 w-3.5 shrink-0 text-rose-500" />
-                <span className="text-rose-600 dark:text-rose-400">Статус проверки: Проверка завершена с ошибками</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                <span className="text-emerald-600 dark:text-emerald-400">Статус проверки: Проверка завершена</span>
-              </>
-            )}
-          </div>
+
         </div>}
         {page === "llama" && <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderFlatChoices(llamaGroups)}</div>}
         {page === "ollama" && <><div className="shrink-0">{renderLocalAiAppStatus('ollama', 'Ollama')}</div><div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">{renderProviderGroups(ollamaGroups)}</div></>}
