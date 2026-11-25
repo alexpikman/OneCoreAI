@@ -61,7 +61,7 @@ export function buildProvisionedWorkerContext(input: {
   const context = [
     '## Evidence Registry Worker',
     `Worker ID: ${input.workerId}`,
-    'Предоставленные фрагменты перечислены в Handoff (JSON). Они не являются самостоятельным чтением Worker и не добавляются в filesInspected.',
+    'Предоставленные фрагменты перечислены в Handoff (JSON). Они не являются подтверждением самостоятельного чтения Worker и не добавляются в filesInspected.',
     `Начальный контекст: ${initialChars} символов. Общий бюджет: ${MAX_WORKER_TOTAL_CHARS} символов.`,
     omittedFiles.length > 0
       ? `## Файлы и фрагменты, не включённые полностью\n${omittedFiles.map((file) => `- ${file.path}: ${file.reason}`).join('\n')}`
