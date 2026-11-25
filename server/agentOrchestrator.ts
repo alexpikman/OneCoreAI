@@ -196,7 +196,7 @@ async function executeTool(
   rawArguments: string,
   knowledgeRoot?: string,
   contextBudget?: { remainingChars: number },
-): Promise<{ content: string; readFiles: string[] }> {
+): Promise<{ content: string; readFiles: string[]; searchedFiles: string[] }> {
   const args = parseArguments(rawArguments);
 
   if (name === 'list_knowledge_documents') {
@@ -206,7 +206,7 @@ async function executeTool(
       .map(({ id, version, ownerRole, triggers, category, relativePath, title }) => ({
         id, version, ownerRole, triggers, category, relativePath, title,
       }));
-    return { content: JSON.stringify({ count: documents.length, documents }), readFiles: [] };
+    return { content: JSON.stringify({ count: documents.length, documents }), readFiles: [], searchedFiles: [] };
   }
 
   if (name === 'read_knowledge_document') {
@@ -223,6 +223,7 @@ async function executeTool(
         content: document.content,
       }),
       readFiles: [],
+      searchedFiles: [],
     };
   }
 
@@ -232,6 +233,7 @@ async function executeTool(
     return {
       content: JSON.stringify(files.map(({ path, language, sizeBytes }) => ({ path, language, sizeBytes }))),
       readFiles: [],
+      searchedFiles: [],
     };
   }
 
@@ -253,6 +255,7 @@ async function executeTool(
         truncated: content.length < file.content.length,
       }),
       readFiles: content.length > 0 ? [file.path] : [],
+      searchedFiles: [],
     };
   }
 
@@ -265,6 +268,7 @@ async function executeTool(
     return {
       content: JSON.stringify({ count: matches.length, matches }),
       readFiles: [],
+      searchedFiles: [...new Set(matches.map((match) => match.path))],
     };
   }
 
@@ -280,7 +284,7 @@ export async function executeGeneralAgentTask(input: {
   signal?: AbortSignal;
   onToolCall?: (name: string, status: 'running' | 'completed' | 'failed' | 'cancelled', summary: string, trace: AgentTraceMetadata) => void;
   onTrace?: (trace: AgentTraceMetadata, status: 'running' | 'completed' | 'failed' | 'cancelled', summary: string) => void;
-}): Promise<{ content: string; readFiles: string[]; toolCalls: number }> {
+}): Promise<{ content: string; readFiles: string[]; searchedFiles: string[]; toolCalls: number }> {
   const projectId = input.projectId.trim();
   if (!projectId) throw new Error('Для анализа кода необходимо подключить проект.');
   const baseUrl = input.provider.baseUrl.trim().replace(/\/+$/, '');
@@ -292,6 +296,7 @@ export async function executeGeneralAgentTask(input: {
     content: message.content,
   }));
   const readFiles = new Set<string>();
+  const searchedFiles = new Set<string>();
   const prompt = [...messages].reverse().find((message) => message.role === 'user')?.content ?? '';
   const initialContext = input.provisionedContext
     ? { context: input.provisionedContext.context, readFiles: [] as string[] }
@@ -424,7 +429,7 @@ export async function executeGeneralAgentTask(input: {
         }
         throw new Error('Модель продолжает выводить текстовые псевдовызовы инструментов. Итоговый отчёт не сформирован.');
       }
-      return { content, readFiles: [...readFiles], toolCalls: totalToolCalls };
+      return { content, readFiles: [...readFiles], searchedFiles: [...searchedFiles], toolCalls: totalToolCalls };
     }
 
     messages.push({
@@ -462,6 +467,7 @@ export async function executeGeneralAgentTask(input: {
       try {
         const result = await executeTool(projectId, toolName, call.function?.arguments ?? '{}', input.knowledgeRoot, contextBudget);
         result.readFiles.forEach((file) => readFiles.add(file));
+        result.searchedFiles.forEach((file) => searchedFiles.add(file));
         messages.push({ role: 'tool', tool_call_id: toolCallId, content: result.content });
         let completedTrace = { ...toolTrace, outputSummary: result.readFiles.length ? `Прочитано файлов: ${result.readFiles.length}` : 'Инструмент вернул результат' };
         if (toolName === 'read_knowledge_document') {

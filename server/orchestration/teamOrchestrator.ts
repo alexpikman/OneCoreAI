@@ -473,6 +473,7 @@ export async function runTeamExecution(input: {
       let workerResultRaw: WorkerResultContract;
       let usedLiveLlm = false;
       const confirmedReadForWorker = new Set<string>();
+      const confirmedSearchForWorker = new Set<string>();
 
       if (!provider) {
         globalLimitations.add(`Для роли «${contract.title}» не настроен провайдер/модель с активным подключением.`);
@@ -548,6 +549,7 @@ export async function runTeamExecution(input: {
 
           usedLiveLlm = true;
           agentOutcome.readFiles.forEach((p) => confirmedReadForWorker.add(p));
+          agentOutcome.searchedFiles.forEach((p) => confirmedSearchForWorker.add(p));
           const parsedWorker = tryExtractJsonObject<Partial<WorkerResultContract>>(agentOutcome.content);
 
           if (parsedWorker) {
@@ -639,7 +641,7 @@ export async function runTeamExecution(input: {
           instructionVersion: resultProtoDoc?.version ?? '1.0.0',
           providerId: provider?.providerId,
           modelId: provider?.model,
-          outputSummary: validation.ok ? `WorkerResult валиден (${finalWorkerResult.status})` : `Отклонены неподтверждённые утверждения: ${validation.errors.length}`,
+          outputSummary: `${validation.ok ? `WorkerResult валиден (${finalWorkerResult.status})` : `Отклонены неподтверждённые утверждения: ${validation.errors.length}`}; searched=${confirmedSearchForWorker.size}`,
         },
       });
 
