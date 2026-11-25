@@ -368,6 +368,11 @@ export async function runTeamExecution(input: {
         parentOperationId: rootOpId,
       });
 
+      const taskFilePaths = new Set(task.files);
+      const taskFilesManifest = taskFilePaths.size > 0
+        ? initialFilesManifest.filter((file) => taskFilePaths.has(file.path))
+        : initialFilesManifest;
+
       const handoff: AgentHandoffContract = {
         schemaVersion: 1,
         taskId: task.taskId,
@@ -386,7 +391,7 @@ export async function runTeamExecution(input: {
             `projectTools=${project.allowedTools.join(',') || 'none'}`,
           ],
         },
-        files: initialFilesManifest,
+        files: taskFilesManifest,
         findings: executedTasks.flatMap((prev) => prev.result.findings.slice(0, 3).map((f) => `[${prev.roleId}] ${f.statement}`)).slice(0, 20),
         completedSteps: executedTasks.map((prev) => `${prev.taskId} (${prev.roleId}): ${prev.result.status}`),
         unresolvedQuestions: [...globalQuestions].slice(0, 15),
@@ -457,7 +462,7 @@ export async function runTeamExecution(input: {
       const provider = await resolveRoleProvider(contract.roleKey);
       let workerResultRaw: WorkerResultContract;
       let usedLiveLlm = false;
-      const confirmedReadForWorker = new Set<string>(verifiedReadPaths);
+      const confirmedReadForWorker = new Set<string>();
 
       if (!provider) {
         globalLimitations.add(`Для роли «${contract.title}» не настроен провайдер/модель с активным подключением.`);
@@ -508,7 +513,11 @@ export async function runTeamExecution(input: {
               objective: handoff.objective,
               acceptanceCriteria: handoff.acceptanceCriteria,
               allowedCapabilities: handoff.allowedCapabilities,
-              files: handoff.files.map((f) => ({ path: f.path, evidence: f.evidence })),
+              files: handoff.files.map((f) => ({
+                path: f.path,
+                evidence: f.evidence,
+                ...(f.excerpts ? { excerpts: f.excerpts } : {}),
+              })),
               findingsFromPreviousRoles: handoff.findings,
             })}`,
             `ВЕРНИ СТРОГО ОДИН JSON-ОБЪЕКТ по схеме worker-result.v1.schema.json:\n` +
