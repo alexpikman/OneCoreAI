@@ -153,6 +153,7 @@ export const NAV_GROUPS: NavigationGroup[] = [
           { id: 'sub-directives', label: 'Системные указания', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'directives', initialSection: 'directives', agentFocus: 'directives' },
           { id: 'sub-instructions', label: 'Инструкции', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'instructions', initialSection: 'instructions', agentFocus: 'general' },
           { id: 'sub-roles', label: 'Роли', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'roles', initialSection: 'roles', agentFocus: 'roles' },
+          { id: 'sub-agent-tools', label: 'Инструменты агента', tab: 'models', section: 'roles-pipeline', generalAgentTab: 'tools', initialSection: 'tools', agentFocus: 'tools' },
         ],
       },
       {

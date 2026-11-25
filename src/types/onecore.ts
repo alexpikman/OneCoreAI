@@ -99,13 +99,14 @@ export type SettingsSectionId =
   | 'github-download'
   | 'updates';
 
-export type GeneralAgentTabId = 'permissions' | 'directives' | 'instructions' | 'roles';
+export type GeneralAgentTabId = 'permissions' | 'directives' | 'instructions' | 'roles' | 'tools';
 export type SubAgentsTabId = 'delegation' | 'team-execution' | 'registry';
 export type AgentTeamSectionId =
   | 'roles'
   | 'permissions'
   | 'directives'
   | 'instructions'
+  | 'tools'
   | 'pipeline'
   | 'delegation'
   | 'team-execution';
@@ -115,6 +116,7 @@ export type AgentTeamFocusId =
   | 'create-role'
   | 'permissions'
   | 'directives'
+  | 'tools'
   | 'pipeline'
   | 'orchestration'
   | 'control';

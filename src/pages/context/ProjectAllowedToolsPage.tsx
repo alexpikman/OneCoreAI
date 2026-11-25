@@ -13,6 +13,7 @@ const PROJECT_TOOL_CATALOG = [
   { id: 'list_files', label: 'list_files', desc: 'Просмотр дерева каталогов' },
   { id: 'write_file', label: 'write_file', desc: 'Запись и изменение файлов' },
   { id: 'run_command', label: 'run_command', desc: 'Запуск команд в терминале проекта' },
+  { id: 'git', label: 'git', desc: 'Операции Git в каталоге проекта' },
   { id: 'web_search', label: 'web_search', desc: 'Веб-поиск через браузерные инструменты' },
   { id: 'web_read', label: 'web_read', desc: 'Чтение веб-страниц по URL' },
 ];

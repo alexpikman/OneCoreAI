@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BookOpen, Bot, GitBranch, Shield, Sliders, UserCheck } from 'lucide-react';
+import { BookOpen, Bot, GitBranch, Shield, Sliders, UserCheck, Wrench } from 'lucide-react';
 import { AIResourcePageLayout as PageLayout } from '../../components/layout/AIResourcePageLayout';
 import { PageContent } from '../../components/layout/PageContent';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -7,6 +7,7 @@ import { SecondaryTabBar } from '../../components/layout/SecondaryTabBar';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { GeneralAgentTabId } from '../../types/onecore';
 import { AgentRolesPage } from './AgentRolesPage';
+import { AgentToolsRegistryPage } from './AgentToolsRegistryPage';
 import { DirectivesPage } from './DirectivesPage';
 import { GeneralAgentInstructionsPage } from './GeneralAgentInstructionsPage';
 import { PermissionsLibrarySection } from './PermissionsLibrarySection';
@@ -45,7 +46,20 @@ export const AgentTeamPage: React.FC<{ initialTab?: GeneralAgentTabId }> = ({ in
           ? 'directives'
           : nextTab === 'instructions'
             ? 'general'
-            : 'roles',
+            : nextTab === 'tools'
+              ? 'tools'
+              : 'roles',
+    );
+    setActiveNavSubItemId(
+      nextTab === 'permissions'
+        ? 'sub-permissions'
+        : nextTab === 'directives'
+          ? 'sub-directives'
+          : nextTab === 'instructions'
+            ? 'sub-instructions'
+            : nextTab === 'tools'
+              ? 'sub-agent-tools'
+              : 'sub-roles',
     );
   };
 
@@ -69,6 +83,7 @@ export const AgentTeamPage: React.FC<{ initialTab?: GeneralAgentTabId }> = ({ in
               { id: 'directives', label: 'Системные указания', icon: <Sliders className="h-3.5 w-3.5" /> },
               { id: 'instructions', label: 'Инструкции', icon: <BookOpen className="h-3.5 w-3.5" /> },
               { id: 'roles', label: 'Роли', icon: <UserCheck className="h-3.5 w-3.5" /> },
+              { id: 'tools', label: 'Инструменты агента', icon: <Wrench className="h-3.5 w-3.5" /> },
             ]}
             footer={
               <div className="mt-2 pb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] text-zinc-500 dark:text-zinc-400">
@@ -125,6 +140,7 @@ export const AgentTeamPage: React.FC<{ initialTab?: GeneralAgentTabId }> = ({ in
             {generalAgentTab === 'directives' && <DirectivesPage />}
             {generalAgentTab === 'instructions' && <GeneralAgentInstructionsPage />}
             {generalAgentTab === 'roles' && <AgentRolesPage />}
+            {generalAgentTab === 'tools' && <AgentToolsRegistryPage />}
           </div>
         </div>
       </PageContent>

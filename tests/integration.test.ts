@@ -480,6 +480,17 @@ test('remaining non-chat pages use the shared layout and explicit scroll ownersh
   assert.match(rolesSource, /DirectivesPage/);
   assert.match(rolesSource, /GeneralAgentInstructionsPage/);
   assert.match(rolesSource, /AgentRolesPage/);
+  assert.match(rolesSource, /AgentToolsRegistryPage/);
+  assert.match(rolesSource, /Инструменты агента/);
+
+  const permissionsPageSource = readSource('src/pages/settings/PermissionsPage.tsx');
+  assert.doesNotMatch(permissionsPageSource, /setPermissionPolicy|updateProjectAllowedTools/);
+  assert.match(permissionsPageSource, /General Agent → Разрешения/);
+  assert.match(permissionsPageSource, /Проекты → Разрешённые инструменты/);
+  assert.match(permissionsPageSource, /General Agent → Инструменты агента/);
+
+  const projectAllowedToolsSource = readSource('src/pages/context/ProjectAllowedToolsPage.tsx');
+  assert.match(projectAllowedToolsSource, /id: 'git'/);
 
   const subAgentsSource = readSource('src/pages/ai-resources/SubAgentsPage.tsx');
   assert.match(subAgentsSource, /<PageContent scrollable=\{false\}/);
@@ -4376,4 +4387,65 @@ test('Stage 6: v1 public contracts validate without orchestration-internal field
     { confirmedReadFiles: [], confirmedChecks: [] },
   );
   assert.equal(resultValidation.ok, true, resultValidation.errors.join('; '));
+});
+
+test('tools registry exposes all system tools with subagent links, (SYS) single-subagent flags, and verified doc/entity schemas', async () => {
+  const res = await jsonReq<{
+    ok: boolean;
+    tools: Array<{
+      toolId: string;
+      isSysSingleSubagent: boolean;
+      sysDelegatedFrom: string | null;
+      subagentAccess: Array<{ roleKey: string; knowledgeDocId: string }>;
+      interactionSchema: {
+        operationId: string;
+        flowSteps: string[];
+        documentBindings: Array<{ path: string; verifiedOnDisk: boolean }>;
+        entityBindings: Array<{ entityType: string; name: string; path: string }>;
+      };
+    }>;
+    summary: {
+      totalTools: number;
+      sysSingleSubagentCount: number;
+    };
+  }>('/api/tools/registry');
+
+  assert.equal(res.status, 200);
+  assert.equal(res.data.ok, true);
+  assert.ok(res.data.tools.length >= 16);
+  assert.equal(res.data.summary.totalTools, res.data.tools.length);
+
+  const byId = new Map(res.data.tools.map((tool) => [tool.toolId, tool]));
+  const approveGraph = byId.get('approve_graph');
+  const decomposeTasks = byId.get('decompose_tasks');
+  const readFile = byId.get('read_project_file');
+
+  assert.ok(approveGraph);
+  assert.equal(approveGraph.isSysSingleSubagent, true);
+  assert.deepEqual(approveGraph.subagentAccess.map((s) => s.roleKey), ['manager']);
+  assert.ok(approveGraph.sysDelegatedFrom);
+
+  assert.ok(decomposeTasks);
+  assert.equal(decomposeTasks.isSysSingleSubagent, true);
+  assert.deepEqual(decomposeTasks.subagentAccess.map((s) => s.roleKey), ['dispatcher']);
+  assert.ok(decomposeTasks.sysDelegatedFrom);
+
+  assert.ok(readFile);
+  assert.equal(readFile.isSysSingleSubagent, false);
+  assert.equal(readFile.subagentAccess.length, 10);
+
+  for (const tool of res.data.tools) {
+    assert.equal(
+      tool.isSysSingleSubagent,
+      tool.subagentAccess.length === 1,
+      `Tool ${tool.toolId} (SYS) flag must strictly reflect single-subagent access`,
+    );
+    assert.ok(tool.interactionSchema.operationId.length > 0);
+    assert.ok(tool.interactionSchema.flowSteps.length > 0);
+    assert.ok(tool.interactionSchema.documentBindings.length > 0, `Tool ${tool.toolId} must bind to docs`);
+    assert.ok(tool.interactionSchema.entityBindings.length > 0, `Tool ${tool.toolId} must bind to entities`);
+    for (const doc of tool.interactionSchema.documentBindings) {
+      assert.equal(doc.verifiedOnDisk, true, `Document binding ${doc.path} on ${tool.toolId} must exist on disk`);
+    }
+  }
 });

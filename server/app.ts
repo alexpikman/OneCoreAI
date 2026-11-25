@@ -65,6 +65,7 @@ import { runTeamExecution } from './orchestration/teamOrchestrator';
 import { ROLE_CONTRACTS } from './orchestration/roleContracts';
 import { inspectMcpServer } from './orchestration/mcpInspector';
 import { runLifecycleHooks } from './orchestration/hookRunner';
+import { buildAgentToolsRegistry } from './orchestration/toolsRegistry';
 import { getOneCoreHome } from './paths';
 import { BUILTIN_NAVIGATION_ICON_IDS, getBuiltInComponentRegistry, validateBuiltInComponentRegistry } from '../src/data/componentRegistry';
 import { createDefaultNavigationLayout, validateNavigationLayout } from '../src/data/navigationLayout';
@@ -579,6 +580,16 @@ export function createApiApp(rootDir: string = process.cwd()): express.Express {
       res.json({ ok: true, roles });
     } catch (error) {
       res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось загрузить реестр ролей агентов.' });
+    }
+  });
+
+  app.get('/api/tools/registry', (_req, res) => {
+    try {
+      const registry = buildAgentToolsRegistry(rootDir);
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ ok: true, ...registry });
+    } catch (error) {
+      res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Не удалось загрузить реестр инструментов агентов.' });
     }
   });
 

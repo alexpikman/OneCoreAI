@@ -151,7 +151,7 @@ interface OneCoreStore {
   uiStyle: UiStylePreset;
   settingsSection: SettingsSectionId;
   sshGithubSection: SshGithubSectionId;
-  agentTeamSection: 'roles' | 'permissions' | 'directives' | 'instructions' | 'pipeline' | 'delegation' | 'team-execution';
+  agentTeamSection: 'roles' | 'permissions' | 'directives' | 'instructions' | 'tools' | 'pipeline' | 'delegation' | 'team-execution';
   generalAgentTab: GeneralAgentTabId;
   subAgentsTab: SubAgentsTabId;
   activeNavSubItemId: string | null;
@@ -309,7 +309,7 @@ interface OneCoreStore {
   openSettingsSection: (section: SettingsSectionId) => void;
   setSettingsSection: (section: SettingsSectionId) => void;
   setSshGithubSection: (section: SshGithubSectionId) => void;
-  setAgentTeamSection: (section: 'roles' | 'permissions' | 'directives' | 'instructions' | 'pipeline' | 'delegation' | 'team-execution') => void;
+  setAgentTeamSection: (section: 'roles' | 'permissions' | 'directives' | 'instructions' | 'tools' | 'pipeline' | 'delegation' | 'team-execution') => void;
   setGeneralAgentTab: (tab: GeneralAgentTabId) => void;
   setSubAgentsTab: (tab: SubAgentsTabId) => void;
   setActiveNavSubItemId: (id: string | null) => void;
