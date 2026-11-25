@@ -352,7 +352,7 @@ export async function runTeamExecution(input: {
 
     // Execute specialists strictly sequentially
     for (const task of plannedSubtasks) {
-      if ((needsMoreContextRetries.get(task.taskId) ?? 0) >= 2) {
+      if ((needsMoreContextRetries.get(task.taskId) ?? 0) > 2) {
         globalLimitations.add(`Подзадача ${task.taskId} достигла лимита повторных запросов контекста (2).`);
         continue;
       }
