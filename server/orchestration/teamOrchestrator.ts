@@ -34,7 +34,19 @@ export function registerNeedsMoreContextRetry(
   return { retryAllowed: true, retryCount: nextRetryCount };
 }
 
-interface PlannedSubtask {
+export function prioritizePendingContextRetries<T extends { taskId: string }>(
+  plannedTasks: T[],
+  pendingRetries: Map<string, T>,
+  limit = MAX_TASKS_PER_CYCLE,
+): T[] {
+  if (pendingRetries.size === 0) return plannedTasks.slice(0, limit);
+  const pending = [...pendingRetries.values()];
+  pendingRetries.clear();
+  const pendingIds = new Set(pending.map((task) => task.taskId));
+  return [...pending, ...plannedTasks.filter((task) => !pendingIds.has(task.taskId))].slice(0, limit);
+}
+
+export interface PlannedSubtask {
   taskId: string;
   roleKey: string;
   objective: string;
@@ -269,6 +281,7 @@ export async function runTeamExecution(input: {
   const globalQuestions = new Set<string>();
   let cyclesExecuted = 0;
   const needsMoreContextRetries = new Map<string, number>();
+  const pendingContextRetries = new Map<string, PlannedSubtask>();
 
   for (let cycle = 1; cycle <= maxCycles; cycle += 1) {
     if (input.signal?.aborted) {
@@ -353,6 +366,8 @@ export async function runTeamExecution(input: {
         files: initialFilesManifest.map((f) => f.path),
       }));
     }
+
+    plannedSubtasks = prioritizePendingContextRetries(plannedSubtasks, pendingContextRetries);
 
     recordAgentEvent({
       operationId: rootOpId,
@@ -661,6 +676,8 @@ export async function runTeamExecution(input: {
             limitations: [...finalWorkerResult.limitations, limitation],
           };
           globalLimitations.add(limitation);
+        } else {
+          pendingContextRetries.set(task.taskId, task);
         }
       }
       finalWorkerResult.filesInspected.forEach((p) => verifiedReadPaths.add(p));

@@ -39,7 +39,7 @@ import {
   MAX_HANDOFF_EXCERPT_CHARS,
   MAX_WORKER_TOTAL_CHARS,
 } from '../server/orchestration/contextBuilder';
-import { registerNeedsMoreContextRetry } from '../server/orchestration/teamOrchestrator';
+import { prioritizePendingContextRetries, registerNeedsMoreContextRetry } from '../server/orchestration/teamOrchestrator';
 import {
   createAppearanceStylesheet,
   DEFAULT_APPEARANCE_TOKENS,
@@ -4211,6 +4211,15 @@ test('Stage 5: needs_more_context permits exactly two retries per taskId', () =>
   assert.deepEqual(registerNeedsMoreContextRetry('stage5-task', retryCounts), { retryAllowed: false, retryCount: 2 });
   assert.equal(retryCounts.get('stage5-task'), 2);
   assert.deepEqual(registerNeedsMoreContextRetry('other-task', retryCounts), { retryAllowed: true, retryCount: 1 });
+
+  const originalTask = { taskId: 'stable-task', roleKey: 'qa', objective: 'Retry same task', acceptanceCriteria: ['same criteria'], files: ['src/a.ts'] };
+  const pending = new Map([[originalTask.taskId, originalTask]]);
+  const replanned = [{ taskId: 'new-task', roleKey: 'researcher', objective: 'New task', acceptanceCriteria: [], files: [] }];
+  const nextCycle = prioritizePendingContextRetries(replanned, pending);
+  assert.equal(nextCycle[0], originalTask);
+  assert.equal(nextCycle[0].taskId, 'stable-task');
+  assert.equal(nextCycle[0].files[0], 'src/a.ts');
+  assert.equal(pending.size, 0);
 });
 
 test('Stage 5: cancelling one child operation does not cancel its parent or sibling', () => {
