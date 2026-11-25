@@ -77,6 +77,7 @@ export const CenterAgentPane: React.FC = () => {
     activeProviderId,
     roles,
     activeRoleId,
+    enabledRoleIds,
     agentActivity,
     modelSource,
     tokensPerSec,
@@ -103,7 +104,7 @@ export const CenterAgentPane: React.FC = () => {
   const activeModel = localModels.find((m) => m.id === activeModelId);
   const activeProvider =
     freeProviders.find((p) => p.id === activeProviderId) ?? freeProviders[0];
-  const activeRole = roles.find((role) => role.id === activeRoleId) ?? roles[0];
+  const activeRole = enabledRoleIds.length > 0 ? roles.find((role) => role.id === activeRoleId) : undefined;
   const activeModelName =
     modelSource === 'llama-server' && activeModel ? activeModel.filename : activeProvider.selectedModel;
   const latestCheckpoint = checkpoints[0];
