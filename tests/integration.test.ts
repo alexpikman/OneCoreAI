@@ -3951,7 +3951,7 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
   fs.writeFileSync(path.join(projectDir, 'src', 'stage2-ignored.ts'), 'export const ignored = true;\n', 'utf-8');
 
   for (const filename of ['a', 'b', 'c', 'd', 'e', 'f', 'g']) {
-    fs.writeFileSync(path.join(projectDir, 'src', `${filename}.ts`), `export const ${filename} = true;\\n`, 'utf-8');
+    fs.writeFileSync(path.join(projectDir, 'src', `${filename}.ts`), `export const ${filename} = true;\n`, 'utf-8');
   }
 
   let workerPrompt = '';
@@ -4055,7 +4055,8 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
       runRes.data.tasks[0].handoff.files[0].excerpts?.[0]?.content.includes('stage2 excerpt content'),
       true,
     );
-    assert.match(workerPrompt, /stage2 excerpt content/);\n    assert.equal(runRes.data.tasks[0].validationOk, false);\n    assert.equal(runRes.data.tasks[0].result.filesInspected.includes('src/e.ts'), false);
+    assert.match(workerPrompt, /stage2 excerpt content/);
+    assert.equal(runRes.data.tasks[0].validationOk, false);\n    assert.equal(runRes.data.tasks[0].result.filesInspected.includes('src/e.ts'), false);
   } finally {
     if (projectId) {
       await jsonReq(`/api/projects/${encodeURIComponent(projectId)}`, {
