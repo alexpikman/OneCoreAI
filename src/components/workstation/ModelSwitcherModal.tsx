@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Check, CheckCircle2, Circle, Cloud, Cpu, Loader2, Server, X } from 'lucide-react';
+import { AlertCircle, Check, CheckCircle2, Circle, Cloud, Cpu, Download, Loader2, PackageCheck, PlayCircle, Server, X } from 'lucide-react';
 import { useOneCoreStore } from '../../store/useOneCoreStore';
 import type { FreeProviderProfile, LocalModel } from '../../types/onecore';
 import { apiFetch } from '../../utils/apiFetch';
@@ -454,23 +454,63 @@ export const ModelSwitcherModal: React.FC = () => {
             </nav>
           </div>
         </header>
+        <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              {checksFinished ? 'Проверка завершена' : 'Выполняется проверка…'}
+            </span>
+          </div>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            {([
+              { key: 'downloaded', label: 'СКАЧАН', Icon: Download },
+              { key: 'installed', label: 'УСТАНОВЛЕН', Icon: PackageCheck },
+              { key: 'running', label: 'ЗАПУЩЕН', Icon: PlayCircle },
+            ] as const).map(({ key, label, Icon }) => {
+              const value = llamaChecks?.[key];
+              const checking = checkSteps.some((step) => step.state === 'checking');
+              const stateClass = value === true
+                ? 'text-emerald-600 drop-shadow-[0_0_7px_rgba(16,185,129,0.55)] dark:text-emerald-400'
+                : value === false
+                  ? 'text-rose-600 dark:text-rose-400'
+                  : checking
+                    ? 'animate-pulse text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.65)]'
+                    : 'text-zinc-300 opacity-60 dark:text-zinc-600';
+              return (
+                <div key={key} className="flex flex-col items-center gap-1 rounded-lg bg-zinc-50 px-2 py-2 dark:bg-zinc-900/70">
+                  <span className="text-[9px] font-semibold tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
+                  <Icon className={`h-5 w-5 transition-colors ${stateClass}`} aria-label={value === true ? `${label}: успешно` : value === false ? `${label}: не выполнено` : `${label}: проверяется`} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="space-y-1.5">
+            {checkSteps.map((step, index) => {
+              const StepIcon = step.state === 'success' ? CheckCircle2
+                : step.state === 'error' ? AlertCircle
+                  : step.state === 'checking' ? Loader2 : Circle;
+              return (
+                <div key={index} className="flex items-start gap-2 text-[10px]">
+                  <span className="min-w-0 flex-1 text-zinc-600 dark:text-zinc-400">{step.label}</span>
+                  <StepIcon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${
+                    step.state === 'success' ? 'text-emerald-600 dark:text-emerald-400'
+                      : step.state === 'error' ? 'text-rose-600 dark:text-rose-400'
+                        : step.state === 'checking' ? 'animate-spin text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.7)]'
+                          : 'text-zinc-300 dark:text-zinc-600'
+                  }`} />
+                </div>
+              );
+            })}
+          </div>
+          {llamaChecks?.version && (
+            <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>
+              {llamaChecks.version} · {llamaChecks.executablePath}
+            </p>
+          )}
+        </div>
 
         {page === 'local' && (
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-            <section className="rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <h3 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Состояние llama-server</h3>
-                <span className={`text-[10px] font-bold ${checksFinished && llamaChecks?.running ? 'text-emerald-600 dark:text-emerald-400' : checksFinished ? 'text-rose-600 dark:text-rose-400' : 'text-amber-500'}`}>{!checksFinished ? 'ПРОВЕРКА…' : llamaChecks?.running ? 'ONLINE' : 'OFFLINE'}</span>
-              </div>
-              <div className="flex items-center gap-x-3 overflow-x-auto whitespace-nowrap">
-                {checkSteps.map((step, index) => {
-                  const StepIcon = step.state === 'success' ? CheckCircle2 : step.state === 'error' ? AlertCircle : step.state === 'checking' ? Loader2 : Circle;
-                  return <span key={index} title={step.detail || step.label} className="inline-flex items-center gap-1 text-[10px] text-zinc-600 dark:text-zinc-400"><StepIcon className={`h-3 w-3 ${step.state === 'success' ? 'text-emerald-500' : step.state === 'error' ? 'text-rose-500' : step.state === 'checking' ? 'animate-spin text-amber-500' : 'text-zinc-400'}`} />{step.label.replace(/…$/, '')}</span>;
-                })}
-              </div>
-              {!llamaChecks?.running && checksFinished && <p className="mt-2 text-[10px] text-rose-600 dark:text-rose-400">{checkSteps.find((step) => step.state === 'error')?.detail || 'llama-server не запущен.'}</p>}
-              {llamaChecks?.version && <p className="mt-2 truncate text-[10px] text-zinc-500 dark:text-zinc-400" title={llamaChecks.executablePath ?? undefined}>{llamaChecks.version} · {llamaChecks.executablePath}</p>}
-            </section>
             <div className="flex flex-wrap items-center gap-2">{providerStatusButton(ollamaProvider, 'Ollama')}{providerStatusButton(lmStudioProvider, 'LM Studio')}</div>
             {!checksFinished ? <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-zinc-500 dark:text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" />Определение доступных моделей…</div> : renderProviderGroups(localGroups)}
           </div>
