@@ -4011,7 +4011,7 @@ test('Stage 2: Dispatcher task files and excerpts reach the Worker handoff', asy
 
   let projectId = '';
   try {
-    await configureTestProvider('stage2-context-provider', `http://127.0.0.1:${address.port}/v1`, '', ['stage2-test-model']);
+    await configureTestProvider('stage2-context-provider', `http://127.0.0.1:${address.port}/v1`, 'stage2-test-key', ['stage2-test-model']);
 
     const createRes = await jsonReq<{ ok: boolean; project: { id: string }; error?: string }>('/api/projects', {
       method: 'POST',
