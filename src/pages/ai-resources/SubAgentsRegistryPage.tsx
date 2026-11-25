@@ -213,7 +213,7 @@ export const SubAgentsRegistryPage: React.FC = () => {
                         Ответственность, правила и ограничения
                       </summary>
                       <div className="mt-3 rounded-lg bg-zinc-50 p-3 dark:bg-zinc-900/60">
-                        <MarkdownLite content={getDocumentBody(document.content as string)} />
+                        <MarkdownLite content={getDocumentBody(document?.content ?? '')} />
                       </div>
                     </details>
                   ) : (
