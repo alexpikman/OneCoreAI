@@ -45,9 +45,9 @@ export function buildProvisionedWorkerContext(input: {
         omittedFiles.push({ path: file.path, reason: 'Фрагмент усечён лимитом 6 000 символов на файл или общим лимитом handoff.' });
       }
     }
-    files.push({ ...file, ...(excerpts.length > 0 ? { excerpts } : { excerpts: undefined }) });
+    files.push({ ...file, ...(excerpts.length > 0 ? { excerpts } : {}) });
     if (excerpts.length > 0) providedFiles.push(file.path);
-    else if (!(file.excerpts?.length)) {
+    else {
       omittedFiles.push({ path: file.path, reason: 'В handoff отсутствует содержимое файла; требуется самостоятельное чтение Worker.' });
     }
   }
